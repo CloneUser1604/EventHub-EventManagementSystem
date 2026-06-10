@@ -1,50 +1,134 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider, App as AntdApp } from 'antd';
+import viVN from 'antd/locale/vi_VN';
+import useAuthStore from './store/authStore';
+import './styles/global.css';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Unauthorized from './pages/Unauthorized';
-import Home from './pages/Home';
+// Auth
+import LoginPage        from './pages/auth/LoginPage';
+import RegisterPage     from './pages/auth/RegisterPage';
+import VerifyEmailPage  from './pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage, ResetPasswordPage } from './pages/auth/PasswordPages';
 
-// Dashboard
-import AdminDashboard from './pages/dashboards/AdminDashboard';
-import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
-import UserDashboard from './pages/dashboards/UserDashboard';
-import SpeakerDashboard from './pages/dashboards/SpeakerDashboard';
-import StaffDashboard from './pages/dashboards/StaffDashboard';
+// Public
+import HomePage      from './pages/home/HomePage';
+import EventListPage from './pages/events/EventListPage';
+import EventDetailPage from './pages/events/EventDetailPage';
 
-// Tạo Sự Kiện
-import CreateEvent from './pages/organizer/CreateEvent';
+// Participant
+import MyCalendarPage from './pages/participant/MyCalendarPage';
 
-import { ProtectedRoute } from './routes/ProtectedRoute';
+// Organizer
+import OrganizerEventsPage from './pages/organizer/OrganizerEventsPage';
+import EventFormPage       from './pages/organizer/EventFormPage';
+
+// Admin
+import AdminDashboard from './pages/admin/AdminDashboard';
+
+// Guards
+import ProtectedRoute from './components/ui/ProtectedRoute';
+
+const antdTheme = {
+  token: {
+    colorPrimary: '#2563eb',
+    colorLink: '#2563eb',
+    borderRadius: 8,
+    fontFamily: "'DM Sans', -apple-system, sans-serif",
+    fontSize: 15,
+  },
+};
+
+const Unauthorized = () => (
+  <div style={{ textAlign: 'center', padding: '120px 24px', fontFamily: 'DM Sans,sans-serif' }}>
+    <div style={{ fontSize: 64, marginBottom: 16 }}>🚫</div>
+    <h2 style={{ fontFamily: 'Sora,sans-serif' }}>Không có quyền truy cập</h2>
+    <p style={{ color: '#6b7280' }}>Bạn không có quyền truy cập trang này.</p>
+  </div>
+);
+
+const NotFound = () => (
+  <div style={{ textAlign: 'center', padding: '120px 24px', fontFamily: 'DM Sans,sans-serif' }}>
+    <div style={{ fontSize: 64, marginBottom: 16 }}>🔍</div>
+    <h2 style={{ fontFamily: 'Sora,sans-serif' }}>404 — Không tìm thấy trang</h2>
+  </div>
+);
 
 function App() {
+  const { isAuthenticated, fetchMe, accessToken, user } = useAuthStore();
+
+  useEffect(() => {
+    if (accessToken) fetchMe();
+  }, []);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+    <ConfigProvider locale={viVN} theme={antdTheme}>
+      <AntdApp>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          {/* ── Public ── */}
+          <Route path="/"        element={<HomePage />} />
+          <Route path="/events"  element={<EventListPage />} />
+          <Route path="/events/:id" element={<EventDetailPage />} />
 
-        {/* Dashboard Routes bọc bảo vệ */}
-        <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['Admin']}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/organizer/*" element={<ProtectedRoute allowedRoles={['Organizer']}><OrganizerDashboard /></ProtectedRoute>} />
-        <Route path="/user/*" element={<ProtectedRoute allowedRoles={['User']}><UserDashboard /></ProtectedRoute>} />
-        <Route path="/speaker/*" element={<ProtectedRoute allowedRoles={['Speaker']}><SpeakerDashboard /></ProtectedRoute>} />
-        <Route path="/staff/*" element={<ProtectedRoute allowedRoles={['Staff']}><StaffDashboard /></ProtectedRoute>} />
+          {/* ── Auth ── */}
+          <Route path="/login"           element={<LoginPage />} />
+          <Route path="/register"        element={<RegisterPage />} />
+          <Route path="/verify-email"    element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
-        {/* Tạo Sự Kiện */}
-        <Route path="/organizer/create-event" element={
-          <ProtectedRoute allowedRoles={['Organizer']}>
-            <CreateEvent />
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </Router>
+          {/* ── Participant ── */}
+          <Route path="/my-calendar" element={
+            <ProtectedRoute roles={['Participant']}>
+              <MyCalendarPage />
+            </ProtectedRoute>
+          } />
+
+          {/* ── Organizer ── */}
+          <Route path="/organizer/events" element={
+            <ProtectedRoute roles={['Organizer', 'Admin']}>
+              <OrganizerEventsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/organizer/events/create" element={
+            <ProtectedRoute roles={['Organizer', 'Admin']}>
+              <EventFormPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/organizer/events/:id/edit" element={
+            <ProtectedRoute roles={['Organizer', 'Admin']}>
+              <EventFormPage />
+            </ProtectedRoute>
+          } />
+
+          {/* ── Admin ── */}
+          <Route path="/admin" element={
+            <ProtectedRoute roles={['Admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/*" element={
+            <ProtectedRoute roles={['Admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* ── Misc ── */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/dashboard" element={
+            <Navigate to={
+              user?.role === 'Admin' ? '/admin'
+              : user?.role === 'Organizer' ? '/organizer/events'
+              : user?.role === 'Participant' ? '/my-calendar'
+              : '/'
+            } replace />
+          } />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+      </AntdApp>
+    </ConfigProvider>
   );
 }
 

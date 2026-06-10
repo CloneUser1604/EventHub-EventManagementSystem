@@ -37,8 +37,6 @@ const register = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const verifyToken = crypto.randomBytes(32).toString('hex');
-    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const insertResult = await pool.request()
       .input('FullName', sql.NVarChar(150), fullName)
@@ -46,12 +44,10 @@ const register = async (req, res) => {
       .input('PasswordHash', sql.VarChar(255), passwordHash)
       .input('Role', sql.VarChar(20), role)
       .input('Phone', sql.VarChar(20), phone || null)
-      .input('VerifyToken', sql.VarChar(255), verifyToken)
-      .input('VerifyTokenExpiry', sql.DateTime, verifyTokenExpiry)
       .query(`
-        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, VerifyToken, VerifyTokenExpiry)
+        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, IsVerified, IsActive)
         OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email, INSERTED.Role, INSERTED.CreatedAt
-        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, @VerifyToken, @VerifyTokenExpiry)
+        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, 1, 1)
       `);
 
     const newUser = insertResult.recordset[0];
@@ -71,16 +67,28 @@ const register = async (req, res) => {
           INSERT INTO OrganizerProfiles (UserID, OrganizationName, DocumentURL, ApprovalStatus)
           VALUES (@UserID, @OrganizationName, @DocumentURL, 'Pending')
         `);
+
+      // Notify all admins immediately
+      const admins = await pool.request()
+        .query(`SELECT UserID FROM Users WHERE Role = 'Admin' AND IsActive = 1`);
+      for (const admin of admins.recordset) {
+        await pool.request()
+          .input('AdminID', sql.Int, admin.UserID)
+          .input('Title', sql.NVarChar(300), '🏢 Ban tổ chức mới cần phê duyệt')
+          .input('Message', sql.NVarChar(sql.MAX), `${fullName} (${organizationName}) đã đăng ký tài khoản Ban tổ chức. Vui lòng xem xét hồ sơ trong Admin Dashboard.`)
+          .input('Type', sql.VarChar(30), 'General')
+          .query(`INSERT INTO Notifications (UserID,Title,Message,Type) VALUES (@AdminID,@Title,@Message,@Type)`);
+      }
     }
 
-    sendVerificationEmail(email, fullName, verifyToken).catch(console.error);
+    // No email verification needed — account is active immediately
 
     return createdResponse(
       res,
       { userId: newUser.UserID, email: newUser.Email, role: newUser.Role },
       role === 'Organizer'
-        ? 'Đăng ký thành công! Vui lòng xác thực email. Tài khoản ban tổ chức sẽ được Admin phê duyệt sau khi bạn xác thực email.'
-        : 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.'
+        ? 'Đăng ký thành công! Tài khoản ban tổ chức đang chờ Admin phê duyệt. Bạn có thể đăng nhập nhưng cần được duyệt để tạo sự kiện.'
+        : 'Đăng ký thành công! Bạn có thể đăng nhập ngay.'
     );
   } catch (error) {
     // Xoá file đã upload nếu có lỗi
@@ -94,48 +102,9 @@ const register = async (req, res) => {
   }
 };
 
-// ─── VERIFY EMAIL ─────────────────────────────────────────────
+// ─── VERIFY EMAIL (disabled — no email verification needed) ───
 const verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.query;
-    if (!token) return errorResponse(res, 'Token không hợp lệ', 400);
-    const pool = getPool();
-
-    const result = await pool.request()
-      .input('Token', sql.VarChar(255), token)
-      .query(`SELECT UserID, FullName, Email, Role, IsVerified, VerifyTokenExpiry FROM Users WHERE VerifyToken = @Token`);
-
-    const user = result.recordset[0];
-    if (!user) return errorResponse(res, 'Token không hợp lệ hoặc đã hết hạn', 400);
-    if (user.IsVerified) return successResponse(res, null, 'Email đã được xác thực trước đó');
-    if (new Date() > new Date(user.VerifyTokenExpiry)) {
-      return errorResponse(res, 'Token đã hết hạn. Vui lòng yêu cầu gửi lại email xác thực.', 400);
-    }
-
-    await pool.request()
-      .input('UserID', sql.Int, user.UserID)
-      .query(`UPDATE Users SET IsVerified = 1, VerifyToken = NULL, VerifyTokenExpiry = NULL, UpdatedAt = GETDATE() WHERE UserID = @UserID`);
-
-    // Thông báo admin nếu là Organizer vừa xác thực email
-    if (user.Role === 'Organizer') {
-      const admins = await pool.request()
-        .query(`SELECT UserID FROM Users WHERE Role = 'Admin' AND IsActive = 1`);
-      for (const admin of admins.recordset) {
-        await pool.request()
-          .input('UserID', sql.Int, admin.UserID)
-          .input('Title', sql.NVarChar(300), 'Ban tổ chức mới cần phê duyệt')
-          .input('Message', sql.NVarChar(sql.MAX), `${user.FullName} đã đăng ký tài khoản Ban tổ chức và xác thực email. Vui lòng xem xét hồ sơ.`)
-          .input('Type', sql.VarChar(30), 'General')
-          .query(`INSERT INTO Notifications (UserID, Title, Message, Type) VALUES (@UserID, @Title, @Message, @Type)`);
-      }
-    }
-
-    sendWelcomeEmail(user.Email, user.FullName).catch(console.error);
-    return successResponse(res, { role: user.Role }, 'Xác thực email thành công! Bạn có thể đăng nhập ngay.');
-  } catch (error) {
-    console.error('Verify email error:', error);
-    return errorResponse(res, 'Xác thực email thất bại');
-  }
+  return successResponse(res, null, 'Xác thực email không cần thiết. Tài khoản đã được kích hoạt.');
 };
 
 // ─── RESEND VERIFICATION ──────────────────────────────────────
@@ -171,6 +140,7 @@ const resendVerification = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`\n🔐 [LOGIN] email="${email}" | time=${new Date().toISOString()}`);
     const pool = getPool();
 
     const result = await pool.request()
@@ -181,13 +151,28 @@ const login = async (req, res) => {
               WHERE u.Email = @Email`);
 
     const user = result.recordset[0];
-    if (!user) return unauthorizedResponse(res, 'Email hoặc mật khẩu không đúng');
-    if (!user.IsActive) return unauthorizedResponse(res, 'Tài khoản đã bị vô hiệu hóa');
+
+    if (!user) {
+      console.log(`  ❌ No user found for email: ${email}`);
+      return unauthorizedResponse(res, 'Email hoặc mật khẩu không đúng');
+    }
+    console.log(`  ✅ Found: UserID=${user.UserID} Role=${user.Role} IsActive=${user.IsActive} IsVerified=${user.IsVerified}`);
+
+    if (!user.IsActive) {
+      console.log(`  ❌ Account inactive`);
+      return unauthorizedResponse(res, 'Tài khoản đã bị vô hiệu hóa');
+    }
 
     const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
-    if (!isPasswordValid) return unauthorizedResponse(res, 'Email hoặc mật khẩu không đúng');
-    if (!user.IsVerified) return unauthorizedResponse(res, 'Vui lòng xác thực email trước khi đăng nhập');
+    console.log(`  🔑 bcrypt.compare result: ${isPasswordValid}`);
+    console.log(`  🔑 Hash prefix in DB: ${user.PasswordHash ? user.PasswordHash.substring(0,29) : 'NULL'}`);
 
+    if (!isPasswordValid) {
+      console.log(`  ❌ Wrong password`);
+      return unauthorizedResponse(res, 'Email hoặc mật khẩu không đúng');
+    }
+
+    console.log(`  ✅ LOGIN SUCCESS: ${email} (${user.Role})`);
     // Organizer chưa được duyệt vẫn đăng nhập được nhưng trả thêm cờ
     const tokenPayload = { userId: user.UserID, email: user.Email, role: user.Role };
     const accessToken = generateAccessToken(tokenPayload);
@@ -598,10 +583,35 @@ const getPendingSpeakers = async (req, res) => {
   }
 };
 
+
+// ─── ADMIN: tất cả Organizer (pending + approved + rejected) ──
+const getAllOrganizers = async (req, res) => {
+  try {
+    const pool = getPool();
+    const result = await pool.request().query(`
+      SELECT op.OrganizerProfileID, op.OrganizationName, op.DocumentURL,
+             op.ApprovalStatus, op.CreatedAt, op.RejectionReason, op.ApprovedAt,
+             u.UserID, u.FullName, u.Email, u.Phone, u.IsActive
+      FROM OrganizerProfiles op
+      JOIN Users u ON op.UserID = u.UserID
+      ORDER BY
+        CASE op.ApprovalStatus WHEN 'Pending' THEN 0 WHEN 'Approved' THEN 1 ELSE 2 END,
+        op.CreatedAt DESC
+    `);
+    const organizers = result.recordset.map(row => ({
+      ...row,
+      documents: (() => { try { return JSON.parse(row.DocumentURL || '[]'); } catch { return []; } })(),
+    }));
+    return successResponse(res, organizers);
+  } catch (error) {
+    return errorResponse(res, 'Lấy danh sách ban tổ chức thất bại');
+  }
+};
+
 module.exports = {
   register, verifyEmail, resendVerification,
   login, refreshToken, logout, getMe,
   forgotPassword, resetPassword, changePassword,
   createSpeaker, approveSpeaker,
-  approveOrganizer, getPendingOrganizers, getPendingSpeakers,
+  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers,
 };

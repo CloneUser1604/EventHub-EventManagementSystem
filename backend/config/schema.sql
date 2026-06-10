@@ -329,17 +329,11 @@ CREATE TABLE EventSponsors (
 
 -- ============================================================
 -- SEED: Default Admin
--- Password: Admin@123 (bcrypt hashed, rounds=10)
+-- ⚠️  KHÔNG insert hash thủ công ở đây vì dễ sai.
+--    Sau khi tạo bảng xong, chạy lệnh sau để tạo admin đúng:
+--      node scripts/seed-admin.js
 -- ============================================================
-INSERT INTO Users (FullName, Email, PasswordHash, Role, IsActive, IsVerified)
-VALUES (
-  N'System Administrator',
-  'admin@ems.edu.vn',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVnT84VUC2',  -- Admin@123
-  'Admin',
-  1,
-  1
-);
+-- (Admin sẽ được tạo bởi seed-admin.js với hash chính xác)
 
 -- Seed Categories
 INSERT INTO Categories (Name, Description) VALUES

@@ -5,32 +5,18 @@ import { authService } from '../services/auth.service';
 const useAuthStore = create(
   persist(
     (set, get) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
+      user: null, accessToken: null, refreshToken: null,
+      isAuthenticated: false, isLoading: false, error: null,
 
-      // ── Login ───────────────────────────────────────────────
       login: async (credentials) => {
         set({ isLoading: true, error: null });
         try {
           const res = await authService.login(credentials);
           const { accessToken, refreshToken, user } = res.data.data;
-
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
-
-          set({
-            user,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-          return { success: true };
+          set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
+          return { success: true, user };
         } catch (err) {
           const message = err.response?.data?.message || 'Đăng nhập thất bại';
           set({ isLoading: false, error: message });
@@ -38,53 +24,53 @@ const useAuthStore = create(
         }
       },
 
-      // ── Register ────────────────────────────────────────────
       register: async (data) => {
         set({ isLoading: true, error: null });
         try {
           const res = await authService.register(data);
-          set({ isLoading: false, error: null });
+          set({ isLoading: false });
           return { success: true, message: res.data.message };
         } catch (err) {
           const message = err.response?.data?.message || 'Đăng ký thất bại';
-          const errors = err.response?.data?.errors || null;
           set({ isLoading: false, error: message });
-          return { success: false, message, errors };
+          return { success: false, message, errors: err.response?.data?.errors };
         }
       },
 
-      // ── Logout ──────────────────────────────────────────────
       logout: async () => {
-        try {
-          await authService.logout();
-        } catch {}
+        try { await authService.logout(); } catch {}
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
 
-      // ── Fetch current user ──────────────────────────────────
       fetchMe: async () => {
         try {
           const res = await authService.getMe();
-          set({ user: res.data.data, isAuthenticated: true });
-          return res.data.data;
-        } catch {
-          get().logout();
-        }
+          const u = res.data.data;
+          // normalise field names from API
+          const user = {
+            userId: u.userId, fullName: u.fullName, email: u.email,
+            role: u.role, avatarURL: u.avatarURL, phone: u.phone,
+            isVerified: u.isVerified, createdAt: u.createdAt,
+            organizerProfile: u.organizerProfile,
+            speakerProfile: u.speakerProfile,
+            orgApprovalStatus: u.organizerProfile?.approvalStatus || null,
+          };
+          // Map UserID for middleware compatibility
+          user.UserID = user.userId;
+          user.Role   = user.role;
+          user.Email  = user.email;
+          set({ user, isAuthenticated: true });
+          return user;
+        } catch { get().logout(); }
       },
 
-      // ── Clear error ─────────────────────────────────────────
       clearError: () => set({ error: null }),
     }),
     {
       name: 'ems-auth',
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      partialize: (s) => ({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated }),
     }
   )
 );

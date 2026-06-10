@@ -26,10 +26,21 @@ const LoginPage = () => {
   }, [error, clearError]);
 
   const onFinish = async (values) => {
+    console.log('🔐 [LOGIN SUBMIT] email:', values.email);
     const result = await login({ email: values.email, password: values.password });
+    console.log('📨 [LOGIN RESULT]', result);
     if (result.success) {
       message.success('Đăng nhập thành công!');
-      navigate(from, { replace: true });
+      const role = result.user?.role || '';
+      console.log('✅ Logged in as:', role);
+      // Redirect based on role
+      const dest = role === 'Admin' ? '/admin'
+                 : role === 'Organizer' ? '/organizer/events'
+                 : role === 'Participant' ? '/'
+                 : from;
+      navigate(dest, { replace: true });
+    } else {
+      console.error('❌ Login failed:', result.message);
     }
   };
 

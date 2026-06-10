@@ -1,29 +1,39 @@
 const express = require('express');
 const router = express.Router();
-
+const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const {
-  createEvent,
-  getMyEvents,
-  getEventDetails,
-  registerSpeakerForEvent,
+  getEvents, getEventById, createEvent, updateEvent, deleteEvent,
+  submitForApproval, approveEvent, cancelEvent,
+  getSessions, addSession, updateSession, deleteSession,
+  unlockEventEdit, getCategories, getVenues, getDashboardStats,
 } = require('../controllers/event.controller');
 
-const { authenticate, authorize } = require('../middleware/auth');
+// Public / optional-auth
+router.get('/categories', getCategories);
+router.get('/venues',     getVenues);
+router.get('/',           optionalAuth, getEvents);
+router.get('/:id',        optionalAuth, getEventById);
 
-// All event routes are protected and restricted to Organizers or Admins
-router.use(authenticate);
-router.use(authorize('Organizer', 'Admin'));
+// Organizer: CRUD
+router.post('/',   authenticate, authorize('Organizer','Admin'), createEvent);
+router.put('/:id', authenticate, authorize('Organizer','Admin'), updateEvent);
+router.delete('/:id', authenticate, authorize('Organizer','Admin'), deleteEvent);
 
-// POST /api/events - Create a mock/new event
-router.post('/', createEvent);
+// Organizer: submit for approval
+router.post('/:id/submit',  authenticate, authorize('Organizer'), submitForApproval);
+router.post('/:id/cancel',  authenticate, authorize('Organizer','Admin'), cancelEvent);
 
-// GET /api/events - List events managed by logged-in organizer
-router.get('/', getMyEvents);
+// Admin: approve/reject
+router.post('/:id/review',       authenticate, authorize('Admin'), approveEvent);
+router.post('/:id/unlock-edit',  authenticate, authorize('Admin'), unlockEventEdit);
 
-// GET /api/events/:eventId - View event details & speakers
-router.get('/:eventId', getEventDetails);
+// Sessions
+router.get('/:id/sessions',              optionalAuth, getSessions);
+router.post('/:id/sessions',             authenticate, authorize('Organizer','Admin'), addSession);
+router.put('/:id/sessions/:sessionId',   authenticate, authorize('Organizer','Admin'), updateSession);
+router.delete('/:id/sessions/:sessionId',authenticate, authorize('Organizer','Admin'), deleteSession);
 
-// POST /api/events/:eventId/speakers - Register a speaker for a specific event
-router.post('/:eventId/speakers', registerSpeakerForEvent);
+// Admin dashboard stats
+router.get('/admin/stats', authenticate, authorize('Admin'), getDashboardStats);
 
 module.exports = router;

@@ -12,7 +12,14 @@ const useAuthStore = create(
         set({ isLoading: true, error: null });
         try {
           const res = await authService.login(credentials);
-          const { accessToken, refreshToken, user } = res.data.data;
+          const data = res.data.data || res.data;
+          
+          if (data.mustChangePassword) {
+            set({ isLoading: false });
+            return { success: true, mustChangePassword: true, user: data.user };
+          }
+
+          const { accessToken, refreshToken, user } = data;
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
           set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false });

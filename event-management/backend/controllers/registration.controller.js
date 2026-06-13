@@ -95,6 +95,12 @@ const cancelRegistration = async (req, res) => {
       .input('Note', sql.NVarChar(500), note || null)
       .query(`UPDATE Registrations SET Status='Cancelled', CancelledAt=GETDATE(), CancellationNote=@Note WHERE RegistrationID=@RegistrationID`);
 
+    // Xoá lời mời làm Staff nếu có khi huỷ đăng ký
+    await pool.request()
+      .input('EventID', sql.Int, reg.EventID)
+      .input('ParticipantID', sql.Int, reg.ParticipantID)
+      .query(`DELETE FROM StaffInvitations WHERE EventID=@EventID AND ParticipantID=@ParticipantID`);
+
     return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${reg.EventTitle}"`);
   } catch (error) {
     return errorResponse(res, 'Huỷ đăng ký thất bại');
@@ -106,25 +112,32 @@ const getMyRegistrations = async (req, res) => {
   try {
     const pool = getPool();
     const { status } = req.query; // Registered | Cancelled
-    let where = `r.ParticipantID = @PID`;
-    if (status) where += ` AND r.Status = @Status`;
-
     const request = pool.request().input('PID', sql.Int, req.user.UserID);
-    if (status) request.input('Status', sql.VarChar(20), status);
+    request.input('Status', sql.VarChar(20), status || null);
 
     const result = await request.query(`
-      SELECT r.RegistrationID, r.Status, r.RegisteredAt, r.CancelledAt,
-             e.EventID, e.Title, e.StartDate, e.EndDate, e.CoverImageURL, e.Status AS EventStatus,
-             v.Name AS VenueName, v.Address AS VenueAddress,
-             qt.QRCode, qt.OTPCode, qt.IsUsed,
-             a.Status AS AttendanceStatus
-      FROM Registrations r
-      JOIN Events e ON r.EventID = e.EventID
-      LEFT JOIN Venues v ON e.VenueID = v.VenueID
-      LEFT JOIN QRTickets qt ON r.RegistrationID = qt.RegistrationID
-      LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
-      WHERE ${where}
-      ORDER BY e.StartDate DESC
+      WITH MyEvents AS (
+        SELECT e.EventID, e.Title, e.StartDate, e.EndDate, e.CoverImageURL, e.Status AS EventStatus,
+               v.Name AS VenueName, v.Address AS VenueAddress,
+               ISNULL(r.RegistrationID, 0) AS RegistrationID, 
+               ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 
+               r.RegisteredAt, r.CancelledAt,
+               qt.QRCode, qt.OTPCode, qt.IsUsed,
+               a.Status AS AttendanceStatus,
+               CAST(CASE WHEN es.EventStaffID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS isStaffForThisEvent,
+               CAST(CASE WHEN spk.SpeakerID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS isSpeakerForThisEvent
+        FROM Events e
+        LEFT JOIN Registrations r ON e.EventID = r.EventID AND r.ParticipantID = @PID
+        LEFT JOIN Venues v ON e.VenueID = v.VenueID
+        LEFT JOIN QRTickets qt ON r.RegistrationID = qt.RegistrationID
+        LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
+        LEFT JOIN EventStaffs es ON e.EventID = es.EventID AND es.StaffID = @PID
+        LEFT JOIN EventSpeakers spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID
+        WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID
+      )
+      SELECT * FROM MyEvents
+      WHERE (@Status IS NULL OR Status = @Status OR (isSpeakerForThisEvent = 1 AND @Status = 'Confirmed' AND (Status IS NULL OR Status <> 'Cancelled')))
+      ORDER BY StartDate DESC
     `);
     return successResponse(res, result.recordset);
   } catch (error) {

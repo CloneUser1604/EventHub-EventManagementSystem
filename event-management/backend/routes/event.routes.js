@@ -3,10 +3,11 @@ const router = express.Router();
 const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const {
   getEvents, getEventById, createEvent, updateEvent, deleteEvent,
-  submitForApproval, approveEvent, cancelEvent,
+  submitForApproval, cancelEvent,
   getSessions, addSession, updateSession, deleteSession,
   unlockEventEdit, getCategories, getVenues, getDashboardStats,
 } = require('../controllers/event.controller');
+const { uploadEvent } = require('../middleware/upload');
 
 // Public / optional-auth
 router.get('/categories', getCategories);
@@ -15,16 +16,15 @@ router.get('/',           optionalAuth, getEvents);
 router.get('/:id',        optionalAuth, getEventById);
 
 // Organizer: CRUD
-router.post('/',   authenticate, authorize('Organizer','Admin'), createEvent);
-router.put('/:id', authenticate, authorize('Organizer','Admin'), updateEvent);
+router.post('/',   authenticate, authorize('Organizer','Admin'), uploadEvent.fields([{ name: 'coverImage', maxCount: 1 }, { name: 'documents', maxCount: 5 }]), createEvent);
+router.put('/:id', authenticate, authorize('Organizer','Admin'), uploadEvent.fields([{ name: 'coverImage', maxCount: 1 }, { name: 'documents', maxCount: 5 }]), updateEvent);
 router.delete('/:id', authenticate, authorize('Organizer','Admin'), deleteEvent);
 
 // Organizer: submit for approval
 router.post('/:id/submit',  authenticate, authorize('Organizer'), submitForApproval);
 router.post('/:id/cancel',  authenticate, authorize('Organizer','Admin'), cancelEvent);
 
-// Admin: approve/reject
-router.post('/:id/review',       authenticate, authorize('Admin'), approveEvent);
+// Admin: unlock edit
 router.post('/:id/unlock-edit',  authenticate, authorize('Admin'), unlockEventEdit);
 
 // Sessions

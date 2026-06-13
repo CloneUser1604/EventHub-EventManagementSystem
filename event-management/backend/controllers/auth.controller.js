@@ -13,7 +13,7 @@ const {
 // ─── REGISTER (Participant | Organizer only) ──────────────────
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role = 'Participant', phone, organizationName } = req.body;
+    const { fullName, email, password, role = 'Participant', phone, organizationName, university } = req.body;
 
     // Hard-block bất kỳ role nào ngoài 2 role được phép
     if (!['Participant', 'Organizer'].includes(role)) {
@@ -44,10 +44,11 @@ const register = async (req, res) => {
       .input('PasswordHash', sql.VarChar(255), passwordHash)
       .input('Role', sql.VarChar(20), role)
       .input('Phone', sql.VarChar(20), phone || null)
+      .input('University', sql.NVarChar(150), university || null)
       .query(`
-        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, IsVerified, IsActive)
+        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, University, IsVerified, IsActive)
         OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email, INSERTED.Role, INSERTED.CreatedAt
-        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, 1, 1)
+        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, @University, 1, 1)
       `);
 
     const newUser = insertResult.recordset[0];
@@ -145,7 +146,8 @@ const login = async (req, res) => {
 
     const result = await pool.request()
       .input('Email', sql.VarChar(255), email)
-      .query(`SELECT u.*, op.ApprovalStatus AS OrgApprovalStatus
+      .query(`SELECT u.UserID, u.FullName, u.Email, u.PasswordHash, u.Role, u.Phone, u.IsActive, u.IsVerified, u.AvatarURL, 
+                     u.University, op.ApprovalStatus as OrgApprovalStatus, u.MustChangePassword
               FROM Users u
               LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
               WHERE u.Email = @Email`);
@@ -160,7 +162,14 @@ const login = async (req, res) => {
 
     if (!user.IsActive) {
       console.log(`  ❌ Account inactive`);
-      return unauthorizedResponse(res, 'Tài khoản đã bị vô hiệu hóa');
+      // Ngoại lệ: Nếu là Speaker chưa duyệt (IsActive=0), nhưng có MustChangePassword=1 -> Admin chưa duyệt!
+      if (user.Role === 'Speaker' && user.MustChangePassword) {
+        return unauthorizedResponse(res, 'Tài khoản diễn giả chưa được Admin phê duyệt.');
+      }
+      // Ngoại lệ: Organizer chưa duyệt vẫn login được nhưng bị hạn chế tính năng
+      if (user.Role !== 'Organizer') {
+        return unauthorizedResponse(res, 'Tài khoản đã bị vô hiệu hóa');
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
@@ -173,6 +182,21 @@ const login = async (req, res) => {
     }
 
     console.log(`  ✅ LOGIN SUCCESS: ${email} (${user.Role})`);
+    
+    // Xử lý Speaker đăng nhập lần đầu
+    if (user.Role === 'Speaker' && user.MustChangePassword) {
+      // Chỉ trả về mustChangePassword flag và thông tin cơ bản, KHÔNG trả về token chính thức
+      return successResponse(res, {
+        mustChangePassword: true,
+        user: {
+          userId: user.UserID,
+          email: user.Email,
+          fullName: user.FullName,
+          role: user.Role
+        }
+      }, 'Yêu cầu cập nhật mật khẩu lần đầu');
+    }
+
     // Organizer chưa được duyệt vẫn đăng nhập được nhưng trả thêm cờ
     const tokenPayload = { userId: user.UserID, email: user.Email, role: user.Role };
     const accessToken = generateAccessToken(tokenPayload);
@@ -194,6 +218,7 @@ const login = async (req, res) => {
         role: user.Role,
         avatarURL: user.AvatarURL,
         phone: user.Phone,
+        university: user.University,
         isVerified: user.IsVerified,
         orgApprovalStatus: user.OrgApprovalStatus || null,
       },
@@ -260,7 +285,7 @@ const getMe = async (req, res) => {
     const result = await pool.request()
       .input('UserID', sql.Int, req.user.UserID)
       .query(`
-        SELECT u.UserID, u.FullName, u.Email, u.Role, u.AvatarURL, u.Phone, u.IsVerified, u.CreatedAt,
+        SELECT u.UserID, u.FullName, u.Email, u.Role, u.AvatarURL, u.Phone, u.University, u.IsVerified, u.CreatedAt,
                op.OrganizerProfileID, op.OrganizationName, op.ApprovalStatus AS OrgApprovalStatus,
                op.DocumentURL, op.RejectionReason AS OrgRejectionReason
         FROM Users u
@@ -274,6 +299,7 @@ const getMe = async (req, res) => {
     const user = {
       userId: row.UserID, fullName: row.FullName, email: row.Email,
       role: row.Role, avatarURL: row.AvatarURL, phone: row.Phone,
+      university: row.University,
       isVerified: row.IsVerified, createdAt: row.CreatedAt,
     };
 
@@ -289,6 +315,15 @@ const getMe = async (req, res) => {
         })(),
       };
     }
+
+    const staffCheck = await pool.request()
+      .input('UserID', sql.Int, req.user.UserID)
+      .query(`
+        SELECT TOP 1 1 FROM EventStaffs es
+        JOIN Events e ON es.EventID = e.EventID
+        WHERE es.StaffID = @UserID AND e.EndDate > GETDATE()
+      `);
+    user.isCurrentStaff = staffCheck.recordset.length > 0;
 
     return successResponse(res, user);
   } catch (error) {
@@ -375,16 +410,17 @@ const changePassword = async (req, res) => {
 };
 
 // ─── CREATE SPEAKER (Organizer tạo trong event) ───────────────
-// POST /api/auth/speakers  (chỉ Organizer được gọi)
+// ─── ORGANIZER: Tạo tài khoản Speaker ──────────────────────────
 const createSpeaker = async (req, res) => {
   try {
-    const { fullName, email, bio, expertise, linkedInURL, phone } = req.body;
-    const pool = getPool();
+    const { fullName, email, phone, bio, expertise, linkedInURL, password } = req.body;
 
-    // Check email đã tồn tại chưa
+    const pool = getPool();
+    
+    // 1. Kiểm tra email đã tồn tại chưa
     const existing = await pool.request()
       .input('Email', sql.VarChar(255), email)
-      .query('SELECT UserID, Role FROM Users WHERE Email = @Email');
+      .query(`SELECT UserID, Role FROM Users WHERE Email = @Email`);
 
     let speakerId;
 
@@ -397,22 +433,22 @@ const createSpeaker = async (req, res) => {
         return conflictResponse(res, 'Email này đã được dùng cho tài khoản khác (không phải Diễn giả)');
       }
     } else {
-      // Tạo tài khoản Speaker mới (chưa set mật khẩu — admin sẽ gửi link sau)
+      // Tạo tài khoản Speaker mới do Organizer tạo (cần Admin duyệt)
       const tempToken = crypto.randomBytes(32).toString('hex');
-      const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 ngày để set pass
+      const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 ngày
 
       const insertResult = await pool.request()
         .input('FullName', sql.NVarChar(150), fullName)
         .input('Email', sql.VarChar(255), email)
-        .input('PasswordHash', sql.VarChar(255), await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10))
+        .input('PasswordHash', sql.VarChar(255), await bcrypt.hash(password, 10))
         .input('Role', sql.VarChar(20), 'Speaker')
         .input('Phone', sql.VarChar(20), phone || null)
         .input('VerifyToken', sql.VarChar(255), tempToken)
         .input('VerifyTokenExpiry', sql.DateTime, tokenExpiry)
         .query(`
-          INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, IsVerified, VerifyToken, VerifyTokenExpiry)
+          INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, IsVerified, VerifyToken, VerifyTokenExpiry, MustChangePassword, IsActive)
           OUTPUT INSERTED.UserID
-          VALUES (@FullName, @Email, @PasswordHash, 'Speaker', @Phone, 0, @VerifyToken, @VerifyTokenExpiry)
+          VALUES (@FullName, @Email, @PasswordHash, 'Speaker', @Phone, 0, @VerifyToken, @VerifyTokenExpiry, 1, 0)
         `);
 
       speakerId = insertResult.recordset[0].UserID;

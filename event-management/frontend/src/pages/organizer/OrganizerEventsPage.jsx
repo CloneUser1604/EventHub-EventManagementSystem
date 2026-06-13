@@ -24,6 +24,7 @@ const OrganizerEventsPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [reasonModal, setReasonModal] = useState({ open: false, reason: '', title: '' });
 
   useEffect(() => { fetchMyEvents(); }, []);
 
@@ -97,7 +98,7 @@ const OrganizerEventsPage = () => {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ width: 56, height: 40, borderRadius: 8, overflow: 'hidden', background: '#1a2744', flexShrink: 0 }}>
             {row.CoverImageURL
-              ? <img src={row.CoverImageURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={row.CoverImageURL.startsWith('http') ? row.CoverImageURL : `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/../uploads/${row.CoverImageURL}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>}
           </div>
           <div>
@@ -131,10 +132,10 @@ const OrganizerEventsPage = () => {
           <Tag color={statusConfig[s]?.color || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>
             {statusConfig[s]?.label || s}
           </Tag>
-          {row.RejectionReason && (
-            <Tooltip title={row.RejectionReason}>
-              <Text type="danger" style={{ fontSize: 11, display: 'block', cursor: 'help' }}>⚠️ Xem lý do</Text>
-            </Tooltip>
+          {row.ApprovalStatus === 'Pending' && row.Status === 'Published' && (
+            <Tag color="orange" style={{ marginTop: 4, borderRadius: 6, display: 'block', width: 'fit-content' }}>
+              Đang chờ duyệt sửa
+            </Tag>
           )}
         </div>
       ),
@@ -161,8 +162,23 @@ const OrganizerEventsPage = () => {
             </>
           )}
           {['Published'].includes(row.Status) && (
-            <Tooltip title="Huỷ sự kiện">
-              <Button type="text" icon={<CloseCircleOutlined />} size="small" danger onClick={() => handleCancel(row.EventID, row.Title)} />
+            <>
+              <Tooltip title="Sửa nội dung">
+                <Button type="text" icon={<EditOutlined />} size="small" onClick={() => navigate(`/organizer/events/${row.EventID}/edit`)} />
+              </Tooltip>
+              <Tooltip title="Quản lý sự kiện">
+                <Button type="text" icon={<EyeOutlined />} size="small" style={{ color: '#10b981' }} onClick={() => navigate(`/organizer/events/${row.EventID}/dashboard`)}>
+                  Quản lý
+                </Button>
+              </Tooltip>
+              <Tooltip title="Huỷ sự kiện">
+                <Button type="text" icon={<CloseCircleOutlined />} size="small" danger onClick={() => handleCancel(row.EventID, row.Title)} />
+              </Tooltip>
+            </>
+          )}
+          {row.RejectionReason && (
+            <Tooltip title="Xem lý do từ chối">
+              <Button type="text" icon={<ExclamationCircleOutlined />} size="small" danger onClick={() => setReasonModal({ open: true, reason: row.RejectionReason, title: row.Title })} />
             </Tooltip>
           )}
         </Space>
@@ -220,6 +236,23 @@ const OrganizerEventsPage = () => {
           locale={{ emptyText: <Empty description="Bạn chưa có sự kiện nào" extra={<Button type="primary" onClick={() => navigate('/organizer/events/create')}>Tạo ngay</Button>} /> }}
           style={{ background: 'white', borderRadius: 14 }}
         />
+
+        {/* Rejection Reason Modal */}
+        <Modal
+          title={`Lý do từ chối: ${reasonModal.title}`}
+          open={reasonModal.open}
+          onOk={() => setReasonModal({ open: false, reason: '', title: '' })}
+          onCancel={() => setReasonModal({ open: false, reason: '', title: '' })}
+          footer={[
+            <Button key="close" type="primary" onClick={() => setReasonModal({ open: false, reason: '', title: '' })}>
+              Đã hiểu
+            </Button>
+          ]}
+        >
+          <div style={{ padding: '16px 0' }}>
+            <Text>{reasonModal.reason}</Text>
+          </div>
+        </Modal>
       </div>
     </MainLayout>
   );

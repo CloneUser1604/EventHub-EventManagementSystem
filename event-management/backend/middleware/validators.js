@@ -95,6 +95,11 @@ const createSpeakerRules = [
     .isEmail().withMessage('Email không hợp lệ').normalizeEmail(),
   body('bio').optional().isLength({ max: 2000 }).withMessage('Bio tối đa 2000 ký tự'),
   body('expertise').optional().isLength({ max: 500 }).withMessage('Expertise tối đa 500 ký tự'),
+  body('password')
+    .notEmpty().withMessage('Mật khẩu không được để trống')
+    .isLength({ min: 8 }).withMessage('Mật khẩu phải ít nhất 8 ký tự')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Mật khẩu phải chứa chữ hoa, chữ thường và số'),
 ];
 
 module.exports = {

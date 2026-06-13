@@ -62,9 +62,6 @@ const TicketModal = ({ registration, onClose }) => {
         <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, display: 'block' }}>Sự kiện</Text>
           <Text strong style={{ color: 'white', fontSize: 16, display: 'block', marginBottom: 12 }}>{registration.Title}</Text>
-          <div style={{ background: 'white', borderRadius: 12, padding: 16, display: 'inline-block' }}>
-            <QRCode value={registration.QRCode || `EMS-${registration.RegistrationID}`} size={160} />
-          </div>
         </div>
 
         {/* OTP */}
@@ -114,7 +111,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   return (
     <Card
       style={{ borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', opacity: isCancelled ? 0.65 : 1 }}
-      bodyStyle={{ padding: 0 }}
+      styles={{ body: { padding: 0 } }}
     >
       <div style={{ display: 'flex', gap: 0 }}>
         {/* Color bar */}
@@ -142,7 +139,11 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
         <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <Text strong style={{ fontSize: 15, fontFamily: 'Sora,sans-serif', lineHeight: 1.3 }}>{reg.Title}</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text strong style={{ fontSize: 15, fontFamily: 'Sora,sans-serif', lineHeight: 1.3 }}>{reg.Title}</Text>
+                {reg.isStaffForThisEvent && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>Staff</Tag>}
+                {reg.isSpeakerForThisEvent && <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Speaker</Tag>}
+              </div>
               {reg.AttendanceStatus && (
                 <Tag color={reg.AttendanceStatus === 'Present' ? 'green' : reg.AttendanceStatus === 'Late' ? 'orange' : 'red'} style={{ borderRadius: 6, flexShrink: 0 }}>
                   {reg.AttendanceStatus === 'Present' ? '✅ Đã tham dự' : reg.AttendanceStatus === 'Late' ? '⏰ Đến muộn' : '❌ Vắng'}
@@ -174,13 +175,21 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
             <Button size="small" onClick={() => navigate(`/events/${reg.EventID}`)} style={{ borderRadius: 7, fontSize: 13 }}>
               Chi tiết <RightOutlined />
             </Button>
-            {reg.Status === 'Registered' && !isPast && !isCancelled && reg.QRCode && (
-              <Button size="small" type="primary" icon={<QrcodeOutlined />} onClick={() => onViewTicket(reg)}
-                style={{ borderRadius: 7, fontSize: 13 }}>
-                Xem vé
-              </Button>
-            )}
             {reg.Status === 'Registered' && !isPast && !isCancelled && (
+              reg.isSpeakerForThisEvent ? null :
+              reg.isStaffForThisEvent ? (
+                <Button size="small" type="primary" onClick={() => navigate(`/events/${reg.EventID}`)}
+                  style={{ borderRadius: 7, fontSize: 13 }}>
+                  Quét QR Check-in
+                </Button>
+              ) : reg.OTPCode ? (
+                <Button size="small" type="primary" onClick={() => onViewTicket(reg)}
+                  style={{ borderRadius: 7, fontSize: 13 }}>
+                  Xem Mã OTP
+                </Button>
+              ) : null
+            )}
+            {reg.Status === 'Registered' && !isPast && !isCancelled && !reg.isStaffForThisEvent && !reg.isSpeakerForThisEvent && (
               <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg)}
                 style={{ borderRadius: 7, fontSize: 13 }}>
                 Huỷ
@@ -199,6 +208,7 @@ const MyCalendarPage = () => {
   const [loading, setLoading] = useState(true);
   const [ticketReg, setTicketReg] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [currentMonth, setCurrentMonth] = useState(dayjs());
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -244,8 +254,8 @@ const MyCalendarPage = () => {
 
   /* ── Month-view mini calendar widget ── */
   const calendarDays = (() => {
-    const start = now.startOf('month');
-    const daysInMonth = now.daysInMonth();
+    const start = currentMonth.startOf('month');
+    const daysInMonth = currentMonth.daysInMonth();
     const startDow = start.day(); // 0=Sun
     const cells = [];
     for (let i = 0; i < startDow; i++) cells.push(null);
@@ -254,7 +264,9 @@ const MyCalendarPage = () => {
   })();
 
   const eventDays = new Set(
-    upcoming.map(r => dayjs(r.StartDate).date())
+    upcoming
+      .filter(r => dayjs(r.StartDate).month() === currentMonth.month() && dayjs(r.StartDate).year() === currentMonth.year())
+      .map(r => dayjs(r.StartDate).date())
   );
 
   return (
@@ -304,17 +316,19 @@ const MyCalendarPage = () => {
 
             {/* Mini calendar */}
             <Card style={{ borderRadius: 14 }}>
-              <div style={{ textAlign: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
                 <Text strong style={{ fontFamily: 'Sora,sans-serif', fontSize: 15 }}>
-                  {now.format('MMMM YYYY').replace(/^\w/, c => c.toUpperCase())}
+                  {currentMonth.format('MM/YYYY')}
                 </Text>
+                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, textAlign: 'center' }}>
                 {['CN','T2','T3','T4','T5','T6','T7'].map(d => (
                   <div key={d} style={{ fontSize: 11, color: '#9ca3af', padding: '4px 0', fontWeight: 600 }}>{d}</div>
                 ))}
                 {calendarDays.map((day, i) => {
-                  const isToday = day === now.date();
+                  const isToday = day === now.date() && currentMonth.month() === now.month() && currentMonth.year() === now.year();
                   const hasEvent = day && eventDays.has(day);
                   return (
                     <div key={i} style={{
@@ -347,10 +361,10 @@ const MyCalendarPage = () => {
                     <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Đếm ngược</Text>
                     <div style={{ marginTop: 2 }}><Countdown targetDate={next.StartDate} /></div>
                   </div>
-                  {next.QRCode && (
-                    <Button type="primary" block size="small" icon={<QrcodeOutlined />} onClick={() => setTicketReg(next)}
+                  {next.OTPCode && (
+                    <Button type="primary" block size="small" onClick={() => setTicketReg(next)}
                       style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}>
-                      Xem QR Ticket
+                      Xem Mã OTP
                     </Button>
                   )}
                 </Card>

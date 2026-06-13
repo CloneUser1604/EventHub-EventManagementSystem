@@ -10,18 +10,23 @@ import LoginPage        from './pages/auth/LoginPage';
 import RegisterPage     from './pages/auth/RegisterPage';
 import VerifyEmailPage  from './pages/auth/VerifyEmailPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/auth/PasswordPages';
+import FirstTimeSetupPage from './pages/speaker/FirstTimeSetupPage';
 
 // Public
 import HomePage      from './pages/home/HomePage';
 import EventListPage from './pages/events/EventListPage';
 import EventDetailPage from './pages/events/EventDetailPage';
+import ParticipantCheckinPage from './pages/events/ParticipantCheckinPage';
 
 // Participant
 import MyCalendarPage from './pages/participant/MyCalendarPage';
+import ParticipantDashboard from './pages/participant/ParticipantDashboard';
+import StaffDashboard from './pages/participant/StaffDashboard';
 
 // Organizer
 import OrganizerEventsPage from './pages/organizer/OrganizerEventsPage';
 import EventFormPage       from './pages/organizer/EventFormPage';
+import EventDashboardPage  from './pages/organizer/EventDashboardPage';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -67,9 +72,10 @@ function App() {
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* ── Public ── */}
-          <Route path="/"        element={<HomePage />} />
-          <Route path="/events"  element={<EventListPage />} />
-          <Route path="/events/:id" element={<EventDetailPage />} />
+          <Route path="/"                element={<HomePage />} />
+          <Route path="/events"          element={<EventListPage />} />
+          <Route path="/events/:id"      element={<EventDetailPage />} />
+          <Route path="/events/:id/checkin" element={<ParticipantCheckinPage />} />
 
           {/* ── Auth ── */}
           <Route path="/login"           element={<LoginPage />} />
@@ -77,10 +83,22 @@ function App() {
           <Route path="/verify-email"    element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/speaker/first-time-setup" element={<FirstTimeSetupPage />} />
 
-          {/* ── Participant ── */}
-          <Route path="/my-calendar" element={
+          {/* ── Participant & Staff ── */}
+          <Route path="/participant" element={
             <ProtectedRoute roles={['Participant']}>
+              <ParticipantDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff" element={
+            <ProtectedRoute roles={['Participant', 'Staff']}>
+              <StaffDashboard />
+            </ProtectedRoute>
+          } />
+          {/* ── Participant & Speaker ── */}
+          <Route path="/my-calendar" element={
+            <ProtectedRoute roles={['Participant', 'Speaker']}>
               <MyCalendarPage />
             </ProtectedRoute>
           } />
@@ -94,6 +112,11 @@ function App() {
           <Route path="/organizer/events/create" element={
             <ProtectedRoute roles={['Organizer', 'Admin']}>
               <EventFormPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/organizer/events/:id/dashboard" element={
+            <ProtectedRoute roles={['Organizer', 'Admin']}>
+              <EventDashboardPage />
             </ProtectedRoute>
           } />
           <Route path="/organizer/events/:id/edit" element={
@@ -120,7 +143,7 @@ function App() {
             <Navigate to={
               user?.role === 'Admin' ? '/admin'
               : user?.role === 'Organizer' ? '/organizer/events'
-              : user?.role === 'Participant' ? '/my-calendar'
+              : user?.role === 'Participant' ? '/participant'
               : '/'
             } replace />
           } />

@@ -1,0 +1,4 @@
+node_modules
+scratch
+backend/uploads
+.env

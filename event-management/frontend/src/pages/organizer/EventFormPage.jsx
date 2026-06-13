@@ -4,6 +4,8 @@ import {
   Form, Input, Button, Select, DatePicker, Upload, InputNumber,
   message, Steps, Divider, Card, Typography, Space, Modal, Alert
 } from 'antd';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import {
   PlusOutlined, DeleteOutlined, UploadOutlined, SaveOutlined,
   SendOutlined, ArrowLeftOutlined, CalendarOutlined
@@ -15,7 +17,7 @@ import { authService } from '../../services/auth.service';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
+const { Dragger } = Upload;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -25,13 +27,17 @@ const EventFormPage = () => {
   const [form] = Form.useForm();
   const { categories, venues, fetchMeta, fetchEventById } = useEventStore();
   const [loading, setLoading] = useState(false);
-  const [coverPreview, setCoverPreview] = useState('');
+  const [coverFileList, setCoverFileList] = useState([]);
+  const [docsFileList, setDocsFileList] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [speakerModal, setSpeakerModal] = useState(false);
   const [speakerForm] = Form.useForm();
   const [addingSpeaker, setAddingSpeaker] = useState(false);
+  const [createdSpeakers, setCreatedSpeakers] = useState([]);
   const [isEdit, setIsEdit] = useState(false);
   const [event, setEvent] = useState(null);
+  const [editReasonModal, setEditReasonModal] = useState({ open: false, submitAfter: false, values: null });
+  const [editReason, setEditReason] = useState('');
 
   useEffect(() => {
     fetchMeta();
@@ -55,63 +61,125 @@ const EventFormPage = () => {
       registrationDeadline: ev.RegistrationDeadline ? dayjs(ev.RegistrationDeadline) : null,
       maxParticipants: ev.MaxParticipants,
     });
-    setCoverPreview(ev.CoverImageURL || '');
     setSessions(ev.sessions || []);
   };
 
   const handleSave = async (submitAfter = false) => {
     try {
       const values = await form.validateFields();
+      if (!isEdit && docsFileList.length === 0) {
+        return message.error('Vui lòng upload Tài liệu/Giấy phép sự kiện');
+      }
+
+      if (isEdit && event?.Status === 'Published') {
+        setEditReasonModal({ open: true, submitAfter, values });
+        return;
+      }
+
+      doSubmit(values, submitAfter);
+    } catch (info) {
+      console.log('Validate Failed:', info);
+      message.error('Vui lòng kiểm tra lại các trường bắt buộc');
+    }
+  };
+
+  const doSubmit = async (values, submitAfter, reason = '') => {
+    try {
       setLoading(true);
 
-      const payload = {
-        title: values.title,
-        description: values.description,
-        coverImageURL: values.coverImageURL || '',
-        categoryId: values.categoryId || null,
-        venueId: values.venueId || null,
-        startDate: values.dateRange?.[0]?.toISOString(),
-        endDate: values.dateRange?.[1]?.toISOString(),
-        registrationDeadline: values.registrationDeadline?.toISOString() || null,
-        maxParticipants: values.maxParticipants || null,
-        sessions: sessions.map(s => ({
-          title: s.title || s.Title,
-          description: s.description || s.Description,
-          startTime: s.startTime || s.StartTime,
-          endTime: s.endTime || s.EndTime,
-          location: s.location || s.Location,
-        })),
-      };
+      const formData = new FormData();
+      formData.append('title', values.title);
+      formData.append('description', values.description || '');
+      if (values.categoryId) formData.append('categoryId', values.categoryId);
+      if (values.venueId) formData.append('venueId', values.venueId);
+      if (values.dateRange?.[0]) formData.append('startDate', values.dateRange[0].toISOString());
+      if (values.dateRange?.[1]) formData.append('endDate', values.dateRange[1].toISOString());
+      if (values.registrationDeadline) formData.append('registrationDeadline', values.registrationDeadline.toISOString());
+      if (values.maxParticipants) formData.append('maxParticipants', values.maxParticipants);
+      
+      const invalidSession = sessions.find(s => !(s.title || s.Title) || !(s.startTime || s.StartTime) || !(s.endTime || s.EndTime));
+      if (invalidSession) {
+        setLoading(false);
+        return message.error('Vui lòng điền đủ Tiêu đề, Bắt đầu và Kết thúc cho các Chương trình (Phiên)');
+      }
+
+      const parsedSessions = sessions.map(s => ({
+        title: s.title || s.Title,
+        description: s.description || s.Description,
+        startTime: s.startTime || s.StartTime,
+        endTime: s.endTime || s.EndTime,
+        location: s.location || s.Location,
+        speakerEmails: s.speakerEmails || s.SpeakerEmails || [],
+      }));
+      formData.append('sessions', JSON.stringify(parsedSessions));
+      if (reason) {
+        formData.append('editReason', reason);
+      }
+
+      if (coverFileList.length > 0) {
+        formData.append('coverImage', coverFileList[0].originFileObj);
+      }
+      
+      docsFileList.forEach(f => {
+        formData.append('documents', f.originFileObj);
+      });
+
+      // Temporary replacement since we use FormData and need custom api call
+      const token = localStorage.getItem('accessToken');
+      let response;
+      if (isEdit) {
+        response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/events/${id}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+      } else {
+        response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/events`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+      }
+      
+      const resData = await response.json();
+      if (!resData.success) throw new Error(resData.message || 'Lỗi lưu sự kiện');
 
       if (isEdit) {
-        await eventService.updateEvent(id, payload);
         message.success('Đã cập nhật sự kiện');
         if (submitAfter) {
-          await eventService.submitForApproval(id);
+          if (event?.Status !== 'Published') {
+            await eventService.submitForApproval(id);
+          }
           message.success('Đã gửi yêu cầu duyệt!');
-          navigate('/organizer/events');
+          navigate(`/organizer/events`);
         }
       } else {
-        const res = await eventService.createEvent(payload);
-        const newId = res.data.data.eventId;
+        const newId = resData.data.eventId;
         message.success('Đã tạo sự kiện thành công!');
         if (submitAfter) {
           await eventService.submitForApproval(newId);
           message.success('Đã gửi yêu cầu duyệt!');
           navigate('/organizer/events');
         } else {
-          navigate(`/organizer/events/${newId}/edit`);
+          navigate(`/organizer/events`);
         }
       }
-    } catch (err) {
-      if (err?.errorFields) return; // form validation
-      message.error(err.response?.data?.message || 'Lỗi lưu sự kiện');
+    } catch (error) {
+      message.error(error.message || 'Có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
   };
 
-  const addSession = () => setSessions(s => [...s, { title: '', description: '', startTime: '', endTime: '', location: '', _new: true }]);
+  const handleConfirmEditReason = () => {
+    if (!editReason.trim()) {
+      return message.error('Vui lòng nhập lý do chỉnh sửa');
+    }
+    setEditReasonModal({ ...editReasonModal, open: false });
+    doSubmit(editReasonModal.values, editReasonModal.submitAfter, editReason);
+  };
+
+  const addSession = () => setSessions(s => [...s, { title: '', description: '', startTime: '', endTime: '', location: '', speakerEmails: [], _new: true }]);
   const removeSession = (i) => setSessions(s => s.filter((_, idx) => idx !== i));
   const updateSession = (i, field, val) => setSessions(s => s.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
 
@@ -119,10 +187,6 @@ const EventFormPage = () => {
     try {
       const values = await speakerForm.validateFields();
       setAddingSpeaker(true);
-      await authService.createSpeaker ? 
-        await fetch('/api/auth/speakers', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(values) }) :
-        null;
-      // Using direct API call
       const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/speakers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
@@ -131,6 +195,7 @@ const EventFormPage = () => {
       const data = await res.json();
       if (data.success) {
         message.success('Đã tạo tài khoản diễn giả! Chờ Admin phê duyệt.');
+        setCreatedSpeakers(prev => [...prev, values]);
         speakerForm.resetFields();
         setSpeakerModal(false);
       } else {
@@ -177,8 +242,8 @@ const EventFormPage = () => {
               <Input placeholder="VD: Hội thảo AI trong giáo dục 2025" maxLength={300} showCount />
             </Form.Item>
 
-            <Form.Item name="description" label="Mô tả sự kiện">
-              <TextArea rows={5} placeholder="Giới thiệu về sự kiện, đối tượng tham gia, những gì sẽ diễn ra..." maxLength={5000} showCount />
+            <Form.Item name="description" label="Mô tả sự kiện (hỗ trợ Rich Text)">
+              <ReactQuill theme="snow" style={{ height: 200, marginBottom: 40 }} />
             </Form.Item>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -194,18 +259,34 @@ const EventFormPage = () => {
               </Form.Item>
             </div>
 
-            <Form.Item name="coverImageURL" label="Ảnh bìa (URL)">
-              <Input
-                placeholder="https://... (URL ảnh bìa sự kiện)"
-                onChange={e => setCoverPreview(e.target.value)}
-              />
+            <Form.Item label="Ảnh bìa sự kiện (Cover Image)">
+              <Dragger
+                maxCount={1}
+                fileList={coverFileList}
+                beforeUpload={() => false}
+                onChange={({ fileList: fl }) => setCoverFileList(fl)}
+                accept="image/*"
+                listType="picture"
+              >
+                <p className="ant-upload-drag-icon"><UploadOutlined /></p>
+                <p className="ant-upload-text">Kéo thả hoặc click để chọn ảnh bìa</p>
+              </Dragger>
             </Form.Item>
-            {coverPreview && (
-              <div style={{ marginTop: -8, marginBottom: 16 }}>
-                <img src={coverPreview} alt="preview" onError={() => setCoverPreview('')}
-                  style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 10, border: '1px solid #e5e7eb' }} />
-              </div>
-            )}
+
+            <Form.Item label={<span>Tài liệu/Giấy phép sự kiện <span style={{color: 'red'}}>*</span> <span style={{fontSize: 13, color: '#6b7280'}}>(Yêu cầu cung cấp)</span></span>}>
+              <Dragger
+                multiple
+                maxCount={5}
+                fileList={docsFileList}
+                beforeUpload={() => false}
+                onChange={({ fileList: fl }) => setDocsFileList(fl)}
+                accept=".pdf,.doc,.docx,.jpg,.png"
+              >
+                <p className="ant-upload-drag-icon"><UploadOutlined /></p>
+                <p className="ant-upload-text">Kéo thả hoặc click để chọn tài liệu đính kèm</p>
+                <p className="ant-upload-hint">Upload tối đa 5 file, mỗi file &lt; 10MB</p>
+              </Dragger>
+            </Form.Item>
           </Card>
 
           {/* ── Section 2: Date & Registration ── */}
@@ -268,6 +349,12 @@ const EventFormPage = () => {
                       onChange={d => updateSession(i, 'endTime', d?.toISOString())} />
                   </div>
                 </div>
+                <div style={{ marginBottom: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 600 }}>Diễn giả (Nhập Email)</Text>
+                  <Select mode="tags" style={{ width: '100%', marginTop: 4 }} placeholder="Nhập email diễn giả và ấn Enter"
+                    value={s.speakerEmails || s.SpeakerEmails || []}
+                    onChange={val => updateSession(i, 'speakerEmails', val)} />
+                </div>
                 <Input.TextArea value={s.description || s.Description || ''} onChange={e => updateSession(i, 'description', e.target.value)}
                   placeholder="Mô tả nội dung phiên" rows={2} />
               </div>
@@ -283,6 +370,28 @@ const EventFormPage = () => {
               </div>
               <Button icon={<PlusOutlined />} onClick={() => setSpeakerModal(true)}>Thêm diễn giả</Button>
             </div>
+            
+            {createdSpeakers.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>Các diễn giả vừa tạo:</Text>
+                <Space size={[0, 8]} wrap>
+                  {createdSpeakers.map((spk, idx) => (
+                    <div key={idx} style={{ 
+                      padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', 
+                      borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 
+                    }}>
+                      <div style={{ width: 28, height: 28, background: '#e0e7ff', color: '#4f46e5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                        {spk.fullName?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div>
+                        <Text strong style={{ display: 'block', fontSize: 13, lineHeight: '1.2' }}>{spk.fullName}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>{spk.email}</Text>
+                      </div>
+                    </div>
+                  ))}
+                </Space>
+              </div>
+            )}
           </Card>
 
           {/* ── Action buttons ── */}
@@ -314,6 +423,13 @@ const EventFormPage = () => {
           <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}>
             <Input placeholder="speaker@email.com" />
           </Form.Item>
+          <Form.Item name="password" label="Mật khẩu cho Diễn giả" rules={[
+            { required: true, message: 'Vui lòng nhập mật khẩu' },
+            { min: 8, message: 'Tối thiểu 8 ký tự' },
+            { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, message: 'Phải chứa chữ hoa, thường và số' }
+          ]}>
+            <Input.Password placeholder="Nhập mật khẩu cho diễn giả" />
+          </Form.Item>
           <Form.Item name="phone" label="Số điện thoại">
             <Input placeholder="0912345678" />
           </Form.Item>
@@ -328,6 +444,29 @@ const EventFormPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal
+        title="Lý do chỉnh sửa sự kiện"
+        open={editReasonModal.open}
+        onOk={handleConfirmEditReason}
+        onCancel={() => setEditReasonModal({ open: false, submitAfter: false, values: null })}
+        okText="Gửi duyệt chỉnh sửa"
+        cancelText="Hủy"
+      >
+        <Alert 
+          message="Sự kiện của bạn đã được duyệt. Việc chỉnh sửa sẽ yêu cầu Admin phê duyệt lại và gửi thông báo thay đổi đến người tham gia." 
+          type="warning" 
+          showIcon 
+          style={{ marginBottom: 16 }} 
+        />
+        <Input.TextArea 
+          rows={4} 
+          placeholder="Nhập chi tiết nội dung thay đổi (VD: Thay đổi địa điểm, dời ngày...)" 
+          value={editReason}
+          onChange={e => setEditReason(e.target.value)}
+        />
+      </Modal>
+
     </MainLayout>
   );
 };

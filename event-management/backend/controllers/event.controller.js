@@ -151,15 +151,24 @@ const getEventById = async (req, res) => {
       return notFoundResponse(res, 'Không tìm thấy sự kiện');
     }
 
-    const sessions = await pool.request()
+    const sessionsQuery = await pool.request()
       .input('EventID', sql.Int, parseInt(id))
       .query(`
         SELECT s.*,
           (SELECT STRING_AGG(u.FullName, ', ')
            FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
-           WHERE ss.SessionID = s.SessionID) AS Speakers
+           WHERE ss.SessionID = s.SessionID) AS Speakers,
+          (SELECT STRING_AGG(u.Email, ',')
+           FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
+           WHERE ss.SessionID = s.SessionID) AS speakerEmailsStr
         FROM Sessions s WHERE s.EventID = @EventID ORDER BY s.StartTime
       `);
+
+    const sessions = sessionsQuery.recordset.map(s => {
+      s.speakerEmails = s.speakerEmailsStr ? s.speakerEmailsStr.split(',') : [];
+      delete s.speakerEmailsStr;
+      return s;
+    });
 
     const sponsors = await pool.request()
       .input('EventID', sql.Int, parseInt(id))
@@ -168,7 +177,16 @@ const getEventById = async (req, res) => {
         JOIN Sponsors sp ON es.SponsorID = sp.SponsorID WHERE es.EventID = @EventID
       `);
 
-    return successResponse(res, { ...event, sessions: sessions.recordset, sponsors: sponsors.recordset });
+    let isStaff = false;
+    if (req.user) {
+      const staffCheck = await pool.request()
+        .input('EventID', sql.Int, parseInt(id))
+        .input('StaffID', sql.Int, req.user.UserID)
+        .query('SELECT 1 FROM EventStaffs WHERE EventID = @EventID AND StaffID = @StaffID');
+      if (staffCheck.recordset.length > 0) isStaff = true;
+    }
+
+    return successResponse(res, { ...event, sessions: sessions, sponsors: sponsors.recordset, isStaff });
   } catch (error) {
     console.error('getEventById error:', error.message);
     return errorResponse(res, 'Lấy thông tin sự kiện thất bại');
@@ -178,10 +196,17 @@ const getEventById = async (req, res) => {
 // ─── CREATE EVENT ──────────────────────────────────────────────
 const createEvent = async (req, res) => {
   try {
-    const { title, description, coverImageURL, startDate, endDate,
+    const { title, description, startDate, endDate,
             registrationDeadline, maxParticipants, categoryId, venueId, sessions = [] } = req.body;
     const pool = getPool();
     const organizerId = req.user.UserID;
+
+    let parsedSessions = [];
+    if (typeof sessions === 'string') {
+      try { parsedSessions = JSON.parse(sessions); } catch (e) {}
+    } else if (Array.isArray(sessions)) {
+      parsedSessions = sessions;
+    }
 
     if (req.user.Role === 'Organizer') {
       const orgCheck = await pool.request().input('UserID', sql.Int, organizerId)
@@ -191,6 +216,20 @@ const createEvent = async (req, res) => {
       }
     }
 
+    let coverImageURL = null;
+    let documentsURL = null;
+
+    if (req.files && req.files['coverImage'] && req.files['coverImage'].length > 0) {
+      coverImageURL = req.files['coverImage'][0].filename;
+    }
+    
+    if (req.files && req.files['documents'] && req.files['documents'].length > 0) {
+      const paths = req.files['documents'].map(f => f.filename);
+      documentsURL = JSON.stringify(paths);
+    } else {
+      return errorResponse(res, 'Tài liệu/Giấy phép sự kiện là bắt buộc', 400);
+    }
+
     const insertResult = await pool.request()
       .input('OrganizerID', sql.Int, organizerId)
       .input('CategoryID', sql.Int, categoryId || null)
@@ -198,22 +237,23 @@ const createEvent = async (req, res) => {
       .input('Title', sql.NVarChar(300), title)
       .input('Description', sql.NVarChar(sql.MAX), description || null)
       .input('CoverImageURL', sql.VarChar(500), coverImageURL || null)
+      .input('DocumentsURL', sql.NVarChar(sql.MAX), documentsURL || null)
       .input('StartDate', sql.DateTime, new Date(startDate))
       .input('EndDate', sql.DateTime, new Date(endDate))
       .input('RegistrationDeadline', sql.DateTime, registrationDeadline ? new Date(registrationDeadline) : null)
       .input('MaxParticipants', sql.Int, maxParticipants || null)
       .query(`
-        INSERT INTO Events (OrganizerID,CategoryID,VenueID,Title,Description,CoverImageURL,
+        INSERT INTO Events (OrganizerID,CategoryID,VenueID,Title,Description,CoverImageURL, DocumentsURL,
           StartDate,EndDate,RegistrationDeadline,MaxParticipants,Status,ApprovalStatus)
         OUTPUT INSERTED.*
-        VALUES (@OrganizerID,@CategoryID,@VenueID,@Title,@Description,@CoverImageURL,
+        VALUES (@OrganizerID,@CategoryID,@VenueID,@Title,@Description,@CoverImageURL, @DocumentsURL,
           @StartDate,@EndDate,@RegistrationDeadline,@MaxParticipants,'Draft','NotSubmitted')
       `);
 
     const newEvent = insertResult.recordset[0];
 
-    for (const s of sessions) {
-      await pool.request()
+    for (const s of parsedSessions) {
+      const sessionResult = await pool.request()
         .input('EventID', sql.Int, newEvent.EventID)
         .input('Title', sql.NVarChar(300), s.title)
         .input('Description', sql.NVarChar(sql.MAX), s.description || null)
@@ -221,7 +261,36 @@ const createEvent = async (req, res) => {
         .input('EndTime', sql.DateTime, new Date(s.endTime))
         .input('Location', sql.NVarChar(300), s.location || null)
         .query(`INSERT INTO Sessions (EventID,Title,Description,StartTime,EndTime,Location)
+                OUTPUT INSERTED.SessionID
                 VALUES (@EventID,@Title,@Description,@StartTime,@EndTime,@Location)`);
+                
+      const newSessionId = sessionResult.recordset[0].SessionID;
+
+      // Xử lý thêm Speaker vào Session
+      if (s.speakerEmails && Array.isArray(s.speakerEmails) && s.speakerEmails.length > 0) {
+        for (const email of s.speakerEmails) {
+          const userCheck = await pool.request()
+            .input('Email', sql.VarChar(255), email.trim())
+            .query(`SELECT UserID, Role, IsActive FROM Users WHERE Email = @Email`);
+          const speaker = userCheck.recordset[0];
+          // Nếu tồn tại User, có Role='Speaker', và IsActive=1 (hoặc do Organizer vừa tạo đang Pending) thì map vào
+          if (speaker && speaker.Role === 'Speaker') {
+            // Thêm vào SessionSpeakers
+            await pool.request()
+              .input('SessionID', sql.Int, newSessionId)
+              .input('SpeakerID', sql.Int, speaker.UserID)
+              .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
+                      INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
+            
+            // Thêm vào EventSpeakers
+            await pool.request()
+              .input('EventID', sql.Int, newEvent.EventID)
+              .input('SpeakerID', sql.Int, speaker.UserID)
+              .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                      INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+          }
+        }
+      }
     }
 
     return createdResponse(res, { eventId: newEvent.EventID }, 'Tạo sự kiện thành công');
@@ -249,12 +318,71 @@ const updateEvent = async (req, res) => {
     if (['Cancelled','Completed'].includes(event.Status) && !isAdmin)
       return forbiddenResponse(res, 'Không thể chỉnh sửa sự kiện đã kết thúc/huỷ');
 
-    const { title, description, coverImageURL, startDate, endDate,
-            registrationDeadline, maxParticipants, categoryId, venueId } = req.body;
+    const { title, description, startDate, endDate,
+            registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions } = req.body;
+    let { coverImageURL } = req.body;
+
+    let parsedSessions = [];
+    if (typeof sessions === 'string') {
+      try { parsedSessions = JSON.parse(sessions); } catch (e) {}
+    } else if (Array.isArray(sessions)) {
+      parsedSessions = sessions;
+    }
+
+    if (req.files && req.files['coverImage'] && req.files['coverImage'].length > 0) {
+      coverImageURL = req.files['coverImage'][0].filename;
+    }
 
     const createdAt = new Date(event.CreatedAt);
     const editLockedAt = (!event.EditLockedAt && new Date() > new Date(createdAt.getTime() + 3*24*60*60*1000))
       ? new Date() : event.EditLockedAt;
+
+    if (!isAdmin && event.Status === 'Published') {
+      if (new Date(event.StartDate) <= new Date()) {
+        return forbiddenResponse(res, 'Không thể chỉnh sửa sự kiện đã hoặc đang diễn ra');
+      }
+      if (!editReason) {
+        return errorResponse(res, 'Vui lòng cung cấp lý do chỉnh sửa', 400);
+      }
+      
+      const proposedChanges = JSON.stringify({
+        title: title || event.Title, 
+        description: description !== undefined ? description : event.Description, 
+        coverImageURL: coverImageURL !== undefined ? coverImageURL : event.CoverImageURL, 
+        startDate: startDate ? new Date(startDate).toISOString() : event.StartDate, 
+        endDate: endDate ? new Date(endDate).toISOString() : event.EndDate, 
+        registrationDeadline: registrationDeadline ? new Date(registrationDeadline).toISOString() : event.RegistrationDeadline, 
+        maxParticipants: maxParticipants !== undefined ? maxParticipants : event.MaxParticipants, 
+        categoryId: categoryId !== undefined ? categoryId : event.CategoryID, 
+        venueId: venueId !== undefined ? venueId : event.VenueID,
+        sessions: parsedSessions.length > 0 ? parsedSessions : undefined
+      });
+
+      await pool.request()
+        .input('EventID', sql.Int, parseInt(id))
+        .input('ProposedChanges', sql.NVarChar(sql.MAX), proposedChanges)
+        .input('EditReason', sql.NVarChar(sql.MAX), editReason)
+        .input('ApprovalStatus', sql.VarChar(50), 'Pending')
+        .query(`
+          UPDATE Events 
+          SET ProposedChanges=@ProposedChanges, EditReason=@EditReason, ApprovalStatus=@ApprovalStatus, UpdatedAt=GETDATE()
+          WHERE EventID=@EventID
+        `);
+        
+      const admins = await pool.request().query(`SELECT UserID FROM Users WHERE Role='Admin' AND IsActive=1`);
+      for (const admin of admins.recordset) {
+        await pool.request()
+          .input('UserID', sql.Int, admin.UserID)
+          .input('Title', sql.NVarChar(300), `Yêu cầu chỉnh sửa sự kiện: ${event.Title}`)
+          .input('Message', sql.NVarChar(sql.MAX), `Ban tổ chức sự kiện "${event.Title}" vừa gửi yêu cầu chỉnh sửa. Lý do chỉnh sửa: ${editReason}`)
+          .input('Type', sql.VarChar(30), 'EventApproval')
+          .input('RelatedID', sql.Int, parseInt(id))
+          .input('RelatedType', sql.VarChar(50), 'Event')
+          .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
+      }
+      
+      return successResponse(res, null, 'Đã gửi yêu cầu chỉnh sửa cho Admin phê duyệt');
+    }
 
     await pool.request()
       .input('EventID', sql.Int, parseInt(id))
@@ -275,6 +403,50 @@ const updateEvent = async (req, res) => {
           MaxParticipants=@MaxParticipants, EditLockedAt=@EditLockedAt, UpdatedAt=GETDATE()
         WHERE EventID=@EventID
       `);
+
+    // Cập nhật sessions cho Draft
+    if (parsedSessions.length > 0) {
+      // Xoá tất cả session cũ và liên kết
+      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
+      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM EventSpeakers WHERE EventID=@EventID`);
+      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
+
+      for (const s of parsedSessions) {
+        const sessionResult = await pool.request()
+          .input('EventID', sql.Int, parseInt(id))
+          .input('Title', sql.NVarChar(300), s.title)
+          .input('Description', sql.NVarChar(sql.MAX), s.description || null)
+          .input('StartTime', sql.DateTime, new Date(s.startTime))
+          .input('EndTime', sql.DateTime, new Date(s.endTime))
+          .input('Location', sql.NVarChar(300), s.location || null)
+          .query(`INSERT INTO Sessions (EventID,Title,Description,StartTime,EndTime,Location)
+                  OUTPUT INSERTED.SessionID
+                  VALUES (@EventID,@Title,@Description,@StartTime,@EndTime,@Location)`);
+                  
+        const newSessionId = sessionResult.recordset[0].SessionID;
+
+        if (s.speakerEmails && Array.isArray(s.speakerEmails) && s.speakerEmails.length > 0) {
+          for (const email of s.speakerEmails) {
+            const userCheck = await pool.request()
+              .input('Email', sql.VarChar(255), email.trim())
+              .query(`SELECT UserID, Role FROM Users WHERE Email = @Email`);
+            const speaker = userCheck.recordset[0];
+            if (speaker && speaker.Role === 'Speaker') {
+              await pool.request()
+                .input('SessionID', sql.Int, newSessionId)
+                .input('SpeakerID', sql.Int, speaker.UserID)
+                .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
+                        INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
+              await pool.request()
+                .input('EventID', sql.Int, parseInt(id))
+                .input('SpeakerID', sql.Int, speaker.UserID)
+                .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                        INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+            }
+          }
+        }
+      }
+    }
 
     return successResponse(res, null, 'Cập nhật sự kiện thành công');
   } catch (error) {
@@ -339,51 +511,6 @@ const submitForApproval = async (req, res) => {
   }
 };
 
-// ─── APPROVE / REJECT EVENT (Admin) ───────────────────────────
-const approveEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { action, rejectionReason } = req.body;
-    const pool = getPool();
-    const existing = await pool.request().input('EventID', sql.Int, parseInt(id))
-      .query(`SELECT e.*, u.FullName AS OrganizerName FROM Events e JOIN Users u ON e.OrganizerID=u.UserID WHERE e.EventID=@EventID`);
-    const event = existing.recordset[0];
-    if (!event) return notFoundResponse(res, 'Không tìm thấy sự kiện');
-    if (event.ApprovalStatus !== 'Pending') return conflictResponse(res, 'Sự kiện không ở trạng thái chờ duyệt');
-
-    if (action === 'approve') {
-      await pool.request().input('EventID', sql.Int, parseInt(id)).input('ApprovedBy', sql.Int, req.user.UserID)
-        .query(`UPDATE Events SET ApprovalStatus='Approved',Status='Published',ApprovedBy=@ApprovedBy,ApprovedAt=GETDATE(),UpdatedAt=GETDATE() WHERE EventID=@EventID`);
-      await pool.request()
-        .input('UserID', sql.Int, event.OrganizerID)
-        .input('Title', sql.NVarChar(300), '✅ Sự kiện được duyệt!')
-        .input('Message', sql.NVarChar(sql.MAX), `Sự kiện "${event.Title}" đã được phê duyệt và công bố.`)
-        .input('Type', sql.VarChar(30), 'EventApproval')
-        .input('RelatedID', sql.Int, parseInt(id))
-        .input('RelatedType', sql.VarChar(50), 'Event')
-        .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
-      return successResponse(res, null, 'Đã duyệt và công bố sự kiện');
-    } else if (action === 'reject') {
-      if (!rejectionReason) return errorResponse(res, 'Vui lòng nhập lý do từ chối', 400);
-      await pool.request().input('EventID', sql.Int, parseInt(id)).input('ApprovedBy', sql.Int, req.user.UserID)
-        .input('RejectionReason', sql.NVarChar(500), rejectionReason)
-        .query(`UPDATE Events SET ApprovalStatus='Rejected',Status='Rejected',ApprovedBy=@ApprovedBy,ApprovedAt=GETDATE(),RejectionReason=@RejectionReason,UpdatedAt=GETDATE() WHERE EventID=@EventID`);
-      await pool.request()
-        .input('UserID', sql.Int, event.OrganizerID)
-        .input('Title', sql.NVarChar(300), '❌ Sự kiện bị từ chối')
-        .input('Message', sql.NVarChar(sql.MAX), `Sự kiện "${event.Title}" bị từ chối. Lý do: ${rejectionReason}`)
-        .input('Type', sql.VarChar(30), 'EventApproval')
-        .input('RelatedID', sql.Int, parseInt(id))
-        .input('RelatedType', sql.VarChar(50), 'Event')
-        .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
-      return successResponse(res, null, 'Đã từ chối sự kiện');
-    }
-    return errorResponse(res, 'action phải là approve hoặc reject', 400);
-  } catch (error) {
-    console.error('approveEvent error:', error.message);
-    return errorResponse(res, 'Xử lý duyệt sự kiện thất bại');
-  }
-};
 
 // ─── CANCEL EVENT ──────────────────────────────────────────────
 const cancelEvent = async (req, res) => {
@@ -534,7 +661,8 @@ const getDashboardStats = async (req, res) => {
 
 module.exports = {
   getEvents, getEventById, createEvent, updateEvent, deleteEvent,
-  submitForApproval, approveEvent, cancelEvent,
+  submitForApproval,
+  cancelEvent,
   getSessions, addSession, updateSession, deleteSession,
   unlockEventEdit, getCategories, getVenues, getDashboardStats,
 };

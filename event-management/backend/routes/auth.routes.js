@@ -19,7 +19,7 @@ const emailLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { succe
 router.post('/register', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), registerRules, validate, register);
 router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', emailLimiter, resendVerification);
-router.post('/login', authLimiter, loginRules, validate, login);
+router.post('/login', loginRules, validate, login);
 router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', emailLimiter, forgotPasswordRules, validate, forgotPassword);
 router.post('/reset-password', authLimiter, resetPasswordRules, validate, resetPassword);

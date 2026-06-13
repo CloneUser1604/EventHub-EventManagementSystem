@@ -44,9 +44,13 @@ const EventListPage = () => {
   const FilterPanel = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Lĩnh vực</Text>
+        <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 13, fontFamily: 'DM Sans' }}>Lĩnh vực</Text>
         <Select value={filters.categoryId || undefined} onChange={v => updateFilter('categoryId', v || '')}
-          placeholder="Tất cả lĩnh vực" style={{ width: '100%' }} allowClear>
+          placeholder="Tất cả lĩnh vực" 
+          style={{ width: '100%' }}
+          dropdownStyle={{ fontFamily: 'DM Sans' }}
+          className="category-filter"
+          allowClear>
           {categories.map(c => <Option key={c.CategoryID} value={String(c.CategoryID)}>{c.Name}</Option>)}
         </Select>
       </div>
@@ -121,6 +125,22 @@ const EventListPage = () => {
             </div>
           )}
         </div>
+        <style>{`
+          .category-filter .ant-select-selector {
+            background-color: #f0fdf4 !important;
+            border-color: #22c55e !important;
+            border-width: 2px !important;
+            color: #166534 !important;
+            font-weight: 600;
+          }
+          .category-filter .ant-select-selection-placeholder {
+            color: #166534 !important;
+            opacity: 0.7;
+          }
+          body {
+            font-family: 'DM Sans', sans-serif !important;
+          }
+        `}</style>
       </div>
 
       {/* Main content */}

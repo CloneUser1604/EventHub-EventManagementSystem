@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Tag, Avatar, Tabs, Timeline, Modal, message,
-  Spin, Descriptions, QRCode, Typography, Space, Divider, Alert, Empty
+  Spin, Descriptions, QRCode, Typography, Space, Divider, Alert, Empty, Table
 } from 'antd';
 import {
   CalendarOutlined, EnvironmentOutlined, TeamOutlined,
@@ -44,11 +44,32 @@ const EventDetailPage = () => {
   const [registering, setRegistering] = useState(false);
   const [myRegistration, setMyRegistration] = useState(null);
   const [ticketModal, setTicketModal] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   useEffect(() => {
     fetchEventById(id);
-    if (isAuthenticated) loadMyRegistration();
-  }, [id]);
+    if (isAuthenticated && user?.role === 'Participant') loadMyRegistration();
+  }, [id, isAuthenticated, user]);
+
+  useEffect(() => {
+    if (event && (event.isStaff || user?.userId === event.OrganizerID)) {
+      loadParticipants();
+    }
+  }, [event, user]);
+
+  const loadParticipants = async () => {
+    try {
+      setLoadingParticipants(true);
+      const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${API_BASE}/staff/events/${id}/participants`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      const data = await res.json();
+      setParticipants(data.data || []);
+    } catch {}
+    finally { setLoadingParticipants(false); }
+  };
 
   const loadMyRegistration = async () => {
     try {
@@ -96,6 +117,19 @@ const EventDetailPage = () => {
   );
 
   const isUpcoming = dayjs(event.StartDate).isAfter(dayjs());
+  
+  const isPastedHTML = event?.Description && (event.Description.includes('&lt;div') || event.Description.includes('&lt;style') || event.Description.includes('&lt;!DOCTYPE') || event.Description.includes('&lt;section'));
+
+  const unescapeHTML = (htmlStr) => {
+    if (!htmlStr) return '';
+    if (isPastedHTML) {
+      // Strip all actual HTML tags injected by Quill (like <p>, <br>) and replace with space
+      let text = htmlStr.replace(/<[^>]+>/g, ' ');
+      return text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+    }
+    return htmlStr.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+  };
+
   const isPast = dayjs(event.EndDate).isBefore(dayjs());
   const isFull = event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants;
   const deadlinePassed = event.RegistrationDeadline && dayjs().isAfter(dayjs(event.RegistrationDeadline));
@@ -105,7 +139,7 @@ const EventDetailPage = () => {
     <MainLayout>
       {/* Hero */}
       <div style={{ position: 'relative', height: 420, background: 'linear-gradient(135deg,#0f1629,#1a2744)', overflow: 'hidden' }}>
-        {event.CoverImageURL && <img src={event.CoverImageURL} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />}
+        {event.CoverImageURL && <img src={event.CoverImageURL.startsWith('http') ? event.CoverImageURL : `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/../uploads/${event.CoverImageURL}`} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,22,41,0.95) 0%, rgba(15,22,41,0.5) 50%, transparent 100%)' }} />
 
         <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
@@ -132,30 +166,30 @@ const EventDetailPage = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32, alignItems: 'start' }}>
 
           {/* Left: Main content */}
-          <div>
+          <div style={{ minWidth: 0 }}>
             <Tabs defaultActiveKey="about" items={[
               {
                 key: 'about',
                 label: 'Giới thiệu',
                 children: (
                   <div>
-                    {isUpcoming && (
-                      <div style={{ background: 'linear-gradient(135deg,#eff6ff,#f5f3ff)', border: '1px solid #c7d2fe', borderRadius: 12, padding: '16px 20px', marginBottom: 24 }}>
-                        <Text type="secondary" style={{ fontSize: 13 }}>Sự kiện bắt đầu sau</Text>
-                        <div style={{ fontSize: 20, marginTop: 4 }}><Countdown targetDate={event.StartDate} /></div>
-                      </div>
+
+                    {event.Description ? (
+                      <>
+                        <style>{`
+                          .custom-html-content * { max-width: 100% !important; box-sizing: border-box !important; }
+                          .custom-html-content .container { width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+                          .custom-html-content .hero { height: auto !important; min-height: 300px; padding: 40px 20px !important; }
+                          .custom-html-content img { height: auto !important; }
+                          ${isPastedHTML ? '.custom-html-content { white-space: normal !important; }' : ''}
+                        `}</style>
+                        <div className={`ql-editor custom-html-content ${isPastedHTML ? 'is-html' : ''}`} style={{ padding: 0, fontSize: 15, lineHeight: 1.8, color: '#374151', maxWidth: '100%', overflowX: 'hidden' }} dangerouslySetInnerHTML={{ __html: unescapeHTML(event.Description) }} />
+                      </>
+                    ) : (
+                      <Paragraph style={{ fontSize: 15, lineHeight: 1.8, color: '#374151', whiteSpace: 'pre-wrap' }}>
+                        Chưa có mô tả cho sự kiện này.
+                      </Paragraph>
                     )}
-                    <Paragraph style={{ fontSize: 15, lineHeight: 1.8, color: '#374151', whiteSpace: 'pre-wrap' }}>
-                      {event.Description || 'Chưa có mô tả cho sự kiện này.'}
-                    </Paragraph>
-                    <Divider />
-                    <Descriptions column={1} bordered size="small">
-                      <Descriptions.Item label="Bắt đầu">{dayjs(event.StartDate).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
-                      <Descriptions.Item label="Kết thúc">{dayjs(event.EndDate).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
-                      {event.RegistrationDeadline && <Descriptions.Item label="Hạn đăng ký">{dayjs(event.RegistrationDeadline).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>}
-                      {event.VenueName && <Descriptions.Item label="Địa điểm">{event.VenueName} — {event.VenueAddress}</Descriptions.Item>}
-                      <Descriptions.Item label="Ban tổ chức">{event.OrganizationName || event.OrganizerName}</Descriptions.Item>
-                    </Descriptions>
                   </div>
                 ),
               },
@@ -196,6 +230,34 @@ const EventDetailPage = () => {
                   </div>
                 ),
               },
+              ...(event.isStaff || user?.userId === event.OrganizerID ? [{
+                key: 'participants',
+                label: 'Quản lý Participant',
+                children: (
+                  <div style={{ padding: '16px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <Text strong style={{ fontSize: 16 }}>Danh sách đã đăng ký</Text>
+                    </div>
+                    <Table 
+                      size="small"
+                      loading={loadingParticipants}
+                      dataSource={participants}
+                      rowKey="RegistrationID"
+                      pagination={{ pageSize: 10 }}
+                      columns={[
+                        { title: 'Tên', dataIndex: 'FullName', render: t => <Text strong>{t}</Text> },
+                        { title: 'Email', dataIndex: 'Email' },
+                        { title: 'Trạng thái', dataIndex: 'Status', render: () => <Tag color="green">Đã đăng ký</Tag> },
+                        { title: 'Điểm danh', dataIndex: 'AttendanceStatus', render: s => (
+                            s === 'Present' ? <Tag color="green">Có mặt</Tag> :
+                            s === 'Late' ? <Tag color="orange">Đến muộn</Tag> :
+                            <Tag color="red">Vắng</Tag>
+                        )}
+                      ]}
+                    />
+                  </div>
+                ),
+              }] : [])
             ]} />
           </div>
 
@@ -216,6 +278,12 @@ const EventDetailPage = () => {
                     </span>
                   )}
                 </div>
+                {!isPast && event.Status !== 'Cancelled' && (
+                  <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 8, marginTop: 16, textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                    <Text style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 4 }}>Thời gian đếm ngược</Text>
+                    <Countdown targetDate={event.StartDate} />
+                  </div>
+                )}
               </div>
 
               {/* Registered state */}
@@ -224,9 +292,9 @@ const EventDetailPage = () => {
                   <Alert message="✅ Bạn đã đăng ký thành công!" type="success" showIcon style={{ marginBottom: 12, borderRadius: 10 }} />
                   <Button type="primary" block size="large" icon={<QrcodeOutlined />} onClick={() => setTicketModal(true)}
                     style={{ borderRadius: 10, height: 46, fontWeight: 700, marginBottom: 10 }}>
-                    Xem QR Ticket & OTP
+                    {event.isStaff ? 'Quét QR Check-in' : 'Xem Mã OTP'}
                   </Button>
-                  {!deadlinePassed && !isPast && (
+                  {!event.isStaff && !deadlinePassed && !isPast && (
                     <Button danger block size="large" onClick={handleCancel}
                       style={{ borderRadius: 10, height: 42, fontWeight: 600 }}>
                       Huỷ đăng ký
@@ -255,6 +323,15 @@ const EventDetailPage = () => {
                 <Button type="text" icon={<ShareAltOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã sao chép link!'); }}>Chia sẻ</Button>
                 <Button type="text" icon={<HeartOutlined />}>Lưu</Button>
               </Space>
+
+              <Divider style={{ margin: '16px 0' }} />
+              <Descriptions column={1} size="small" styles={{ label: { color: '#6b7280', fontSize: 13, width: 100 }, content: { fontWeight: 600, fontSize: 13, color: '#374151' } }}>
+                <Descriptions.Item label="Bắt đầu">{dayjs(event.StartDate).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+                <Descriptions.Item label="Kết thúc">{dayjs(event.EndDate).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+                {event.RegistrationDeadline && <Descriptions.Item label="Hạn đăng ký">{dayjs(event.RegistrationDeadline).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>}
+                <Descriptions.Item label="Ban tổ chức">{event.OrganizationName || event.OrganizerName}</Descriptions.Item>
+                {event.VenueName && <Descriptions.Item label="Địa điểm">{event.VenueName}</Descriptions.Item>}
+              </Descriptions>
             </div>
           </div>
         </div>
@@ -262,22 +339,23 @@ const EventDetailPage = () => {
 
       {/* QR Ticket Modal */}
       <Modal open={ticketModal} onCancel={() => setTicketModal(false)} footer={null} width={420} centered
-        title={<span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700 }}>🎟️ Vé của bạn</span>}>
+        title={<span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700 }}>{event?.isStaff ? '🎟️ Quét để Check-in' : '🎟️ Vé của bạn'}</span>}>
         {myRegistration && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, display: 'block', marginBottom: 4 }}>QR Code Check-in</Text>
-              <div style={{ background: 'white', borderRadius: 10, padding: 16, display: 'inline-block' }}>
-                <QRCode value={myRegistration.QRCode || 'EMS-TICKET'} size={160} />
+            {event?.isStaff ? (
+              <div style={{ background: '#f9fafb', borderRadius: 12, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 13, marginBottom: 16 }}>Đưa mã QR này cho người tham gia quét</Text>
+                <QRCode value={`${window.location.origin}/events/${event.EventID}/checkin?staffId=${user?.userId}`} size={200} />
               </div>
-            </div>
-            <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px 20px', textAlign: 'left' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Mã OTP của bạn</Text>
-              <div style={{ fontFamily: 'Sora,monospace', fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#1a2744', marginTop: 4 }}>
-                {myRegistration.OTPCode}
+            ) : (
+              <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px 20px', textAlign: 'left' }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>Mã OTP của bạn</Text>
+                <div style={{ fontFamily: 'Sora,monospace', fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#1a2744', marginTop: 4 }}>
+                  {myRegistration.OTPCode}
+                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>⚠️ Giữ mã này bí mật. Dùng để check-in tại sự kiện.</Text>
               </div>
-              <Text type="secondary" style={{ fontSize: 12 }}>⚠️ Giữ mã này bí mật. Dùng để check-in tại sự kiện.</Text>
-            </div>
+            )}
             <div style={{ marginTop: 16, textAlign: 'left' }}>
               <Text strong style={{ display: 'block' }}>{event.Title}</Text>
               <Text type="secondary" style={{ fontSize: 13 }}><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</Text>

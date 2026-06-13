@@ -5,7 +5,7 @@ const { registerEvent, cancelRegistration, getMyRegistrations, getTicket, getNot
 
 router.post('/',       authenticate, authorize('Participant'), registerEvent);
 router.delete('/:id',  authenticate, authorize('Participant'), cancelRegistration);
-router.get('/my',      authenticate, authorize('Participant'), getMyRegistrations);
+router.get('/my',      authenticate, authorize('Participant', 'Speaker'), getMyRegistrations);
 router.get('/:id/ticket', authenticate, getTicket);
 router.get('/notifications',   authenticate, getNotifications);
 router.patch('/notifications/:id/read', authenticate, markNotificationRead);

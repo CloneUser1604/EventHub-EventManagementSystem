@@ -36,8 +36,9 @@ const Countdown = ({ targetDate }) => {
   return <span style={{ fontFamily: 'Sora,monospace', fontWeight: 700, color: '#2563eb' }}>{timeLeft}</span>;
 };
 
-const EventDetailPage = () => {
+const EventDetailPage = ({ adminEventId, noLayout }) => {
   const { id } = useParams();
+  const targetId = adminEventId || id;
   const navigate = useNavigate();
   const { selectedEvent: event, isLoading, fetchEventById } = useEventStore();
   const { user, isAuthenticated } = useAuthStore();
@@ -48,9 +49,9 @@ const EventDetailPage = () => {
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   useEffect(() => {
-    fetchEventById(id);
+    fetchEventById(targetId);
     if (isAuthenticated && user?.role === 'Participant') loadMyRegistration();
-  }, [id, isAuthenticated, user]);
+  }, [targetId, isAuthenticated, user]);
 
   useEffect(() => {
     if (event && (event.isStaff || user?.userId === event.OrganizerID)) {
@@ -62,7 +63,7 @@ const EventDetailPage = () => {
     try {
       setLoadingParticipants(true);
       const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-      const res = await fetch(`${API_BASE}/staff/events/${id}/participants`, {
+      const res = await fetch(`${API_BASE}/staff/events/${targetId}/participants`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
       });
       const data = await res.json();
@@ -74,17 +75,17 @@ const EventDetailPage = () => {
   const loadMyRegistration = async () => {
     try {
       const res = await registrationService.getMyRegistrations();
-      const reg = res.data.data.find(r => String(r.EventID) === String(id) && r.Status === 'Registered');
+      const reg = res.data.data.find(r => String(r.EventID) === String(targetId) && r.Status === 'Registered');
       setMyRegistration(reg || null);
     } catch {}
   };
 
   const handleRegister = async () => {
-    if (!isAuthenticated) return navigate('/login', { state: { from: { pathname: `/events/${id}` } } });
+    if (!isAuthenticated) return navigate('/login', { state: { from: { pathname: `/events/${targetId}` } } });
     if (user?.role !== 'Participant') return message.warning('Chỉ người tham dự mới có thể đăng ký sự kiện');
     setRegistering(true);
     try {
-      const res = await registrationService.register(parseInt(id));
+      const res = await registrationService.register(parseInt(targetId));
       message.success(res.data.message);
       await loadMyRegistration();
     } catch (err) {
@@ -112,9 +113,16 @@ const EventDetailPage = () => {
     });
   };
 
-  if (isLoading || !event) return (
+  if (isLoading || !event) return noLayout ? (
+    <div style={{ textAlign: 'center', padding: '120px 24px' }}><Spin size="large" /></div>
+  ) : (
     <MainLayout><div style={{ textAlign: 'center', padding: '120px 24px' }}><Spin size="large" /></div></MainLayout>
   );
+
+  const isPast = dayjs(event.EndDate).isBefore(dayjs());
+  const isFull = event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants;
+  const deadlinePassed = event.RegistrationDeadline && dayjs().isAfter(dayjs(event.RegistrationDeadline));
+  const canRegister = isAuthenticated && user?.role === 'Participant' && !myRegistration && !isFull && !deadlinePassed && !isPast && event.Status === 'Published';
 
   const isUpcoming = dayjs(event.StartDate).isAfter(dayjs());
   
@@ -130,21 +138,18 @@ const EventDetailPage = () => {
     return htmlStr.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
   };
 
-  const isPast = dayjs(event.EndDate).isBefore(dayjs());
-  const isFull = event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants;
-  const deadlinePassed = event.RegistrationDeadline && dayjs().isAfter(dayjs(event.RegistrationDeadline));
-  const canRegister = isAuthenticated && user?.role === 'Participant' && !myRegistration && !isFull && !deadlinePassed && !isPast && event.Status === 'Published';
-
-  return (
-    <MainLayout>
+  const content = (
+    <div style={{ background: noLayout ? '#fff' : 'inherit' }}>
       {/* Hero */}
       <div style={{ position: 'relative', height: 420, background: 'linear-gradient(135deg,#0f1629,#1a2744)', overflow: 'hidden' }}>
         {event.CoverImageURL && <img src={event.CoverImageURL.startsWith('http') ? event.CoverImageURL : `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/../uploads/${event.CoverImageURL}`} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,22,41,0.95) 0%, rgba(15,22,41,0.5) 50%, transparent 100%)' }} />
 
         <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}
-            style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 16, padding: 0 }}>Quay lại</Button>
+          {!noLayout && (
+            <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}
+              style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 16, padding: 0 }}>Quay lại</Button>
+          )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {event.CategoryName && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{event.CategoryName}</Tag>}
             {isPast && <Tag color="default">Đã kết thúc</Tag>}
@@ -162,8 +167,16 @@ const EventDetailPage = () => {
       </div>
 
       {/* Body */}
+      <style>{`
+        .event-detail-grid {
+          display: grid; grid-template-columns: 1fr 340px; gap: 32px; align-items: start;
+        }
+        @media (max-width: 992px) {
+          .event-detail-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32, alignItems: 'start' }}>
+        <div className="event-detail-grid">
 
           {/* Left: Main content */}
           <div style={{ minWidth: 0 }}>
@@ -364,8 +377,10 @@ const EventDetailPage = () => {
           </div>
         )}
       </Modal>
-    </MainLayout>
+    </div>
   );
+
+  return noLayout ? content : <MainLayout>{content}</MainLayout>;
 };
 
 export default EventDetailPage;

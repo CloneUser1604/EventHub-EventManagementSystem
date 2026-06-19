@@ -2,32 +2,36 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const {
-  getEventParticipants,
-  inviteStaff,
-  respondToInvitation,
-  getMyInvitations,
+  getAvailableStaff,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+  getAssignedStaff,
+  assignStaff,
   generateStaffSession,
   revokeStaff,
   participantCheckinWithOTP
 } = require('../controllers/staff.controller');
 
-// Organizer or Staff: Lấy danh sách những người đã đăng ký sự kiện
-router.get('/events/:eventId/participants', authenticate, getEventParticipants);
+// Lấy danh sách Staff khả dụng (Admin)
+router.get('/available', authenticate, authorize('Admin'), getAvailableStaff);
 
-// Organizer: Mời Participant làm Staff
-router.post('/events/:eventId/invite', authenticate, authorize('Organizer'), inviteStaff);
+// CRUD Staff (Admin)
+router.post('/', authenticate, authorize('Admin'), createStaff);
+router.put('/:staffId', authenticate, authorize('Admin'), updateStaff);
+router.delete('/:staffId', authenticate, authorize('Admin'), deleteStaff);
 
-// Participant: Xem các lời mời làm Staff
-router.get('/invitations', authenticate, getMyInvitations);
+// Admin: Lấy danh sách Staff đã được gán cho sự kiện
+router.get('/events/:eventId/assigned', authenticate, authorize('Admin', 'Organizer'), getAssignedStaff);
 
-// Participant: Phản hồi lời mời (Chấp nhận / Từ chối)
-router.post('/events/:eventId/respond', authenticate, respondToInvitation);
+// Admin: Gán Staff vào sự kiện trực tiếp
+router.post('/events/:eventId/assign', authenticate, authorize('Admin'), assignStaff);
 
-// Staff (Participant đã chấp nhận): Sinh mã QR check-in
-router.get('/session/:eventId', authenticate, generateStaffSession);
+// Admin: Xóa quyền Staff
+router.delete('/events/:eventId/staff/:staffId', authenticate, authorize('Admin'), revokeStaff);
 
-// Organizer: Xóa quyền Staff
-router.delete('/events/:eventId/staff/:staffId', authenticate, authorize('Organizer'), revokeStaff);
+// Staff: Sinh mã QR check-in
+router.get('/session/:eventId', authenticate, authorize('Staff', 'Participant'), generateStaffSession);
 
 // Participant: Nhập OTP tự check-in
 router.post('/events/:eventId/participant-checkin', authenticate, participantCheckinWithOTP);

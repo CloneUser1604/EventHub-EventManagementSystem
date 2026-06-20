@@ -197,7 +197,7 @@ const getEventById = async (req, res) => {
 const createEvent = async (req, res) => {
   try {
     const { title, description, startDate, endDate,
-            registrationDeadline, maxParticipants, categoryId, venueId, sessions = [] } = req.body;
+            registrationDeadline, maxParticipants, categoryId, venueId, sessions = [], isInternalOnly } = req.body;
     const pool = getPool();
     const organizerId = req.user.UserID;
 
@@ -242,12 +242,13 @@ const createEvent = async (req, res) => {
       .input('EndDate', sql.DateTime, new Date(endDate))
       .input('RegistrationDeadline', sql.DateTime, registrationDeadline ? new Date(registrationDeadline) : null)
       .input('MaxParticipants', sql.Int, maxParticipants || null)
+      .input('IsInternalOnly', sql.Bit, isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0)
       .query(`
         INSERT INTO Events (OrganizerID,CategoryID,VenueID,Title,Description,CoverImageURL, DocumentsURL,
-          StartDate,EndDate,RegistrationDeadline,MaxParticipants,Status,ApprovalStatus)
+          StartDate,EndDate,RegistrationDeadline,MaxParticipants,IsInternalOnly,Status,ApprovalStatus)
         OUTPUT INSERTED.*
         VALUES (@OrganizerID,@CategoryID,@VenueID,@Title,@Description,@CoverImageURL, @DocumentsURL,
-          @StartDate,@EndDate,@RegistrationDeadline,@MaxParticipants,'Draft','NotSubmitted')
+          @StartDate,@EndDate,@RegistrationDeadline,@MaxParticipants,@IsInternalOnly,'Draft','NotSubmitted')
       `);
 
     const newEvent = insertResult.recordset[0];
@@ -319,7 +320,7 @@ const updateEvent = async (req, res) => {
       return forbiddenResponse(res, 'Không thể chỉnh sửa sự kiện đã kết thúc/huỷ');
 
     const { title, description, startDate, endDate,
-            registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions } = req.body;
+            registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions, isInternalOnly } = req.body;
     let { coverImageURL } = req.body;
 
     let parsedSessions = [];
@@ -355,6 +356,7 @@ const updateEvent = async (req, res) => {
         maxParticipants: maxParticipants !== undefined ? maxParticipants : event.MaxParticipants, 
         categoryId: categoryId !== undefined ? categoryId : event.CategoryID, 
         venueId: venueId !== undefined ? venueId : event.VenueID,
+        isInternalOnly: isInternalOnly !== undefined ? (isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0) : event.IsInternalOnly,
         sessions: parsedSessions.length > 0 ? parsedSessions : undefined
       });
 
@@ -395,12 +397,13 @@ const updateEvent = async (req, res) => {
       .input('EndDate', sql.DateTime, endDate ? new Date(endDate) : event.EndDate)
       .input('RegistrationDeadline', sql.DateTime, registrationDeadline ? new Date(registrationDeadline) : event.RegistrationDeadline)
       .input('MaxParticipants', sql.Int, maxParticipants !== undefined ? maxParticipants : event.MaxParticipants)
+      .input('IsInternalOnly', sql.Bit, isInternalOnly !== undefined ? (isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0) : event.IsInternalOnly)
       .input('EditLockedAt', sql.DateTime, editLockedAt || null)
       .query(`
         UPDATE Events SET CategoryID=@CategoryID, VenueID=@VenueID, Title=@Title,
           Description=@Description, CoverImageURL=@CoverImageURL, StartDate=@StartDate,
           EndDate=@EndDate, RegistrationDeadline=@RegistrationDeadline,
-          MaxParticipants=@MaxParticipants, EditLockedAt=@EditLockedAt, UpdatedAt=GETDATE()
+          MaxParticipants=@MaxParticipants, IsInternalOnly=@IsInternalOnly, EditLockedAt=@EditLockedAt, UpdatedAt=GETDATE()
         WHERE EventID=@EventID
       `);
 

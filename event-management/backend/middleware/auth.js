@@ -21,7 +21,7 @@ const authenticate = async (req, res, next) => {
       .request()
       .input('UserID', sql.Int, decoded.userId)
       .query(`
-        SELECT UserID, FullName, Email, Role, IsActive, IsVerified, AvatarURL
+        SELECT UserID, FullName, Email, Role, IsActive, IsVerified, AvatarURL, University
         FROM Users
         WHERE UserID = @UserID
       `);
@@ -82,7 +82,7 @@ const optionalAuth = async (req, res, next) => {
     const result = await pool
       .request()
       .input('UserID', sql.Int, decoded.userId)
-      .query(`SELECT UserID, FullName, Email, Role, IsActive, IsVerified FROM Users WHERE UserID = @UserID`);
+      .query(`SELECT UserID, FullName, Email, Role, IsActive, IsVerified, University FROM Users WHERE UserID = @UserID`);
 
     if (result.recordset[0]?.IsActive) {
       req.user = result.recordset[0];

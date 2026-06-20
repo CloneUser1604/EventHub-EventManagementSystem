@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Form, Input, Button, Select, DatePicker, Upload, InputNumber,
-  message, Steps, Divider, Card, Typography, Space, Modal, Alert
+  message, Steps, Divider, Card, Typography, Space, Modal, Alert, Radio
 } from 'antd';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -60,6 +60,7 @@ const EventFormPage = () => {
       dateRange: ev.StartDate && ev.EndDate ? [dayjs(ev.StartDate), dayjs(ev.EndDate)] : null,
       registrationDeadline: ev.RegistrationDeadline ? dayjs(ev.RegistrationDeadline) : null,
       maxParticipants: ev.MaxParticipants,
+      isInternalOnly: ev.IsInternalOnly === true || ev.IsInternalOnly === 1,
     });
     setSessions(ev.sessions || []);
   };
@@ -96,6 +97,7 @@ const EventFormPage = () => {
       if (values.dateRange?.[1]) formData.append('endDate', values.dateRange[1].toISOString());
       if (values.registrationDeadline) formData.append('registrationDeadline', values.registrationDeadline.toISOString());
       if (values.maxParticipants) formData.append('maxParticipants', values.maxParticipants);
+      if (values.isInternalOnly !== undefined) formData.append('isInternalOnly', values.isInternalOnly);
       
       const invalidSession = sessions.find(s => !(s.title || s.Title) || !(s.startTime || s.StartTime) || !(s.endTime || s.EndTime));
       if (invalidSession) {
@@ -292,6 +294,13 @@ const EventFormPage = () => {
           {/* ── Section 2: Date & Registration ── */}
           <Card style={{ borderRadius: 14, marginBottom: 20 }}>
             <Title level={5} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 20 }}>📅 Thời gian & Đăng ký</Title>
+
+            <Form.Item name="isInternalOnly" label="Đối tượng tham dự" initialValue={true}>
+              <Radio.Group>
+                <Radio value={true}>Chỉ sinh viên trong trường</Radio>
+                <Radio value={false}>Mở rộng (Tất cả mọi người)</Radio>
+              </Radio.Group>
+            </Form.Item>
 
             <Form.Item name="dateRange" label="Ngày bắt đầu – Kết thúc" rules={[{ required: true, message: 'Vui lòng chọn thời gian' }]}>
               <RangePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }}

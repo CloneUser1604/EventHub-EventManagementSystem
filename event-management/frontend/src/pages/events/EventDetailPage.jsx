@@ -151,6 +151,11 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
               style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 16, padding: 0 }}>Quay lại</Button>
           )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {event.IsInternalOnly ? (
+              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Nội bộ</Tag>
+            ) : (
+              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Công khai</Tag>
+            )}
             {event.CategoryName && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{event.CategoryName}</Tag>}
             {isPast && <Tag color="default">Đã kết thúc</Tag>}
             {event.Status === 'Cancelled' && <Tag color="red">Đã huỷ</Tag>}

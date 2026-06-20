@@ -36,6 +36,7 @@ CREATE TABLE Users (
   Role         VARCHAR(20)    NOT NULL CHECK (Role IN ('Admin','Organizer','Staff','Participant','Speaker')),
   AvatarURL    VARCHAR(500)   NULL,
   Phone        VARCHAR(20)    NULL,
+  University   NVARCHAR(150)  NULL,
   IsActive     BIT            NOT NULL DEFAULT 1,
   IsVerified   BIT            NOT NULL DEFAULT 0,
   -- For email verification / password reset
@@ -123,6 +124,7 @@ CREATE TABLE Events (
   EndDate          DATETIME       NOT NULL,
   RegistrationDeadline DATETIME   NULL,
   MaxParticipants  INT            NULL,
+  IsInternalOnly   BIT            NOT NULL DEFAULT 0,
   Status           VARCHAR(20)    NOT NULL DEFAULT 'Draft'
                      CHECK (Status IN ('Draft','PendingApproval','Approved','Rejected','Published','Cancelled','Completed')),
   ApprovalStatus   VARCHAR(20)    NOT NULL DEFAULT 'NotSubmitted'

@@ -16,7 +16,7 @@ const registerEvent = async (req, res) => {
 
     // Fetch event
     const eventRes = await pool.request().input('EventID', sql.Int, eventId)
-      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants,
+      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly,
                 (SELECT COUNT(*) FROM Registrations WHERE EventID=@EventID AND Status='Registered') AS RegisteredCount
               FROM Events WHERE EventID=@EventID`);
     const event = eventRes.recordset[0];
@@ -26,6 +26,11 @@ const registerEvent = async (req, res) => {
       return errorResponse(res, 'Đã hết hạn đăng ký', 400);
     if (event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants)
       return errorResponse(res, 'Sự kiện đã đầy chỗ', 400);
+    
+    // Check internal only
+    if (event.IsInternalOnly && !req.user.University) {
+      return forbiddenResponse(res, 'Sự kiện này chỉ dành cho sinh viên trong trường');
+    }
 
     // Check duplicate
     const dup = await pool.request()

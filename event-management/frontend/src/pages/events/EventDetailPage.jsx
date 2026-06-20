@@ -50,7 +50,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
 
   useEffect(() => {
     fetchEventById(targetId);
-    if (isAuthenticated && user?.role === 'Participant') loadMyRegistration();
+    if (isAuthenticated && (user?.role === 'Participant' || user?.role === 'Speaker')) loadMyRegistration();
   }, [targetId, isAuthenticated, user]);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
 
   const handleRegister = async () => {
     if (!isAuthenticated) return navigate('/login', { state: { from: { pathname: `/events/${targetId}` } } });
-    if (user?.role !== 'Participant') return message.warning('Chỉ người tham dự mới có thể đăng ký sự kiện');
+    if (user?.role !== 'Participant' && user?.role !== 'Speaker') return message.warning('Chỉ người dùng cá nhân hoặc diễn giả mới có thể đăng ký tham gia sự kiện');
     setRegistering(true);
     try {
       const res = await registrationService.register(parseInt(targetId));
@@ -122,7 +122,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   const isPast = dayjs(event.EndDate).isBefore(dayjs());
   const isFull = event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants;
   const deadlinePassed = event.RegistrationDeadline && dayjs().isAfter(dayjs(event.RegistrationDeadline));
-  const canRegister = isAuthenticated && user?.role === 'Participant' && !myRegistration && !isFull && !deadlinePassed && !isPast && event.Status === 'Published';
+  const canRegister = isAuthenticated && (user?.role === 'Participant' || user?.role === 'Speaker') && !myRegistration && !isFull && !deadlinePassed && !isPast && event.Status === 'Published';
 
   const isUpcoming = dayjs(event.StartDate).isAfter(dayjs());
   

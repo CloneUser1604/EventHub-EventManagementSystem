@@ -120,7 +120,7 @@ const getMyRegistrations = async (req, res) => {
         SELECT e.EventID, e.Title, e.StartDate, e.EndDate, e.CoverImageURL, e.Status AS EventStatus,
                v.Name AS VenueName, v.Address AS VenueAddress,
                ISNULL(r.RegistrationID, 0) AS RegistrationID, 
-               ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 
+               ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL OR es.EventStaffID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 
                r.RegisteredAt, r.CancelledAt,
                qt.QRCode, qt.OTPCode, qt.IsUsed,
                a.Status AS AttendanceStatus,
@@ -133,10 +133,10 @@ const getMyRegistrations = async (req, res) => {
         LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
         LEFT JOIN EventStaffs es ON e.EventID = es.EventID AND es.StaffID = @PID
         LEFT JOIN EventSpeakers spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID
-        WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID
+        WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID OR es.StaffID = @PID
       )
       SELECT * FROM MyEvents
-      WHERE (@Status IS NULL OR Status = @Status OR (isSpeakerForThisEvent = 1 AND @Status = 'Confirmed' AND (Status IS NULL OR Status <> 'Cancelled')))
+      WHERE (@Status IS NULL OR Status = @Status OR ((isSpeakerForThisEvent = 1 OR isStaffForThisEvent = 1) AND @Status = 'Confirmed' AND (Status IS NULL OR Status <> 'Cancelled')))
       ORDER BY StartDate DESC
     `);
     return successResponse(res, result.recordset);

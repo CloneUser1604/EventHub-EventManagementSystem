@@ -3,8 +3,8 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { registerEvent, cancelRegistration, getMyRegistrations, getTicket, getNotifications, markNotificationRead } = require('../controllers/registration.controller');
 
-router.post('/',       authenticate, authorize('Participant'), registerEvent);
-router.delete('/:id',  authenticate, authorize('Participant'), cancelRegistration);
+router.post('/',       authenticate, authorize('Participant', 'Speaker'), registerEvent);
+router.delete('/:id',  authenticate, authorize('Participant', 'Speaker'), cancelRegistration);
 router.get('/my',      authenticate, authorize('Participant', 'Speaker'), getMyRegistrations);
 router.get('/:id/ticket', authenticate, getTicket);
 router.get('/notifications',   authenticate, getNotifications);

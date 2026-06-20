@@ -191,6 +191,21 @@ CREATE TABLE EventStaffs (
 );
 
 -- ============================================================
+-- 10b. STAFF INVITATIONS
+-- ============================================================
+CREATE TABLE StaffInvitations (
+  InvitationID INT IDENTITY(1,1) PRIMARY KEY,
+  EventID      INT            NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
+  ParticipantID INT           NOT NULL REFERENCES Users(UserID),
+  InvitedBy    INT            NOT NULL REFERENCES Users(UserID),
+  Status       VARCHAR(20)    NOT NULL DEFAULT 'Pending'
+                 CHECK (Status IN ('Pending','Accepted','Declined')),
+  RespondedAt  DATETIME       NULL,
+  SentAt       DATETIME       NOT NULL DEFAULT GETDATE(),
+  UNIQUE (EventID, ParticipantID)
+);
+
+-- ============================================================
 -- 11. REGISTRATIONS
 -- ============================================================
 CREATE TABLE Registrations (

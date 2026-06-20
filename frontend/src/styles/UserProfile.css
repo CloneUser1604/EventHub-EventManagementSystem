@@ -1,71 +1,53 @@
-
 .profile-page {
-  background-color: #f8f9fa;
+  background-color: #f8fafc;
   min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  padding: 40px;
+  font-family: 'Inter', sans-serif;
 }
 
 .profile-top-bar {
-  width: 100%;
-  max-width: 1100px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: flex-start;
+  max-width: 1200px;
+  margin: 0 auto 20px auto;
 }
 
 .btn-back-home {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #667085;
+  color: #64748b;
   text-decoration: none;
-  font-size: 15px;
   font-weight: 600;
-  padding: 6px 0;
-  transition: all 0.2s ease;
+  font-size: 15px;
+  transition: 0.3s;
 }
 
 .btn-back-home:hover {
-  color: #4a25e1;
+  color: #4f46e5;
 }
 
-.btn-back-home svg {
-  transition: transform 0.2s ease;
+.btn-back-home i {
+  margin-right: 8px;
 }
-
-.btn-back-home:hover svg {
-  transform: translateX(-4px);
-}
-/* ────────────────────────────── */
 
 .profile-container {
-  display: flex;
-  gap: 24px;
-  width: 100%;
-  max-width: 1100px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 30px;
 }
 
-/* --- CỘT TRÁI: THÔNG TIN CƠ BẢN --- */
+/* SIDEBAR TRÁI */
 .profile-sidebar {
-  flex: 0 0 340px;
-  background-color: #ffffff;
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  border: 1px solid #e2e8f0;
+  height: fit-content;
 }
 
 .profile-top {
-  padding: 40px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 40px 30px;
   text-align: center;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .profile-avatar {
@@ -73,68 +55,69 @@
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: 20px;
+  border: 4px solid #fff;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
 }
 
 .profile-name {
-  margin: 0 0 8px;
-  font-size: 22px;
+  font-size: 24px;
+  color: #0f172a;
+  margin: 0 0 5px 0;
   font-weight: 700;
-  color: #1a1a1a;
 }
 
 .profile-email {
-  margin: 0 0 20px;
-  font-size: 14px;
-  color: #666;
+  color: #64748b;
+  font-size: 15px;
+  margin: 0 0 20px 0;
 }
 
 .btn-edit {
-  padding: 8px 24px;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  background-color: #f1f5f9;
+  color: #4f46e5;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 24px;
+  transition: 0.3s;
+  width: 100%;
 }
 
 .btn-edit:hover {
-  background: #f0f0f0;
+  background-color: #e0e7ff;
 }
 
 .profile-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  color: #666;
-  font-size: 14px;
+  margin-top: 25px;
+  text-align: left;
 }
 
 .meta-item {
+  color: #475569;
+  font-size: 14px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
-/* Hàng thống kê dưới cùng cột trái */
+.meta-item i {
+  width: 20px;
+  color: #94a3b8;
+  margin-right: 10px;
+}
+
 .profile-stats {
-  display: flex;
-  border-top: 1px solid #f0f0f0;
-  background-color: #fafbfc;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f8fafc;
 }
 
 .stat-box {
-  flex: 1;
-  padding: 20px 0;
+  padding: 20px;
   text-align: center;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid #e2e8f0;
 }
 
 .stat-box:last-child {
@@ -143,155 +126,99 @@
 
 .stat-number {
   display: block;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  color: #4a25e1;
-  margin-bottom: 4px;
+  color: #0f172a;
 }
 
 .stat-label {
-  font-size: 11px;
+  display: block;
+  font-size: 12px;
+  color: #64748b;
   font-weight: 600;
-  color: #888;
-  letter-spacing: 0.5px;
+  margin-top: 5px;
 }
 
-/* --- CỘT PHẢI: CHI TIẾT --- */
+/* MAIN CONTENT PHẢI */
 .profile-main {
-  flex: 1;
-  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.profile-section {
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 32px 40px;
-  height: fit-content;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
 .section-title {
   font-size: 20px;
+  color: #0f172a;
+  margin: 0 0 25px 0;
   font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 24px;
-}
-
-.interests-container {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.interest-tag {
-  background-color: #f2f4f7;
-  color: #344054;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.btn-filter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #eff1fbf0;
-  color: #4a25e1;
-  border: none;
-  cursor: pointer;
-  margin-left: 8px;
-}
-/* ──────────────────────────────────────────────────────────
-   MỚI THÊM: CSS CHO DANH SÁCH SỰ KIỆN BÊN CỘT PHẢI
-   ────────────────────────────────────────────────────────── */
-
-.profile-section {
-  width: 100%;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 15px;
 }
 
 .event-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 15px;
 }
 
 .event-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border: 1px solid #f0f0f0;
+  padding: 20px;
+  background: #f8fafc;
   border-radius: 12px;
-  background-color: #fafbfc;
-  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+  transition: 0.3s;
 }
 
 .event-item:hover {
-  border-color: #4a25e1;
-  box-shadow: 0 4px 12px rgba(74, 37, 225, 0.05);
-  background-color: #ffffff;
+  border-color: #cbd5e1;
+  background: #fff;
 }
 
 .event-info h4 {
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
+  color: #1e293b;
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
 }
 
 .event-info p {
-  margin: 0 0 4px 0;
-  font-size: 13px;
-  color: #667085;
-}
-
-.event-info p:last-child {
-  margin-bottom: 0;
+  margin: 0 0 5px 0;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .status-badge {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
-.status-badge.registered {
-  background-color: #e0f2fe;
-  color: #0369a1;
-}
-
-.status-badge.attended {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-/* Badge cho Organizer */
-.status-badge.published,
-.status-badge.active,
-.status-badge.upcoming {
-  background-color: #e0e7ff;
-  color: #4338ca;
-}
-
-.status-badge.draft,
-.status-badge.completed {
-  background-color: #f2f4f7;
-  color: #344054;
-}
-
-.status-badge.cancelled {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
+.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.registered { background: #e0e7ff; color: #3730a3; }
+.status-badge.attended { background: #f3f4f6; color: #4b5563; }
 
 .no-data {
-  font-size: 14px;
-  color: #98a2b3;
+  color: #94a3b8;
   font-style: italic;
-  text-align: left;
-  margin: 10px 0;
+  text-align: center;
+  padding: 30px 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .profile-container {
+    grid-template-columns: 1fr;
+  }
 }

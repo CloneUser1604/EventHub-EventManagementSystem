@@ -101,6 +101,7 @@ const HomePage = () => {
             <Select
               placeholder="Lĩnh vực"
               style={{ width: 160, borderRight: '1px solid #e5e7eb' }}
+              className="home-category-filter"
               variant="borderless"
               value={selectedCat || undefined}
               onChange={setSelectedCat}
@@ -146,6 +147,25 @@ const HomePage = () => {
         <svg style={{ position: 'absolute', bottom: 0, left: 0, width: '100%' }} viewBox="0 0 1440 60" fill="none">
           <path d="M0 60 C360 0 1080 0 1440 60 L1440 60 L0 60Z" fill="#f9fafb" />
         </svg>
+
+        <style>{`
+          .home-category-filter .ant-select-selector {
+            background-color: #f0fdf4 !important;
+            color: #166534 !important;
+            font-weight: 600;
+            border-radius: 10px 0 0 10px !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+          .home-category-filter .ant-select-selection-placeholder {
+            color: #166534 !important;
+            opacity: 0.8;
+          }
+          .home-category-filter .ant-select-arrow {
+            color: #166534 !important;
+          }
+        `}</style>
       </section>
 
       {/* ══════════════════════════════════════════════════

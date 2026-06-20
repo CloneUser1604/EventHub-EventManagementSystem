@@ -66,13 +66,14 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ── ROUTES ───────────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth.routes'));
 app.use('/api/events',        require('./routes/event.routes'));
 app.use('/api/registrations', require('./routes/registration.routes'));
-app.use('/api/users',         require('./routes/user.routes'));
+app.use('/api/staff',         require('./routes/staff.routes'));
+app.use('/api/checkin',       require('./routes/checkin.routes'));
+app.use('/api/admin',         require('./routes/admin.routes'));
+app.use('/api/speaker',       require('./routes/speaker.routes'));
 
-// ── ERROR HANDLING ───────────────────────────────────────────
 app.use('*', (req, res) => res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` }));
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

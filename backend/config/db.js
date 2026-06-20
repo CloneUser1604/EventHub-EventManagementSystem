@@ -5,7 +5,7 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT) || 1433,
   database: process.env.DB_DATABASE || 'EMS_DB',
   user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || '',
+  password: process.env.DB_PASSWORD || '123',
   options: {
     encrypt: process.env.DB_ENCRYPT === 'true',
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE !== 'false',

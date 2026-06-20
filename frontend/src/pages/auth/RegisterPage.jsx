@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Upload, message, Result, Typography } from 'antd';
+import { Form, Input, Button, Upload, message, Result, Typography, Radio, Select } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, PhoneOutlined, TeamOutlined, InboxOutlined } from '@ant-design/icons';
 import './Auth.css';
 
@@ -27,6 +27,7 @@ const RegisterPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [role, setRole] = useState('Participant');
+  const [isUniversityStudent, setIsUniversityStudent] = useState(false);
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState({ done: false, email: '', message: '' });
@@ -43,6 +44,9 @@ const RegisterPage = () => {
       formData.append('password', values.password);
       formData.append('role', role);
       if (values.phone) formData.append('phone', values.phone);
+      if (role === 'Participant' && isUniversityStudent && values.university) {
+        formData.append('university', values.university);
+      }
       if (role === 'Organizer') {
         formData.append('organizationName', values.organizationName);
         fileList.forEach(f => formData.append('documents', f.originFileObj));
@@ -164,6 +168,31 @@ const RegisterPage = () => {
             <Form.Item name="phone" label="Số điện thoại (tuỳ chọn)">
               <Input prefix={<PhoneOutlined className="input-icon" />} placeholder="0912345678" />
             </Form.Item>
+
+            {role === 'Participant' && (
+              <>
+                <Form.Item label="Bạn có phải là sinh viên Đại học không?">
+                  <Radio.Group 
+                    onChange={(e) => setIsUniversityStudent(e.target.value)} 
+                    value={isUniversityStudent}
+                  >
+                    <Radio value={true}>Có</Radio>
+                    <Radio value={false}>Không</Radio>
+                  </Radio.Group>
+                </Form.Item>
+                {isUniversityStudent && (
+                  <Form.Item name="university" label="Chọn Trường Đại học" rules={[{ required: true, message: 'Vui lòng chọn trường' }]}>
+                    <Select placeholder="-- Chọn Trường --" showSearch>
+                      <Select.Option value="Đại học Quốc gia Hà Nội">Đại học Quốc gia Hà Nội</Select.Option>
+                      <Select.Option value="Đại học Bách Khoa Hà Nội">Đại học Bách Khoa Hà Nội</Select.Option>
+                      <Select.Option value="Đại học Kinh tế Quốc dân">Đại học Kinh tế Quốc dân</Select.Option>
+                      <Select.Option value="Đại học FPT">Đại học FPT</Select.Option>
+                      <Select.Option value="Khác">Khác...</Select.Option>
+                    </Select>
+                  </Form.Item>
+                )}
+              </>
+            )}
 
             {role === 'Organizer' && (
               <>

@@ -1,110 +1,42 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const bcrypt = require('bcryptjs'); 
-const jwt = require('jsonwebtoken');
-const { getPool, sql } = require('../config/db');
+const { uploadOrgDocs } = require('../middleware/upload');
+const {
+  register, verifyEmail, resendVerification,
+  login, refreshToken, logout, getMe,
+  forgotPassword, resetPassword, changePassword,
+  createSpeaker, approveSpeaker,
+  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers,
+} = require('../controllers/auth.controller');
+const { authenticate, authorize } = require('../middleware/auth');
+const { validate, registerRules, loginRules, forgotPasswordRules, resetPasswordRules, changePasswordRules, createSpeakerRules } = require('../middleware/validators');
 
-// ── API: ĐĂNG KÝ (REGISTER) ─────────────────────────────────
-router.post('/register', async (req, res) => {
-    try {
-        const { fullName, email, password, role } = req.body;
+const authLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { success:false, message:'Quá nhiều yêu cầu, thử lại sau 15 phút.' } });
+const emailLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { success:false, message:'Quá nhiều yêu cầu gửi email.' } });
 
-        if (!fullName || !email || !password) {
-            return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin bắt buộc." });
-        }
+// Public
+router.post('/register', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), registerRules, validate, register);
+router.get('/verify-email', verifyEmail);
+router.post('/resend-verification', emailLimiter, resendVerification);
+router.post('/login', loginRules, validate, login);
+router.post('/refresh-token', refreshToken);
+router.post('/forgot-password', emailLimiter, forgotPasswordRules, validate, forgotPassword);
+router.post('/reset-password', authLimiter, resetPasswordRules, validate, resetPassword);
 
-        const pool = getPool();
-        
-        // Kiểm tra xem email đã tồn tại trong hệ thống chưa
-        const checkEmail = await pool.request()
-            .input('Email', sql.VarChar(255), email)
-            .query('SELECT UserID FROM Users WHERE Email = @Email');
+// Protected
+router.post('/logout', authenticate, logout);
+router.get('/me', authenticate, getMe);
+router.put('/change-password', authenticate, changePasswordRules, validate, changePassword);
 
-        if (checkEmail.recordset.length > 0) {
-            return res.status(400).json({ success: false, message: "Email này đã được sử dụng." });
-        }
+// Organizer: tạo speaker trong event
+router.post('/speakers', authenticate, authorize('Organizer'), createSpeakerRules, validate, createSpeaker);
 
-        // Mã hóa mật khẩu bảo mật bằng bcryptjs
-        const salt = await bcrypt.genSalt(12);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Thêm tài khoản mới vào Database SQL Server
-        await pool.request()
-            .input('FullName', sql.NVarChar(150), fullName)
-            .input('Email', sql.VarChar(255), email)
-            .input('PasswordHash', sql.VarChar(255), hashedPassword)
-            .input('Role', sql.VarChar(50), role || 'Participant')
-            .query(`
-                INSERT INTO Users (FullName, Email, PasswordHash, Role, IsActive, IsVerified, CreatedAt)
-                VALUES (@FullName, @Email, @PasswordHash, @Role, 1, 1, GETDATE())
-            `);
-
-        res.status(201).json({ success: true, message: "Đăng ký tài khoản thành công!" });
-    } catch (error) {
-        console.error("❌ Lỗi Đăng ký:", error);
-        res.status(500).json({ success: false, message: "Lỗi máy chủ nội bộ." });
-    }
-});
-
-// ── API: ĐĂNG NHẬP (LOGIN) ──────────────────────────────────
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: "Vui lòng nhập email và mật khẩu." });
-        }
-
-        const pool = getPool();
-        const result = await pool.request()
-            .input('Email', sql.VarChar(255), email)
-            .query(`SELECT * FROM Users WHERE Email = @Email`);
-
-        const user = result.recordset[0];
-
-        if (!user) {
-            return res.status(401).json({ success: false, message: "Email hoặc mật khẩu không chính xác." });
-        }
-
-        // Kiểm tra đối chiếu mật khẩu băm
-        const validPassword = await bcrypt.compare(password, user.PasswordHash);
-        if (!validPassword) {
-            return res.status(401).json({ success: false, message: "Email hoặc mật khẩu không chính xác." });
-        }
-
-        // Kiểm tra xem trạng thái tài khoản có hoạt động không
-        if (!user.IsActive) {
-            return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa." });
-        }
-
-        // Tạo mã Token chữ ký số JWT
-        const token = jwt.sign(
-            { userId: user.UserID, role: user.Role },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
-
-        // ĐÃ SỬA: Bọc payload vào trong object 'data' để khớp với Frontend (res.data.data)
-        res.status(200).json({
-            success: true,
-            message: "Đăng nhập thành công!",
-            data: {
-                accessToken: token,
-                refreshToken: token,
-                user: {
-                    userId: user.UserID,
-                    fullName: user.FullName,
-                    email: user.Email,
-                    role: user.Role,
-                    avatarURL: user.AvatarURL
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error("❌ Lỗi Login:", error);
-        res.status(500).json({ success: false, message: "Lỗi máy chủ nội bộ." });
-    }
-});
+// Admin: quản lý phê duyệt
+router.get('/admin/pending-organizers', authenticate, authorize('Admin'), getPendingOrganizers);
+router.get('/admin/all-organizers',     authenticate, authorize('Admin'), getAllOrganizers);
+router.get('/admin/pending-speakers',   authenticate, authorize('Admin'), getPendingSpeakers);
+router.post('/admin/organizers/:profileId/review', authenticate, authorize('Admin'), approveOrganizer);
+router.post('/admin/speakers/:speakerId/review',   authenticate, authorize('Admin'), approveSpeaker);
 
 module.exports = router;

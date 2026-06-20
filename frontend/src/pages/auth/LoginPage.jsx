@@ -30,6 +30,11 @@ const LoginPage = () => {
     const result = await login({ email: values.email, password: values.password });
     console.log('📨 [LOGIN RESULT]', result);
     if (result.success) {
+      if (result.mustChangePassword) {
+        message.warning('Vui lòng cập nhật mật khẩu trong lần đăng nhập đầu tiên');
+        navigate('/speaker/first-time-setup', { state: { userId: result.user.userId, email: result.user.email } });
+        return;
+      }
       message.success('Đăng nhập thành công!');
       const role = result.user?.role || '';
       console.log('✅ Logged in as:', role);
@@ -37,7 +42,9 @@ const LoginPage = () => {
       const dest = role === 'Admin' ? '/admin'
                  : role === 'Organizer' ? '/organizer/events'
                  : role === 'Participant' ? '/'
-                 : from;
+                 : role === 'Speaker' ? '/my-calendar'
+                 : role === 'Staff' ? '/staff'
+                 : from === '/dashboard' ? '/' : from;
       navigate(dest, { replace: true });
     } else {
       console.error('❌ Login failed:', result.message);

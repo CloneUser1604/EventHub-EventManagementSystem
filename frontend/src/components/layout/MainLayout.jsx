@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Layout, Menu, Avatar, Dropdown, Badge, Button, Drawer,
-  Space, Typography, Popover, List, Tag, Empty
+  Space, Typography, Popover, List, Tag, Empty, Modal
 } from 'antd';
 import {
   HomeOutlined, CalendarOutlined, BellOutlined, UserOutlined,
@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
 import useNotificationStore from '../../store/notificationStore';
+import { message } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
@@ -45,7 +46,7 @@ const roleNav = {
   ],
   Speaker: [
     { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/events', icon: <CalendarOutlined />, label: 'Sự kiện của tôi' },
+    { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Sự kiện của tôi' },
   ],
 };
 
@@ -61,10 +62,16 @@ const MainLayout = ({ children }) => {
   const { notifications, unreadCount, fetchNotifications, markRead } = useNotificationStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [staffModal, setStaffModal] = useState({ open: false, notification: null });
+  const [speakerModal, setSpeakerModal] = useState({ open: false, notification: null });
 
   const navItems = isAuthenticated ? (roleNav[user?.role] || publicNav) : publicNav;
-  const activeKey = navItems.find(n => location.pathname.startsWith(n.key) && n.key !== '/')?.key
-    || (location.pathname === '/' ? '/' : undefined);
+  const activeKey = navItems.reduce((longest, current) => {
+    if (location.pathname.startsWith(current.key) && current.key !== '/') {
+      return (!longest || current.key.length > longest.length) ? current.key : longest;
+    }
+    return longest;
+  }, undefined) || (location.pathname === '/' ? '/' : undefined);
 
   useEffect(() => {
     if (isAuthenticated) fetchNotifications();
@@ -90,6 +97,57 @@ const MainLayout = ({ children }) => {
     </div>
   );
 
+  const respondStaffInvite = async (eventId, action, notifId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/staff/events/${eventId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success(data.message);
+        markRead(notifId);
+        fetchNotifications();
+      } else {
+        message.error(data.message);
+      }
+      setStaffModal({ open: false, notification: null });
+    } catch (e) {
+      message.error('Lỗi xử lý phản hồi');
+    }
+  };
+
+  const respondSpeakerInvite = async (eventId, action, notifId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/speaker/invitations/${eventId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success(data.message);
+        markRead(notifId);
+        fetchNotifications();
+      } else {
+        message.error(data.message);
+      }
+      setSpeakerModal({ open: false, notification: null });
+    } catch (e) {
+      message.error('Lỗi xử lý phản hồi');
+    }
+  };
+
+  const handleNotificationClick = (n) => {
+    markRead(n.NotificationID);
+    if (n.RelatedType === 'StaffInvite' || n.Type === 'StaffInvite') {
+      setStaffModal({ open: true, notification: n });
+    } else if (n.Type === 'SpeakerInvitation') {
+      setSpeakerModal({ open: true, notification: n });
+    }
+  };
+
   const notifContent = (
     <div style={{ width: 360 }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -102,7 +160,7 @@ const MainLayout = ({ children }) => {
             dataSource={notifications.slice(0, 8)}
             renderItem={n => (
               <List.Item
-                onClick={() => markRead(n.NotificationID)}
+                onClick={() => handleNotificationClick(n)}
                 style={{ padding: '10px 16px', cursor: 'pointer', background: n.IsRead ? 'white' : '#f0f5ff', borderBottom: '1px solid #f5f5f5' }}
               >
                 <List.Item.Meta
@@ -160,19 +218,24 @@ const MainLayout = ({ children }) => {
                 </Badge>
               </Popover>
               <Dropdown
-                dropdownRender={() => (
+                popupRender={() => (
                   <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
                     {userMenu}
                   </div>
                 )}
                 trigger={['click']} placement="bottomRight">
-                <Avatar
-                  src={user?.avatarURL}
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: 'Sora' }}
-                  size={36}
-                >
-                  {user?.fullName?.[0]?.toUpperCase()}
-                </Avatar>
+                <Space style={{ cursor: 'pointer', padding: '0 8px', borderRadius: 8, transition: 'all 0.3s' }} className="hover-bg">
+                  <Avatar
+                    src={user?.avatarURL}
+                    style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: 'Sora' }}
+                    size={36}
+                  >
+                    {user?.fullName?.[0]?.toUpperCase()}
+                  </Avatar>
+                  <span style={{ fontWeight: 500, color: 'white', display: mobileOpen ? 'none' : 'block' }}>
+                      {user?.fullName} {user?.isCurrentStaff && <span style={{ color: '#10b981', fontWeight: 600 }}>(Staff)</span>}
+                  </span>
+                </Space>
               </Dropdown>
             </>
           ) : (
@@ -199,6 +262,46 @@ const MainLayout = ({ children }) => {
           © {new Date().getFullYear()} EMS — Event Management System · Powered by Anthropic Claude
         </Text>
       </Footer>
+
+      <Modal
+        title="Lời mời làm Staff"
+        open={staffModal.open}
+        onCancel={() => setStaffModal({ open: false, notification: null })}
+        footer={null}
+        centered
+      >
+        <div style={{ padding: '16px 0', textAlign: 'center' }}>
+          <Text style={{ fontSize: 16 }}>{staffModal.notification?.Message}</Text>
+          <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <Button size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Declined', staffModal.notification?.NotificationID)}>
+              Từ chối
+            </Button>
+            <Button type="primary" size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Accepted', staffModal.notification?.NotificationID)}>
+              Đồng ý tham gia
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Lời mời làm Diễn giả"
+        open={speakerModal.open}
+        onCancel={() => setSpeakerModal({ open: false, notification: null })}
+        footer={null}
+        centered
+      >
+        <div style={{ padding: '16px 0', textAlign: 'center' }}>
+          <Text style={{ fontSize: 16 }}>{speakerModal.notification?.Message}</Text>
+          <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <Button size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Declined', speakerModal.notification?.NotificationID)}>
+              Từ chối
+            </Button>
+            <Button type="primary" size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Accepted', speakerModal.notification?.NotificationID)}>
+              Đồng ý tham gia
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Layout>
   );
 };

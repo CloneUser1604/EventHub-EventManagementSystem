@@ -8,7 +8,10 @@ export const eventService = {
   deleteEvent: (id) => api.delete(`/events/${id}`),
   submitForApproval: (id) => api.post(`/events/${id}/submit`),
   cancelEvent: (id, reason) => api.post(`/events/${id}/cancel`, { reason }),
-  reviewEvent: (id, action, rejectionReason) => api.post(`/events/${id}/review`, { action, rejectionReason }),
+  reviewEvent: (id, action, rejectionReason) => {
+    if (action === 'approve') return api.post(`/admin/events/${id}/approve`);
+    return api.post(`/admin/events/${id}/reject`, { reason: rejectionReason });
+  },
   getSessions: (id) => api.get(`/events/${id}/sessions`),
   addSession: (id, data) => api.post(`/events/${id}/sessions`, data),
   updateSession: (id, sessionId, data) => api.put(`/events/${id}/sessions/${sessionId}`, data),

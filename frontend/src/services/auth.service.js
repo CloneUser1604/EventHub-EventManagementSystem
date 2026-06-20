@@ -10,8 +10,6 @@ export const authService = {
   resetPassword:        (data)  => api.post('/auth/reset-password', data),
   changePassword:       (data)  => api.put('/auth/change-password', data),
   refreshToken:         (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
-  
-  getMe:                ()      => api.get('/users/me'), 
-  
-  createSpeaker:        (data)  => api.post('/speakers', data),
+  getMe:                ()      => api.get('/auth/me'),
+  createSpeaker:        (data)  => api.post('/auth/speakers', data),
 };

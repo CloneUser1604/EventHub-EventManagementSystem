@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
+import { getImageUrl } from '../../utils/imageHelpers';
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -126,7 +127,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
         {/* Cover */}
         <div style={{ width: 120, height: 'auto', minHeight: 100, background: '#1a2744', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           {reg.CoverImageURL
-            ? <img src={reg.CoverImageURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 100 }} />
+            ? <img src={getImageUrl(reg.CoverImageURL)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 100 }} />
             : <div style={{ width: '100%', height: '100%', minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎓</div>}
           {isOngoing && (
             <div style={{ position: 'absolute', top: 6, left: 6, background: '#10b981', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>

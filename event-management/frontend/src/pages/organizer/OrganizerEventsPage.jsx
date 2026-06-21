@@ -5,6 +5,7 @@ import { PlusOutlined, EditOutlined, SendOutlined, DeleteOutlined, EyeOutlined, 
 import MainLayout from '../../components/layout/MainLayout';
 import { eventService } from '../../services/event.service';
 import dayjs from 'dayjs';
+import { getImageUrl } from '../../utils/imageHelpers';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -96,10 +97,11 @@ const OrganizerEventsPage = () => {
       dataIndex: 'Title',
       render: (title, row) => (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ width: 56, height: 40, borderRadius: 8, overflow: 'hidden', background: '#1a2744', flexShrink: 0 }}>
+          <div style={{ width: 120, height: 70, borderRadius: 8, overflow: 'hidden', background: '#f0f2f5', flexShrink: 0 }}>
             {row.CoverImageURL
-              ? <img src={row.CoverImageURL.startsWith('http') ? row.CoverImageURL : `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/../uploads/${row.CoverImageURL}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>}
+              ? <img src={getImageUrl(row.CoverImageURL)} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No Img</div>
+            }
           </div>
           <div>
             <Text strong style={{ display: 'block', fontSize: 14 }}>{title}</Text>

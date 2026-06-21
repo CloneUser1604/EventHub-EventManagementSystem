@@ -39,6 +39,7 @@ CREATE TABLE Users (
   University   NVARCHAR(150)  NULL,
   IsActive     BIT            NOT NULL DEFAULT 1,
   IsVerified   BIT            NOT NULL DEFAULT 0,
+  MustChangePassword BIT      NOT NULL DEFAULT 0,
   -- For email verification / password reset
   VerifyToken       VARCHAR(255) NULL,
   VerifyTokenExpiry DATETIME     NULL,

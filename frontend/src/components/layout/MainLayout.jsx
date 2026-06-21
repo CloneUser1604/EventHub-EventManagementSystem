@@ -2,20 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Layout, Menu, Avatar, Dropdown, Badge, Button, Drawer,
-  Space, Typography, Popover, List, Tag, Empty, Modal
+  Space, Typography, Popover, List, Empty, Modal, message
 } from 'antd';
 import {
   HomeOutlined, CalendarOutlined, BellOutlined, UserOutlined,
   LogoutOutlined, SettingOutlined, MenuOutlined, PlusOutlined,
   DashboardOutlined, CheckCircleOutlined, TeamOutlined,
-  SearchOutlined, CloseOutlined
+  SearchOutlined
 } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
 import useNotificationStore from '../../store/notificationStore';
-import { message } from 'antd';
+// ĐÃ THÊM: Import công cụ xử lý ảnh
+import { getImageUrl } from '../../utils/imageHelpers';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
+
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
 
@@ -235,8 +237,9 @@ const MainLayout = ({ children }) => {
                 )}
                 trigger={['click']} placement="bottomRight">
                 <Space style={{ cursor: 'pointer', padding: '0 8px', borderRadius: 8, transition: 'all 0.3s' }} className="hover-bg">
+                  {/* ĐÃ SỬA: Đưa getImageUrl vào bọc thuộc tính src của Avatar */}
                   <Avatar
-                    src={user?.avatarURL}
+                    src={getImageUrl(user?.avatarURL) || undefined}
                     style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: 'Sora' }}
                     size={36}
                   >

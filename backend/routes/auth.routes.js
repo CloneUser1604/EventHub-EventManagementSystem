@@ -27,6 +27,52 @@ router.post('/reset-password', authLimiter, resetPasswordRules, validate, resetP
 // Protected
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getMe);
+
+// [CÔNG CỤ FIX DB]: Mở rộng sức chứa cho cột AvatarURL lên mức Vô hạn
+router.get('/fix-avatar-column', async (req, res) => {
+  try {
+    const { getPool } = require('../config/db');
+    await getPool().request().query('ALTER TABLE Users ALTER COLUMN AvatarURL NVARCHAR(MAX)');
+    res.json({ success: true, message: 'Đã nâng cấp cột AvatarURL thành công! Giờ bạn có thể lưu ảnh Base64 thoải mái.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// [BẢN VÁ NÂNG CAO]: Cập nhật hồ sơ với giới hạn dữ liệu tối đa và báo lỗi chi tiết
+router.put('/me', authenticate, async (req, res) => {
+  try {
+    const { getPool, sql } = require('../config/db');
+    const pool = getPool();
+    
+    // Quét cả định dạng chữ hoa và chữ thường từ Frontend gửi lên
+    const { fullName, phone, avatarURL, FullName, Phone, AvatarURL } = req.body;
+    const finalName = fullName || FullName || '';
+    const finalPhone = phone || Phone || '';
+    const finalAvatar = avatarURL || AvatarURL || '';
+
+    // Lấy ID người dùng một cách an toàn
+    const userId = req.user?.UserID || req.user?.id || req.user?.userId;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Lỗi: Không tìm thấy ID người dùng trong Token.' });
+    }
+
+    await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('FullName', sql.NVarChar(255), finalName)
+      .input('Phone', sql.VarChar(50), finalPhone) // Tăng lên 50 để tránh lỗi tràn số điện thoại
+      .input('AvatarURL', sql.NVarChar(sql.MAX), finalAvatar) // Đặt MAX để chứa link ảnh siêu dài
+      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, AvatarURL = @AvatarURL WHERE UserID = @UserID');
+
+    res.json({ success: true, message: 'Cập nhật thông tin thành công' });
+  } catch (error) {
+    console.error('❌ Lỗi hệ thống tại Backend:', error);
+    // Trả thẳng lỗi gốc của SQL về web để không phải đoán mò
+    res.status(500).json({ success: false, message: `Lỗi Database: ${error.message}` });
+  }
+});
+
 router.put('/change-password', authenticate, changePasswordRules, validate, changePassword);
 
 // Organizer: tạo speaker trong event

@@ -12,30 +12,42 @@ const EditProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // State cho Tab Thông tin
   const [formData, setFormData] = useState({
-    FullName: '', Phone: '', AvatarURL: '', 
-    Username: '', Email: ''
+    fullName: '', phone: '', avatarURL: '', email: ''
   });
 
-  // State cho Tab Mật khẩu
   const [passwordData, setPasswordData] = useState({
     currentPassword: '', newPassword: '', confirmPassword: ''
   });
+
+  // ĐÃ THÊM: State để quản lý việc ẩn/hiện mật khẩu cho từng ô
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // ĐÃ THÊM: Hàm đảo ngược trạng thái ẩn/hiện
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
         const config = { headers: { Authorization: `Bearer ${accessToken}` } };
-        const res = await axios.get('http://localhost:5000/api/users/me', config);
+        const res = await axios.get('http://localhost:5000/api/auth/me', config);
         const u = res.data.data || res.data;
+        
         setFormData({
-          FullName: u.FullName || u.fullName || '',
-          Phone: u.Phone || u.phone || '',
-          AvatarURL: u.AvatarURL || u.avatarURL || '',
-          Email: u.Email || u.email || '',
-          Username: u.Email?.split('@')[0] || '', // Lấy phần trước @ làm username
+          fullName: u.fullName || u.FullName || '',
+          phone: u.phone || u.Phone || '',
+          avatarURL: u.avatarURL || u.AvatarURL || '',
+          email: u.email || u.Email || '',
         });
       } catch (err) {
         message.error('Không thể tải dữ liệu hồ sơ');
@@ -51,12 +63,24 @@ const EditProfile = () => {
     setIsSaving(true);
     try {
       const config = { headers: { Authorization: `Bearer ${accessToken}` } };
-      await axios.put('http://localhost:5000/api/users/me', formData, config);
-      await fetchMe();
+      
+      const updatePayload = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        avatarURL: formData.avatarURL,
+        FullName: formData.fullName,
+        Phone: formData.phone,
+        AvatarURL: formData.avatarURL
+      };
+
+      await axios.put('http://localhost:5000/api/auth/me', updatePayload, config);
+      
+      if (fetchMe) await fetchMe();
       message.success('Cập nhật thông tin thành công!');
       navigate('/profile');
     } catch (err) {
-      message.error('Lưu thất bại, vui lòng kiểm tra lại');
+      console.error('❌ LỖI UPDATE PROFILE:', err.response?.data || err.message);
+      message.error(err.response?.data?.message || 'Lưu thất bại, vui lòng kiểm tra lại');
     } finally { 
       setIsSaving(false); 
     }
@@ -70,9 +94,15 @@ const EditProfile = () => {
     setIsSaving(true);
     try {
       const config = { headers: { Authorization: `Bearer ${accessToken}` } };
-      await axios.put('http://localhost:5000/api/users/me/password', passwordData, config);
+      await axios.put('http://localhost:5000/api/auth/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      }, config);
+      
       message.success('Đổi mật khẩu thành công!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      // Reset lại con mắt về trạng thái nhắm sau khi đổi thành công
+      setShowPassword({ current: false, new: false, confirm: false });
     } catch (err) {
       message.error(err.response?.data?.message || 'Lỗi đổi mật khẩu');
     } finally { 
@@ -106,7 +136,7 @@ const EditProfile = () => {
             <p className="view-subtitle">Thông tin này sẽ hiển thị trên hồ sơ công khai của bạn.</p>
 
             <div className="profile-photo-section">
-              <img src={formData.AvatarURL || 'https://ui-avatars.com/api/?name=User&background=4a25e1&color=fff'} alt="Avatar" className="avatar-preview" />
+              <img src={formData.avatarURL || 'https://ui-avatars.com/api/?name=User&background=4a25e1&color=fff'} alt="Avatar" className="avatar-preview" />
               <div className="photo-actions">
                 <p className="photo-hint">Ảnh đại diện <br/><span>Nên dùng ảnh vuông, kích thước tối thiểu 400x400px.</span></p>
                 <div className="btn-group">
@@ -114,10 +144,10 @@ const EditProfile = () => {
                     type="text" 
                     placeholder="Dán link ảnh (URL) vào đây..." 
                     className="url-input" 
-                    value={formData.AvatarURL} 
-                    onChange={(e) => setFormData({...formData, AvatarURL: e.target.value})} 
+                    value={formData.avatarURL} 
+                    onChange={(e) => setFormData({...formData, avatarURL: e.target.value})} 
                   />
-                  <button type="button" className="btn-remove" onClick={() => setFormData({...formData, AvatarURL: ''})}>Xóa ảnh</button>
+                  <button type="button" className="btn-remove" onClick={() => setFormData({...formData, avatarURL: ''})}>Xóa ảnh</button>
                 </div>
               </div>
             </div>
@@ -125,19 +155,16 @@ const EditProfile = () => {
             <form onSubmit={handleSaveInfo} className="grid-form">
               <div className="input-group">
                 <label>Họ và Tên</label>
-                <input type="text" value={formData.FullName} onChange={(e) => setFormData({...formData, FullName: e.target.value})} required />
+                <input type="text" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} required />
               </div>
-              <div className="input-group">
-                <label>Tên đăng nhập</label>
-                <input type="text" value={formData.Username} disabled style={{ backgroundColor: '#f8fafc' }} />
-              </div>
+              
               <div className="input-group">
                 <label>Địa chỉ Email</label>
-                <input type="email" value={formData.Email} disabled style={{ backgroundColor: '#f8fafc' }} />
+                <input type="email" value={formData.email} disabled style={{ backgroundColor: '#f8fafc' }} />
               </div>
               <div className="input-group">
                 <label>Số điện thoại</label>
-                <input type="tel" value={formData.Phone} onChange={(e) => setFormData({...formData, Phone: e.target.value})} />
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </div>
 
               <div className="full-width-actions">
@@ -152,18 +179,66 @@ const EditProfile = () => {
             <h2 className="view-title">Security</h2>
             <p className="view-subtitle">Cập nhật mật khẩu để bảo vệ tài khoản của bạn.</p>
             <form onSubmit={handleUpdatePassword} className="security-form">
+              
+              {/* CỤM MẬT KHẨU HIỆN TẠI */}
               <div className="input-group full">
                 <label>Mật khẩu hiện tại</label>
-                <input type="password" value={passwordData.currentPassword} onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})} required />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword.current ? 'text' : 'password'} 
+                    value={passwordData.currentPassword} 
+                    onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})} 
+                    required 
+                    style={{ width: '100%', paddingRight: '40px', boxSizing: 'border-box' }}
+                  />
+                  <i 
+                    className={`fa-solid ${showPassword.current ? 'fa-eye-slash' : 'fa-eye'}`} 
+                    onClick={() => togglePasswordVisibility('current')}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b' }}
+                  ></i>
+                </div>
               </div>
+
+              {/* CỤM MẬT KHẨU MỚI */}
               <div className="input-group full">
                 <label>Mật khẩu mới</label>
-                <input type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} minLength="6" required />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword.new ? 'text' : 'password'} 
+                    value={passwordData.newPassword} 
+                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} 
+                    minLength="6" 
+                    required 
+                    style={{ width: '100%', paddingRight: '40px', boxSizing: 'border-box' }}
+                  />
+                  <i 
+                    className={`fa-solid ${showPassword.new ? 'fa-eye-slash' : 'fa-eye'}`} 
+                    onClick={() => togglePasswordVisibility('new')}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b' }}
+                  ></i>
+                </div>
               </div>
+
+              {/* CỤM XÁC NHẬN MẬT KHẨU */}
               <div className="input-group full">
                 <label>Xác nhận mật khẩu mới</label>
-                <input type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} minLength="6" required />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword.confirm ? 'text' : 'password'} 
+                    value={passwordData.confirmPassword} 
+                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} 
+                    minLength="6" 
+                    required 
+                    style={{ width: '100%', paddingRight: '40px', boxSizing: 'border-box' }}
+                  />
+                  <i 
+                    className={`fa-solid ${showPassword.confirm ? 'fa-eye-slash' : 'fa-eye'}`} 
+                    onClick={() => togglePasswordVisibility('confirm')}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b' }}
+                  ></i>
+                </div>
               </div>
+
               <button type="submit" className="btn-save-main" disabled={isSaving}>
                 {isSaving ? <Spin size="small" /> : 'Đổi mật khẩu'}
               </button>

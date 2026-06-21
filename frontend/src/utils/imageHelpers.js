@@ -1,6 +1,10 @@
 export const getImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('http')) return url;
+  
+  // ĐÃ SỬA: Trả về ngay lập tức nếu là link mạng (http) HOẶC mã ảnh Base64 (data:)
+  if (url.startsWith('http') || url.startsWith('data:')) {
+    return url;
+  }
   
   // Lấy baseUrl từ env (thường là http://localhost:5000/api)
   const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';

@@ -13,7 +13,7 @@ const getPendingInvitation = async (req, res) => {
       .input('SpeakerID', sql.Int, parseInt(userId))
       .query(`
         SELECT e.EventID, e.Title, e.StartDate, e.EndDate, es.CreatedAt as InvitedAt
-        FROM EventSpeakers es
+        FROM SpeakerInvitations es
         JOIN Events e ON es.EventID = e.EventID
         WHERE es.SpeakerID = @SpeakerID AND e.Status = 'Published'
         ORDER BY es.CreatedAt DESC
@@ -64,9 +64,14 @@ const firstTimeSetup = async (req, res) => {
               DELETE FROM SessionSpeakers 
               WHERE SpeakerID = @SpeakerID AND SessionID IN (SELECT SessionID FROM Sessions WHERE EventID = @EventID);
               
-              DELETE FROM EventSpeakers 
+              DELETE FROM SpeakerInvitations 
               WHERE EventID = @EventID AND SpeakerID = @SpeakerID;
             `);
+        } else {
+          await pool.request()
+            .input('EventID', sql.Int, parseInt(r.eventId))
+            .input('SpeakerID', sql.Int, parseInt(userId))
+            .query(`UPDATE SpeakerInvitations SET Status = 'Accepted' WHERE EventID = @EventID AND SpeakerID = @SpeakerID`);
         }
       }
     }
@@ -85,9 +90,12 @@ const getInvitations = async (req, res) => {
     const result = await pool.request()
       .input('UserID', sql.Int, req.user.UserID)
       .query(`
-        SELECT * FROM Notifications 
-        WHERE UserID = @UserID AND Type = 'SpeakerInvitation'
-        ORDER BY CreatedAt DESC
+        SELECT n.* FROM Notifications n
+        JOIN Events e ON n.RelatedID = e.EventID
+        WHERE n.UserID = @UserID 
+          AND n.Type = 'SpeakerInvitation'
+          AND e.Status IN ('Published', 'Completed')
+        ORDER BY n.CreatedAt DESC
       `);
     return successResponse(res, result.recordset, 'Lấy danh sách lời mời thành công');
   } catch (error) {
@@ -110,9 +118,14 @@ const respondInvitation = async (req, res) => {
           DELETE FROM SessionSpeakers 
           WHERE SpeakerID = @SpeakerID AND SessionID IN (SELECT SessionID FROM Sessions WHERE EventID = @EventID);
           
-          DELETE FROM EventSpeakers 
+          DELETE FROM SpeakerInvitations 
           WHERE EventID = @EventID AND SpeakerID = @SpeakerID;
         `);
+    } else if (action === 'Accepted') {
+      await pool.request()
+        .input('EventID', sql.Int, parseInt(eventId))
+        .input('SpeakerID', sql.Int, req.user.UserID)
+        .query(`UPDATE SpeakerInvitations SET Status = 'Accepted' WHERE EventID = @EventID AND SpeakerID = @SpeakerID`);
     }
 
     if (notificationId) {
@@ -135,9 +148,10 @@ const getSpeakerEvents = async (req, res) => {
       .input('SpeakerID', sql.Int, req.user.UserID)
       .query(`
         SELECT DISTINCT e.EventID, e.Title, e.StartDate, e.EndDate, e.Status, e.CoverImageURL
-        FROM EventSpeakers es
+        FROM SpeakerInvitations es
         JOIN Events e ON es.EventID = e.EventID
         WHERE es.SpeakerID = @SpeakerID
+          AND e.Status IN ('Published', 'Completed')
         ORDER BY e.StartDate DESC
       `);
     return successResponse(res, result.recordset, 'Lấy danh sách sự kiện thành công');

@@ -7,7 +7,7 @@ const {
   login, refreshToken, logout, getMe,
   forgotPassword, resetPassword, changePassword,
   createSpeaker, approveSpeaker,
-  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers,
+  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
 } = require('../controllers/auth.controller');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, registerRules, loginRules, forgotPasswordRules, resetPasswordRules, changePasswordRules, createSpeakerRules } = require('../middleware/validators');
@@ -36,6 +36,7 @@ router.post('/speakers', authenticate, authorize('Organizer'), createSpeakerRule
 router.get('/admin/pending-organizers', authenticate, authorize('Admin'), getPendingOrganizers);
 router.get('/admin/all-organizers',     authenticate, authorize('Admin'), getAllOrganizers);
 router.get('/admin/pending-speakers',   authenticate, authorize('Admin'), getPendingSpeakers);
+router.get('/admin/all-speakers',       authenticate, authorize('Admin'), getAllSpeakers);
 router.post('/admin/organizers/:profileId/review', authenticate, authorize('Admin'), approveOrganizer);
 router.post('/admin/speakers/:speakerId/review',   authenticate, authorize('Admin'), approveSpeaker);
 

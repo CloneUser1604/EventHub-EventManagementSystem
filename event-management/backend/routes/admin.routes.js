@@ -5,6 +5,7 @@ const {
   getPendingEvents,
   approveEvent,
   rejectEvent,
+  cancelEvent,
   getAllUsers,
   updateUserStatus
 } = require('../controllers/admin.controller');
@@ -13,6 +14,7 @@ const {
 router.get('/events/pending', authenticate, authorize('Admin'), getPendingEvents);
 router.post('/events/:eventId/approve', authenticate, authorize('Admin'), approveEvent);
 router.post('/events/:eventId/reject', authenticate, authorize('Admin'), rejectEvent);
+router.post('/events/:eventId/cancel', authenticate, authorize('Admin'), cancelEvent);
 
 // Admin: Quản lý người dùng
 router.get('/users', authenticate, authorize('Admin'), getAllUsers);

@@ -82,7 +82,7 @@ const approveEvent = async (req, res) => {
     // Cập nhật sessions nếu có trong bản chỉnh sửa
     if (proposedChangesObj && proposedChangesObj.sessions) {
       await pool.request().input('EventID', sql.Int, parseInt(eventId)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
-      await pool.request().input('EventID', sql.Int, parseInt(eventId)).query(`DELETE FROM EventSpeakers WHERE EventID=@EventID`);
+      await pool.request().input('EventID', sql.Int, parseInt(eventId)).query(`DELETE FROM SpeakerInvitations WHERE EventID=@EventID`);
       await pool.request().input('EventID', sql.Int, parseInt(eventId)).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
 
       for (const s of proposedChangesObj.sessions) {
@@ -114,8 +114,9 @@ const approveEvent = async (req, res) => {
               await pool.request()
                 .input('EventID', sql.Int, parseInt(eventId))
                 .input('SpeakerID', sql.Int, speaker.UserID)
-                .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                        INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+                .input('InvitedBy', sql.Int, req.user.UserID)
+                .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                        INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
             }
           }
         }
@@ -124,7 +125,7 @@ const approveEvent = async (req, res) => {
       // Send invitations to newly added speakers after edit
       const newSpeakers = await pool.request().input('EventID', sql.Int, eventId).query(`
           SELECT DISTINCT u.UserID 
-          FROM EventSpeakers es
+          FROM SpeakerInvitations es
           JOIN Users u ON es.SpeakerID = u.UserID
           WHERE es.EventID = @EventID
       `);
@@ -161,7 +162,7 @@ const approveEvent = async (req, res) => {
         .input('EventID', sql.Int, eventId)
         .query(`
           SELECT DISTINCT u.UserID 
-          FROM EventSpeakers es
+          FROM SpeakerInvitations es
           JOIN Users u ON es.SpeakerID = u.UserID
           WHERE es.EventID = @EventID
         `);
@@ -183,7 +184,7 @@ const approveEvent = async (req, res) => {
         .query(`
           SELECT ParticipantID AS UserID FROM Registrations WHERE EventID = @EventID AND Status = 'Registered'
           UNION
-          SELECT SpeakerID AS UserID FROM EventSpeakers WHERE EventID = @EventID
+          SELECT SpeakerID AS UserID FROM SpeakerInvitations WHERE EventID = @EventID AND Status = 'Accepted'
           UNION
           SELECT ParticipantID AS UserID FROM StaffInvitations WHERE EventID = @EventID AND Status = 'Accepted'
         `);
@@ -269,6 +270,47 @@ const rejectEvent = async (req, res) => {
   }
 };
 
+// ─── CANCEL (LOCK) EVENT ─────────────────────────────────────────
+const cancelEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { reason } = req.body;
+    
+    if (!reason) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp lý do khóa sự kiện' });
+    }
+
+    const pool = getPool();
+    const result = await pool.request()
+      .input('EventID', sql.Int, eventId)
+      .input('Reason', sql.NVarChar(500), reason)
+      .query(`
+        UPDATE Events 
+        SET Status = 'Cancelled', RejectionReason = @Reason, UpdatedAt = GETDATE()
+        OUTPUT INSERTED.Title, INSERTED.OrganizerID
+        WHERE EventID = @EventID
+      `);
+
+    const event = result.recordset[0];
+    if (!event) return res.status(404).json({ success: false, message: 'Không tìm thấy sự kiện' });
+
+    // Gửi thông báo
+    await pool.request()
+      .input('UserID', sql.Int, event.OrganizerID)
+      .input('Title', sql.NVarChar(300), 'Sự kiện bị khóa')
+      .input('Message', sql.NVarChar(sql.MAX), `Sự kiện "${event.Title}" của bạn đã bị khóa bởi Admin. Lý do: ${reason}`)
+      .input('Type', sql.VarChar(30), 'EventUpdate')
+      .input('RelatedID', sql.Int, eventId)
+      .input('RelatedType', sql.VarChar(50), 'Event')
+      .query(`INSERT INTO Notifications (UserID, Title, Message, Type, RelatedID, RelatedType) VALUES (@UserID, @Title, @Message, @Type, @RelatedID, @RelatedType)`);
+
+    return res.status(200).json({ success: true, message: 'Đã khóa sự kiện thành công' });
+  } catch (error) {
+    console.error('Cancel event error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi khi khóa sự kiện' });
+  }
+};
+
 // ─── GET ALL USERS (USER MANAGEMENT) ─────────────────────────────
 const getAllUsers = async (req, res) => {
   try {
@@ -321,6 +363,7 @@ module.exports = {
   getPendingEvents,
   approveEvent,
   rejectEvent,
+  cancelEvent,
   getAllUsers,
   updateUserStatus
 };

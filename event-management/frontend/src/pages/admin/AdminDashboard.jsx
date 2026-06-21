@@ -37,6 +37,7 @@ const AdminDashboard = () => {
   const [pendingEvents, setPendingEvents] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
   const [pendingSpeakers, setPendingSpeakers] = useState([]);
+  const [allSpeakers, setAllSpeakers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -59,12 +60,13 @@ const AdminDashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, usersRes, allEventsRes, staffRes] = await Promise.all([
+      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes] = await Promise.all([
         eventService.getDashboardStats(),
         adminService.getPendingOrganizers(),
         adminService.getAllOrganizers(),
         eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
         adminService.getPendingSpeakers(),
+        adminService.getAllSpeakers(),
         adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
         eventService.getEvents({ limit: 200 }),
         fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json())
@@ -76,6 +78,7 @@ const AdminDashboard = () => {
       setPendingEvents(eventsRes.data?.data?.events || []);
       setAllEvents(allEventsRes.data?.data?.events || []);
       setPendingSpeakers(speakersRes.data?.data || []);
+      setAllSpeakers(allSpeakersRes.data?.data || []);
       
       const usersData = usersRes.data?.data || usersRes.data || [];
       setAllUsers(usersData);
@@ -201,10 +204,11 @@ const AdminDashboard = () => {
   };
 
   const confirmReject = async () => {
-    if (!rejectReason.trim()) return message.warning('Vui lòng nhập lý do từ chối');
+    if (!rejectReason.trim()) return message.warning('Vui lòng nhập lý do');
     const { type, id } = rejectModal;
     if (type === 'org') await handleOrgAction(id, 'reject', rejectReason);
     if (type === 'event') await handleEventAction(id, 'reject', rejectReason);
+    if (type === 'cancel_event') await handleEventAction(id, 'cancel', rejectReason);
     if (type === 'speaker') await handleSpeakerAction(id, 'reject', rejectReason);
     setRejectModal({ open: false });
   };
@@ -229,20 +233,29 @@ const AdminDashboard = () => {
     },
     { title: 'Địa điểm', dataIndex: 'VenueName', render: v => <Text style={{ fontSize: 13 }}>{v || '—'}</Text> },
     {
-      title: 'Hành động', width: 220,
-      render: (_, r) => (
-        <Space size={4}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => { setActiveMenu('event_detail'); setSelectedEventId(r.EventID); }}>Xem</Button>
-          {r.ProposedChanges && (
-            <Button type="primary" size="small" ghost onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
-          )}
-          <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => {
-            setSelectedStaffs([]);
-            setApproveEventModal({ open: true, event: r });
-          }}>Duyệt</Button>
-          <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('event', r.EventID, r.Title)}>Từ chối</Button>
-        </Space>
-      ),
+      title: 'Hành động', width: 260,
+      render: (_, r) => {
+        const isApprovedNoChanges = (r.ApprovalStatus === 'Approved' || r.Status === 'Published' || r.Status === 'Completed') && !r.ProposedChanges;
+        return (
+          <Space size={4}>
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => { setActiveMenu('event_detail'); setSelectedEventId(r.EventID); }}>Xem</Button>
+            {isApprovedNoChanges ? (
+              <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('cancel_event', r.EventID, r.Title)}>Khóa sự kiện</Button>
+            ) : (
+              <>
+                {r.ProposedChanges && (
+                  <Button type="primary" size="small" ghost onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
+                )}
+                <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => {
+                  setSelectedStaffs([]);
+                  setApproveEventModal({ open: true, event: r });
+                }}>Duyệt</Button>
+                <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('event', r.EventID, r.Title)}>Từ chối</Button>
+              </>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -308,13 +321,18 @@ const AdminDashboard = () => {
     { title: 'Chuyên môn', dataIndex: 'Expertise', render: v => <Text style={{ fontSize: 13 }}>{v || '—'}</Text> },
     { title: 'Ngày tạo', dataIndex: 'CreatedAt', render: d => dayjs(d).format('DD/MM/YYYY') },
     {
-      title: 'Hành động', width: 180,
-      render: (_, r) => (
-        <Space>
-          <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => confirm({ title: `Duyệt diễn giả "${r.FullName}"?`, onOk: () => handleSpeakerAction(r.UserID, 'approve') })}>Duyệt</Button>
-          <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('speaker', r.UserID, r.FullName)}>Từ chối</Button>
-        </Space>
-      ),
+      title: 'Hành động', width: 220,
+      render: (_, r) => {
+        if (r.IsActive) {
+          return <Tag color="green" style={{ fontWeight: 600, borderRadius: 6 }}>✅ Đã duyệt</Tag>;
+        }
+        return (
+          <Space>
+            <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => confirm({ title: `Duyệt diễn giả "${r.FullName}"?`, onOk: () => handleSpeakerAction(r.UserID, 'approve') })}>Duyệt</Button>
+            <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('speaker', r.UserID, r.FullName)}>Từ chối</Button>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -348,10 +366,10 @@ const AdminDashboard = () => {
           type={r.IsActive ? 'default' : 'primary'} 
           danger={r.IsActive} 
           size="small"
-          onClick={() => {
+          onClick={async () => {
             if (r.Role === 'Admin') return message.warning('Không thể thao tác trên Admin');
             try {
-              adminService.updateUserStatus(r.UserID, !r.IsActive);
+              await adminService.updateUserStatus(r.UserID, !r.IsActive);
               message.success('Thao tác thành công');
               loadAll();
             } catch (err) { message.error('Thao tác thất bại'); }
@@ -516,9 +534,14 @@ const AdminDashboard = () => {
                   children: <Table columns={eventCols} dataSource={pendingEvents} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
                 },
                 {
+                  key: 'edit_requests',
+                  label: `Yêu cầu chỉnh sửa (${allEvents.filter(e => e.ProposedChanges).length})`,
+                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
+                },
+                {
                   key: 'approved',
                   label: 'Sự kiện đã duyệt/công bố',
-                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed')} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
                 }
               ]} />
             </div>
@@ -533,8 +556,16 @@ const AdminDashboard = () => {
 
           {activeMenu === 'speakers' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Diễn giả chờ phê duyệt</Title>
-              <Table columns={speakerCols} dataSource={pendingSpeakers} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có diễn giả nào chờ duyệt' }} />
+              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Diễn giả</Title>
+              <Table 
+                columns={speakerCols} 
+                dataSource={allSpeakers} 
+                rowKey="UserID" 
+                pagination={{ pageSize: 10 }} 
+                scroll={{ x: 800 }} 
+                rowClassName={r => !r.IsActive ? 'row-pending' : ''}
+                locale={{ emptyText: 'Không có dữ liệu diễn giả' }} 
+              />
             </div>
           )}
 
@@ -568,15 +599,15 @@ const AdminDashboard = () => {
 
       {/* Reject Modal */}
       <Modal
-        title="Lý do từ chối" 
+        title={rejectModal.type === 'cancel_event' ? 'Lý do khóa sự kiện' : 'Lý do từ chối'} 
         open={rejectModal.open} 
         onOk={confirmReject} 
         onCancel={() => setRejectModal({ open: false })} 
-        okText="Xác nhận từ chối" 
+        okText={rejectModal.type === 'cancel_event' ? 'Xác nhận khóa' : 'Xác nhận từ chối'} 
         cancelText="Huỷ" 
         okButtonProps={{ danger: true }}
       >
-        <Input.TextArea rows={4} placeholder="Nhập lý do từ chối (sẽ gửi qua email cho người đăng ký)..." value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
+        <Input.TextArea rows={4} placeholder={rejectModal.type === 'cancel_event' ? 'Nhập lý do khóa sự kiện...' : 'Nhập lý do từ chối (sẽ gửi qua email)...'} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
       </Modal>
 
       {/* Approve Event with Staff Assignment Modal */}

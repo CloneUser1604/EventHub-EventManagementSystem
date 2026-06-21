@@ -121,6 +121,7 @@ CREATE TABLE Events (
   Title            NVARCHAR(300)  NOT NULL,
   Description      NVARCHAR(MAX)  NULL,
   CoverImageURL    VARCHAR(500)   NULL,
+  DocumentsURL     NVARCHAR(MAX)  NULL,
   StartDate        DATETIME       NOT NULL,
   EndDate          DATETIME       NOT NULL,
   RegistrationDeadline DATETIME   NULL,
@@ -136,6 +137,8 @@ CREATE TABLE Events (
   -- Lock edit after 3 days unless admin permits
   EditLockedAt     DATETIME       NULL,
   AdminEditUnlock  BIT            NOT NULL DEFAULT 0,
+  ProposedChanges  NVARCHAR(MAX)  NULL,
+  EditReason       NVARCHAR(500)  NULL,
   CreatedAt        DATETIME       NOT NULL DEFAULT GETDATE(),
   UpdatedAt        DATETIME       NOT NULL DEFAULT GETDATE()
 );
@@ -315,7 +318,7 @@ CREATE TABLE Notifications (
   Title          NVARCHAR(300)  NOT NULL,
   Message        NVARCHAR(MAX)  NOT NULL,
   Type           VARCHAR(30)    NOT NULL DEFAULT 'General'
-                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP')),
+                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP','SpeakerInvitation','StaffInvitation','EventUpdate')),
   IsRead         BIT            NOT NULL DEFAULT 0,
   RelatedID      INT            NULL,   -- EventID, RegistrationID, etc.
   RelatedType    VARCHAR(50)    NULL,   -- 'Event', 'Registration', etc.

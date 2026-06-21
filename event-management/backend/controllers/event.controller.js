@@ -89,7 +89,7 @@ const getEvents = async (req, res) => {
           e.EventID, e.Title, e.Description, e.CoverImageURL,
           e.StartDate, e.EndDate, e.RegistrationDeadline,
           e.MaxParticipants, e.Status, e.ApprovalStatus,
-          e.RejectionReason, e.CreatedAt, e.UpdatedAt,
+          e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
           u.UserID AS OrganizerID, u.FullName AS OrganizerName,
           op.OrganizationName,
           c.CategoryID, c.Name AS CategoryName,
@@ -156,11 +156,15 @@ const getEventById = async (req, res) => {
       .query(`
         SELECT s.*,
           (SELECT STRING_AGG(u.FullName, ', ')
-           FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
-           WHERE ss.SessionID = s.SessionID) AS Speakers,
+           FROM SessionSpeakers ss 
+           JOIN Users u ON ss.SpeakerID = u.UserID
+           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
+           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS Speakers,
           (SELECT STRING_AGG(u.Email, ',')
-           FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
-           WHERE ss.SessionID = s.SessionID) AS speakerEmailsStr
+           FROM SessionSpeakers ss 
+           JOIN Users u ON ss.SpeakerID = u.UserID
+           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
+           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS speakerEmailsStr
         FROM Sessions s WHERE s.EventID = @EventID ORDER BY s.StartTime
       `);
 
@@ -283,12 +287,13 @@ const createEvent = async (req, res) => {
               .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
                       INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
             
-            // Thêm vào EventSpeakers
+            // Thêm vào SpeakerInvitations
             await pool.request()
               .input('EventID', sql.Int, newEvent.EventID)
               .input('SpeakerID', sql.Int, speaker.UserID)
-              .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                      INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+              .input('InvitedBy', sql.Int, newEvent.OrganizerID)
+              .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                      INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
           }
         }
       }
@@ -411,7 +416,7 @@ const updateEvent = async (req, res) => {
     if (parsedSessions.length > 0) {
       // Xoá tất cả session cũ và liên kết
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
-      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM EventSpeakers WHERE EventID=@EventID`);
+      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SpeakerInvitations WHERE EventID=@EventID`);
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
 
       for (const s of parsedSessions) {
@@ -443,8 +448,9 @@ const updateEvent = async (req, res) => {
               await pool.request()
                 .input('EventID', sql.Int, parseInt(id))
                 .input('SpeakerID', sql.Int, speaker.UserID)
-                .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                        INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+                .input('InvitedBy', sql.Int, req.user.UserID)
+                .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                        INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
             }
           }
         }

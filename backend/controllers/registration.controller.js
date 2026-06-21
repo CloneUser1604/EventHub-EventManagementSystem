@@ -16,7 +16,7 @@ const registerEvent = async (req, res) => {
 
     // Fetch event
     const eventRes = await pool.request().input('EventID', sql.Int, eventId)
-      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants,
+      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly,
                 (SELECT COUNT(*) FROM Registrations WHERE EventID=@EventID AND Status='Registered') AS RegisteredCount
               FROM Events WHERE EventID=@EventID`);
     const event = eventRes.recordset[0];
@@ -26,6 +26,11 @@ const registerEvent = async (req, res) => {
       return errorResponse(res, 'Đã hết hạn đăng ký', 400);
     if (event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants)
       return errorResponse(res, 'Sự kiện đã đầy chỗ', 400);
+    
+    // Check internal only
+    if (event.IsInternalOnly && !req.user.University) {
+      return forbiddenResponse(res, 'Sự kiện này chỉ dành cho sinh viên trong trường');
+    }
 
     // Check duplicate
     const dup = await pool.request()
@@ -120,7 +125,7 @@ const getMyRegistrations = async (req, res) => {
         SELECT e.EventID, e.Title, e.StartDate, e.EndDate, e.CoverImageURL, e.Status AS EventStatus,
                v.Name AS VenueName, v.Address AS VenueAddress,
                ISNULL(r.RegistrationID, 0) AS RegistrationID, 
-               ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 
+               ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL OR es.EventStaffID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 
                r.RegisteredAt, r.CancelledAt,
                qt.QRCode, qt.OTPCode, qt.IsUsed,
                a.Status AS AttendanceStatus,
@@ -132,11 +137,11 @@ const getMyRegistrations = async (req, res) => {
         LEFT JOIN QRTickets qt ON r.RegistrationID = qt.RegistrationID
         LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
         LEFT JOIN EventStaffs es ON e.EventID = es.EventID AND es.StaffID = @PID
-        LEFT JOIN EventSpeakers spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID
-        WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID
+        LEFT JOIN SpeakerInvitations spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID AND spk.Status = 'Accepted'
+        WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID OR es.StaffID = @PID
       )
       SELECT * FROM MyEvents
-      WHERE (@Status IS NULL OR Status = @Status OR (isSpeakerForThisEvent = 1 AND @Status = 'Confirmed' AND (Status IS NULL OR Status <> 'Cancelled')))
+      WHERE (@Status IS NULL OR Status = @Status OR ((isSpeakerForThisEvent = 1 OR isStaffForThisEvent = 1) AND @Status = 'Confirmed' AND (Status IS NULL OR Status <> 'Cancelled')))
       ORDER BY StartDate DESC
     `);
     return successResponse(res, result.recordset);

@@ -337,6 +337,13 @@ const forgotPassword = async (req, res) => {
       .input('ResetTokenExpiry', sql.DateTime, resetTokenExpiry)
       .query(`UPDATE Users SET ResetToken = @ResetToken, ResetTokenExpiry = @ResetTokenExpiry WHERE UserID = @UserID`);
 
+    // Ghi log đường dẫn đặt lại mật khẩu để tiện debug khi cấu hình email chưa chuẩn
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    console.log(`\n========================================`);
+    console.log(`🔑 PASSWORD RESET LINK cho ${email}:`);
+    console.log(`👉 ${resetURL}`);
+    console.log(`========================================\n`);
+
     sendPasswordResetEmail(email, user.FullName, resetToken).catch(console.error);
     return successResponse(res, null, msg);
   } catch (error) {
@@ -599,7 +606,24 @@ const getPendingSpeakers = async (req, res) => {
     `);
     return successResponse(res, result.recordset);
   } catch (error) {
-    return errorResponse(res, 'Lấy danh sách diễn giả thất bại');
+    return errorResponse(res, 'Lỗi lấy danh sách diễn giả');
+  }
+};
+
+const getAllSpeakers = async (req, res) => {
+  try {
+    const pool = getPool();
+    const result = await pool.request().query(`
+      SELECT u.UserID, u.FullName, u.Email, u.Phone, u.IsActive, u.CreatedAt,
+             sp.Bio, sp.Expertise, sp.LinkedInURL
+      FROM Users u
+      LEFT JOIN SpeakerProfiles sp ON u.UserID = sp.UserID
+      WHERE u.Role = 'Speaker'
+      ORDER BY u.CreatedAt DESC
+    `);
+    return successResponse(res, result.recordset);
+  } catch (error) {
+    return errorResponse(res, 'Lỗi lấy danh sách diễn giả');
   }
 };
 
@@ -633,5 +657,5 @@ module.exports = {
   login, refreshToken, logout, getMe,
   forgotPassword, resetPassword, changePassword,
   createSpeaker, approveSpeaker,
-  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers,
+  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
 };

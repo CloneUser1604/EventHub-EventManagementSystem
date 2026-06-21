@@ -3,6 +3,7 @@ import { Card, Tag, Avatar, Tooltip } from 'antd';
 import { CalendarOutlined, EnvironmentOutlined, TeamOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { getImageUrl } from '../../utils/imageHelpers';
 
 const statusConfig = {
   Published:      { color: 'green',   label: 'Đang mở' },
@@ -27,12 +28,13 @@ const EventCard = ({ event, showStatus = false }) => {
       cover={
         <div style={{ position: 'relative', height: 180, overflow: 'hidden', background: 'linear-gradient(135deg,#1a2744,#0f1629)' }}>
           {event.CoverImageURL
-            ? <img src={event.CoverImageURL} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={getImageUrl(event.CoverImageURL)} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🎓</div>
           }
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
-          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {event.IsInternalOnly && <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Nội bộ</Tag>}
             {event.CategoryName && <Tag color="blue" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{event.CategoryName}</Tag>}
             {showStatus && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
           </div>
@@ -54,12 +56,10 @@ const EventCard = ({ event, showStatus = false }) => {
           <CalendarOutlined style={{ color: '#2563eb', flexShrink: 0 }} />
           <span>{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
         </div>
-        {event.VenueName && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
-            <EnvironmentOutlined style={{ color: '#7c3aed', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName}</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
+          <EnvironmentOutlined style={{ color: '#7c3aed', flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName || 'Chưa cập nhật'}</span>
+        </div>
         {remaining !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             <TeamOutlined style={{ color: isFull ? '#ef4444' : '#10b981', flexShrink: 0 }} />

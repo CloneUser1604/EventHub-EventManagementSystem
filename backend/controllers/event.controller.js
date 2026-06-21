@@ -9,7 +9,7 @@ const getEvents = async (req, res) => {
   try {
     const {
       page = 1, limit = 12,
-      search, categoryId, status, approvalStatus,
+      search, categoryId, venueId, status, approvalStatus,
       startDate, endDate, organizerId,
       sortBy = 'StartDate', sortOrder = 'ASC',
     } = req.query;
@@ -48,6 +48,10 @@ const getEvents = async (req, res) => {
     if (categoryId) {
       conditions.push(`e.CategoryID = @CategoryID`);
       params.push({ name: 'CategoryID', type: sql.Int, value: parseInt(categoryId) });
+    }
+    if (venueId) {
+      conditions.push(`e.VenueID = @VenueID`);
+      params.push({ name: 'VenueID', type: sql.Int, value: parseInt(venueId) });
     }
     if (startDate) {
       conditions.push(`e.StartDate >= @StartDate`);
@@ -89,7 +93,7 @@ const getEvents = async (req, res) => {
           e.EventID, e.Title, e.Description, e.CoverImageURL,
           e.StartDate, e.EndDate, e.RegistrationDeadline,
           e.MaxParticipants, e.Status, e.ApprovalStatus,
-          e.RejectionReason, e.CreatedAt, e.UpdatedAt,
+          e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
           u.UserID AS OrganizerID, u.FullName AS OrganizerName,
           op.OrganizationName,
           c.CategoryID, c.Name AS CategoryName,
@@ -156,11 +160,15 @@ const getEventById = async (req, res) => {
       .query(`
         SELECT s.*,
           (SELECT STRING_AGG(u.FullName, ', ')
-           FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
-           WHERE ss.SessionID = s.SessionID) AS Speakers,
+           FROM SessionSpeakers ss 
+           JOIN Users u ON ss.SpeakerID = u.UserID
+           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
+           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS Speakers,
           (SELECT STRING_AGG(u.Email, ',')
-           FROM SessionSpeakers ss JOIN Users u ON ss.SpeakerID = u.UserID
-           WHERE ss.SessionID = s.SessionID) AS speakerEmailsStr
+           FROM SessionSpeakers ss 
+           JOIN Users u ON ss.SpeakerID = u.UserID
+           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
+           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS speakerEmailsStr
         FROM Sessions s WHERE s.EventID = @EventID ORDER BY s.StartTime
       `);
 
@@ -197,7 +205,7 @@ const getEventById = async (req, res) => {
 const createEvent = async (req, res) => {
   try {
     const { title, description, startDate, endDate,
-            registrationDeadline, maxParticipants, categoryId, venueId, sessions = [] } = req.body;
+            registrationDeadline, maxParticipants, categoryId, venueId, sessions = [], isInternalOnly } = req.body;
     const pool = getPool();
     const organizerId = req.user.UserID;
 
@@ -242,12 +250,13 @@ const createEvent = async (req, res) => {
       .input('EndDate', sql.DateTime, new Date(endDate))
       .input('RegistrationDeadline', sql.DateTime, registrationDeadline ? new Date(registrationDeadline) : null)
       .input('MaxParticipants', sql.Int, maxParticipants || null)
+      .input('IsInternalOnly', sql.Bit, isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0)
       .query(`
         INSERT INTO Events (OrganizerID,CategoryID,VenueID,Title,Description,CoverImageURL, DocumentsURL,
-          StartDate,EndDate,RegistrationDeadline,MaxParticipants,Status,ApprovalStatus)
+          StartDate,EndDate,RegistrationDeadline,MaxParticipants,IsInternalOnly,Status,ApprovalStatus)
         OUTPUT INSERTED.*
         VALUES (@OrganizerID,@CategoryID,@VenueID,@Title,@Description,@CoverImageURL, @DocumentsURL,
-          @StartDate,@EndDate,@RegistrationDeadline,@MaxParticipants,'Draft','NotSubmitted')
+          @StartDate,@EndDate,@RegistrationDeadline,@MaxParticipants,@IsInternalOnly,'Draft','NotSubmitted')
       `);
 
     const newEvent = insertResult.recordset[0];
@@ -282,12 +291,13 @@ const createEvent = async (req, res) => {
               .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
                       INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
             
-            // Thêm vào EventSpeakers
+            // Thêm vào SpeakerInvitations
             await pool.request()
               .input('EventID', sql.Int, newEvent.EventID)
               .input('SpeakerID', sql.Int, speaker.UserID)
-              .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                      INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+              .input('InvitedBy', sql.Int, newEvent.OrganizerID)
+              .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                      INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
           }
         }
       }
@@ -319,7 +329,7 @@ const updateEvent = async (req, res) => {
       return forbiddenResponse(res, 'Không thể chỉnh sửa sự kiện đã kết thúc/huỷ');
 
     const { title, description, startDate, endDate,
-            registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions } = req.body;
+            registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions, isInternalOnly } = req.body;
     let { coverImageURL } = req.body;
 
     let parsedSessions = [];
@@ -355,6 +365,7 @@ const updateEvent = async (req, res) => {
         maxParticipants: maxParticipants !== undefined ? maxParticipants : event.MaxParticipants, 
         categoryId: categoryId !== undefined ? categoryId : event.CategoryID, 
         venueId: venueId !== undefined ? venueId : event.VenueID,
+        isInternalOnly: isInternalOnly !== undefined ? (isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0) : event.IsInternalOnly,
         sessions: parsedSessions.length > 0 ? parsedSessions : undefined
       });
 
@@ -395,12 +406,13 @@ const updateEvent = async (req, res) => {
       .input('EndDate', sql.DateTime, endDate ? new Date(endDate) : event.EndDate)
       .input('RegistrationDeadline', sql.DateTime, registrationDeadline ? new Date(registrationDeadline) : event.RegistrationDeadline)
       .input('MaxParticipants', sql.Int, maxParticipants !== undefined ? maxParticipants : event.MaxParticipants)
+      .input('IsInternalOnly', sql.Bit, isInternalOnly !== undefined ? (isInternalOnly === true || isInternalOnly === 'true' ? 1 : 0) : event.IsInternalOnly)
       .input('EditLockedAt', sql.DateTime, editLockedAt || null)
       .query(`
         UPDATE Events SET CategoryID=@CategoryID, VenueID=@VenueID, Title=@Title,
           Description=@Description, CoverImageURL=@CoverImageURL, StartDate=@StartDate,
           EndDate=@EndDate, RegistrationDeadline=@RegistrationDeadline,
-          MaxParticipants=@MaxParticipants, EditLockedAt=@EditLockedAt, UpdatedAt=GETDATE()
+          MaxParticipants=@MaxParticipants, IsInternalOnly=@IsInternalOnly, EditLockedAt=@EditLockedAt, UpdatedAt=GETDATE()
         WHERE EventID=@EventID
       `);
 
@@ -408,7 +420,7 @@ const updateEvent = async (req, res) => {
     if (parsedSessions.length > 0) {
       // Xoá tất cả session cũ và liên kết
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
-      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM EventSpeakers WHERE EventID=@EventID`);
+      await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SpeakerInvitations WHERE EventID=@EventID`);
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
 
       for (const s of parsedSessions) {
@@ -440,8 +452,9 @@ const updateEvent = async (req, res) => {
               await pool.request()
                 .input('EventID', sql.Int, parseInt(id))
                 .input('SpeakerID', sql.Int, speaker.UserID)
-                .query(`IF NOT EXISTS (SELECT 1 FROM EventSpeakers WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                        INSERT INTO EventSpeakers (EventID, SpeakerID) VALUES (@EventID, @SpeakerID)`);
+                .input('InvitedBy', sql.Int, req.user.UserID)
+                .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
+                        INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
             }
           }
         }

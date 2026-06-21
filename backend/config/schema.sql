@@ -36,8 +36,10 @@ CREATE TABLE Users (
   Role         VARCHAR(20)    NOT NULL CHECK (Role IN ('Admin','Organizer','Staff','Participant','Speaker')),
   AvatarURL    VARCHAR(500)   NULL,
   Phone        VARCHAR(20)    NULL,
+  University   NVARCHAR(150)  NULL,
   IsActive     BIT            NOT NULL DEFAULT 1,
   IsVerified   BIT            NOT NULL DEFAULT 0,
+  MustChangePassword BIT      NOT NULL DEFAULT 0,
   -- For email verification / password reset
   VerifyToken       VARCHAR(255) NULL,
   VerifyTokenExpiry DATETIME     NULL,
@@ -119,10 +121,12 @@ CREATE TABLE Events (
   Title            NVARCHAR(300)  NOT NULL,
   Description      NVARCHAR(MAX)  NULL,
   CoverImageURL    VARCHAR(500)   NULL,
+  DocumentsURL     NVARCHAR(MAX)  NULL,
   StartDate        DATETIME       NOT NULL,
   EndDate          DATETIME       NOT NULL,
   RegistrationDeadline DATETIME   NULL,
   MaxParticipants  INT            NULL,
+  IsInternalOnly   BIT            NOT NULL DEFAULT 0,
   Status           VARCHAR(20)    NOT NULL DEFAULT 'Draft'
                      CHECK (Status IN ('Draft','PendingApproval','Approved','Rejected','Published','Cancelled','Completed')),
   ApprovalStatus   VARCHAR(20)    NOT NULL DEFAULT 'NotSubmitted'
@@ -133,6 +137,8 @@ CREATE TABLE Events (
   -- Lock edit after 3 days unless admin permits
   EditLockedAt     DATETIME       NULL,
   AdminEditUnlock  BIT            NOT NULL DEFAULT 0,
+  ProposedChanges  NVARCHAR(MAX)  NULL,
+  EditReason       NVARCHAR(500)  NULL,
   CreatedAt        DATETIME       NOT NULL DEFAULT GETDATE(),
   UpdatedAt        DATETIME       NOT NULL DEFAULT GETDATE()
 );
@@ -188,6 +194,21 @@ CREATE TABLE EventStaffs (
   AssignedBy   INT NOT NULL REFERENCES Users(UserID),
   AssignedAt   DATETIME NOT NULL DEFAULT GETDATE(),
   UNIQUE (EventID, StaffID)
+);
+
+-- ============================================================
+-- 10b. STAFF INVITATIONS
+-- ============================================================
+CREATE TABLE StaffInvitations (
+  InvitationID INT IDENTITY(1,1) PRIMARY KEY,
+  EventID      INT            NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
+  ParticipantID INT           NOT NULL REFERENCES Users(UserID),
+  InvitedBy    INT            NOT NULL REFERENCES Users(UserID),
+  Status       VARCHAR(20)    NOT NULL DEFAULT 'Pending'
+                 CHECK (Status IN ('Pending','Accepted','Declined')),
+  RespondedAt  DATETIME       NULL,
+  SentAt       DATETIME       NOT NULL DEFAULT GETDATE(),
+  UNIQUE (EventID, ParticipantID)
 );
 
 -- ============================================================
@@ -297,7 +318,7 @@ CREATE TABLE Notifications (
   Title          NVARCHAR(300)  NOT NULL,
   Message        NVARCHAR(MAX)  NOT NULL,
   Type           VARCHAR(30)    NOT NULL DEFAULT 'General'
-                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP')),
+                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP','SpeakerInvitation','StaffInvitation','EventUpdate')),
   IsRead         BIT            NOT NULL DEFAULT 0,
   RelatedID      INT            NULL,   -- EventID, RegistrationID, etc.
   RelatedType    VARCHAR(50)    NULL,   -- 'Event', 'Registration', etc.

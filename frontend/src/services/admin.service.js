@@ -6,6 +6,9 @@ export const adminService = {
   reviewOrganizer: (profileId, action, rejectionReason) =>
     api.post(`/auth/admin/organizers/${profileId}/review`, { action, rejectionReason }),
   getPendingSpeakers: () => api.get('/auth/admin/pending-speakers'),
+  getAllSpeakers:     () => api.get('/auth/admin/all-speakers'),
   reviewSpeaker: (speakerId, action, rejectionReason) =>
     api.post(`/auth/admin/speakers/${speakerId}/review`, { action, rejectionReason }),
+  getAllUsers: () => api.get('/admin/users'),
+  updateUserStatus: (userId, isActive) => api.patch(`/admin/users/${userId}/status`, { isActive }),
 };

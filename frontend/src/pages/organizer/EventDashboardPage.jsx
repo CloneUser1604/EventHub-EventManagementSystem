@@ -19,6 +19,7 @@ const EventDashboardPage = () => {
   const [activeMenu, setActiveMenu] = useState('overview');
   const [event, setEvent] = useState(null);
   const [participants, setParticipants] = useState([]);
+  const [assignedStaffs, setAssignedStaffs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadData(); }, [id]);
@@ -26,14 +27,18 @@ const EventDashboardPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [evtRes, partRes] = await Promise.all([
+      const [evtRes, partRes, staffRes] = await Promise.all([
         eventService.getEventById(id),
         fetch(`${API_BASE}/staff/events/${id}/participants`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+        }).then(r => r.json()),
+        fetch(`${API_BASE}/staff/events/${id}/assigned`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
         }).then(r => r.json())
       ]);
       setEvent(evtRes.data.data);
       setParticipants(partRes.data || []);
+      setAssignedStaffs(staffRes.data || []);
     } catch (err) {
       message.error('Lỗi tải dữ liệu Dashboard');
     } finally {
@@ -41,47 +46,8 @@ const EventDashboardPage = () => {
     }
   };
 
-  const inviteStaff = async (participantId) => {
-    try {
-      const res = await fetch(`${API_BASE}/staff/events/${id}/invite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
-        body: JSON.stringify({ participantId })
-      });
-      const data = await res.json();
-      if (data.success) {
-        message.success('Đã gửi lời mời làm Staff!');
-        loadData();
-      } else {
-        message.error(data.message);
-      }
-    } catch (err) {
-      message.error('Lỗi gửi lời mời');
-    }
-  };
-
-  const revokeStaff = async (staffId) => {
-    try {
-      const res = await fetch(`${API_BASE}/staff/events/${id}/staff/${staffId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        message.success('Đã xóa quyền Staff!');
-        loadData();
-      } else {
-        message.error(data.message);
-      }
-    } catch (err) {
-      message.error('Lỗi xóa quyền');
-    }
-  };
-
   if (loading) return <MainLayout><div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div></MainLayout>;
   if (!event) return <MainLayout><div style={{ padding: 40, textAlign: 'center' }}>Sự kiện không tồn tại</div></MainLayout>;
-
-  const staffs = participants.filter(p => p.InviteStatus === 'Accepted' || p.InviteStatus === 'Pending');
 
   const participantCols = [
     { title: 'Người tham dự', render: (_, r) => (
@@ -96,23 +62,9 @@ const EventDashboardPage = () => {
     { title: 'Mã vé', dataIndex: 'RegistrationID', render: v => `EMS-${v}` },
     { title: 'Trạng thái', dataIndex: 'Status', render: s => <Tag color="green">Đã đăng ký</Tag> },
     { title: 'Vai trò', render: (_, r) => {
-        if (!r.InviteStatus) return <Tag color="default">Participant</Tag>;
-        if (r.InviteStatus === 'Accepted') return <Tag color="blue">Staff</Tag>;
-        if (r.InviteStatus === 'Pending') return <Tag color="orange">Đang mời Staff</Tag>;
+        if (r.InviteStatus === 'Assigned') return <Tag color="blue">Staff / Tham gia</Tag>;
         return <Tag color="default">Participant</Tag>;
-    }},
-    { title: 'Hành động', render: (_, r) => (
-      !r.InviteStatus || r.InviteStatus === 'Declined' ? (
-        <Space direction="vertical" size={2}>
-          {r.InviteStatus === 'Declined' && <Text type="danger" style={{ fontSize: 12 }}>❌ Đã từ chối</Text>}
-          <Button size="small" type="primary" ghost icon={<IdcardOutlined />} onClick={() => inviteStaff(r.ParticipantID)}>
-            {r.InviteStatus === 'Declined' ? 'Mời lại Staff' : 'Trao quyền Staff'}
-          </Button>
-        </Space>
-      ) : (
-        <Text type="secondary" style={{ fontSize: 13 }}>Đã gửi lời mời</Text>
-      )
-    )},
+    }}
   ];
 
   const staffCols = [
@@ -125,17 +77,8 @@ const EventDashboardPage = () => {
         </div>
       </div>
     )},
-    { title: 'Tình trạng lời mời', dataIndex: 'InviteStatus', render: s => {
-        const cfg = { Pending: { c: 'orange', t: 'Chờ phản hồi' }, Accepted: { c: 'green', t: 'Đã đồng ý' }, Declined: { c: 'red', t: 'Đã từ chối' } };
-        return <Tag color={cfg[s]?.c}>{cfg[s]?.t}</Tag>;
-    }},
-    { title: 'Hành động', render: (_, r) => (
-      r.InviteStatus === 'Accepted' ? (
-        <Button danger size="small" onClick={() => revokeStaff(r.ParticipantID)}>
-          Xóa quyền
-        </Button>
-      ) : null
-    )}
+    { title: 'Chức vụ', dataIndex: 'Role', render: r => <Tag color="purple">{r}</Tag> },
+    { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d).format('DD/MM/YYYY HH:mm') }
   ];
 
   return (
@@ -154,8 +97,8 @@ const EventDashboardPage = () => {
       </div>
 
       <div style={{ maxWidth: 1200, margin: '24px auto', padding: '0 24px', minHeight: '60vh' }}>
-        <Layout style={{ background: 'transparent' }}>
-          <Sider width={220} style={{ background: 'transparent' }}>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={6} lg={5}>
             <Menu
               mode="inline"
               selectedKeys={[activeMenu]}
@@ -164,12 +107,12 @@ const EventDashboardPage = () => {
               items={[
                 { key: 'overview', icon: <AppstoreOutlined />, label: 'Tổng quan' },
                 { key: 'participants', icon: <TeamOutlined />, label: 'Người tham dự' },
-                { key: 'staffs', icon: <IdcardOutlined />, label: 'Quản lý Staff' },
+                { key: 'staffs', icon: <IdcardOutlined />, label: 'Danh sách Staff' },
               ]}
             />
-          </Sider>
+          </Col>
           
-          <Content style={{ paddingLeft: 24 }}>
+          <Col xs={24} md={18} lg={19}>
             {activeMenu === 'overview' && (
               <div>
                 <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Thống kê sự kiện</Title>
@@ -184,9 +127,9 @@ const EventDashboardPage = () => {
                   </Col>
                   <Col xs={24} sm={8}>
                     <Card style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                      <div style={{ fontSize: 13, color: '#64748b' }}>Staff đã mời</div>
+                      <div style={{ fontSize: 13, color: '#64748b' }}>Staff phụ trách</div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', fontFamily: 'Sora,sans-serif' }}>
-                        {staffs.length}
+                        {assignedStaffs.length}
                       </div>
                     </Card>
                   </Col>
@@ -202,6 +145,7 @@ const EventDashboardPage = () => {
                   dataSource={participants} 
                   rowKey="RegistrationID"
                   pagination={{ pageSize: 10 }}
+                  scroll={{ x: 600 }}
                   style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
                   locale={{ emptyText: 'Chưa có người tham dự' }}
                 />
@@ -210,19 +154,20 @@ const EventDashboardPage = () => {
 
             {activeMenu === 'staffs' && (
               <div>
-                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Staff</Title>
+                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Danh sách Staff (Được phân công bởi Admin)</Title>
                 <Table 
                   columns={staffCols} 
-                  dataSource={staffs} 
-                  rowKey="ParticipantID"
+                  dataSource={assignedStaffs} 
+                  rowKey="EventStaffID"
                   pagination={{ pageSize: 10 }}
+                  scroll={{ x: 600 }}
                   style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
-                  locale={{ emptyText: 'Chưa có Staff nào được mời' }}
+                  locale={{ emptyText: 'Chưa có Staff nào được phân công' }}
                 />
               </div>
             )}
-          </Content>
-        </Layout>
+          </Col>
+        </Row>
       </div>
     </MainLayout>
   );

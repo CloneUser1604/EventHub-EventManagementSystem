@@ -93,22 +93,34 @@ const HomePage = () => {
           </p>
 
           {/* Search Bar */}
-          <div style={{
-            display: 'flex', gap: 0, maxWidth: 620, margin: '0 auto 48px',
-            background: 'white', borderRadius: 14, padding: '6px 6px 6px 0',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          }}>
-            <Select
-              placeholder="Lĩnh vực"
-              style={{ width: 160, borderRight: '1px solid #e5e7eb' }}
-              className="home-category-filter"
-              variant="borderless"
-              value={selectedCat || undefined}
-              onChange={setSelectedCat}
-              allowClear
-            >
-              {categories.map(c => <Option key={c.CategoryID} value={c.CategoryID}>{c.Name}</Option>)}
-            </Select>
+          <style>{`
+            .hero-search-bar {
+              display: flex; gap: 0; max-width: 620px; margin: 0 auto 48px;
+              background: white; border-radius: 14px; padding: 6px 6px 6px 0;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            .hero-search-category { 
+              width: 140px; display: flex; align-items: center; 
+              background: #f0fdf4; border-radius: 8px; margin-right: 8px;
+            }
+            .hero-search-category .ant-select-selector { 
+              padding: 0 12px !important; 
+              background-color: transparent !important;
+              color: #166534 !important;
+              font-weight: 600;
+            }
+            .hero-search-category .ant-select-selection-placeholder {
+              color: #166534 !important;
+              opacity: 0.7;
+            }
+            .hero-search-btn { border-radius: 10px; padding: 0 24px; height: 48px; }
+            @media (max-width: 576px) {
+              .hero-search-bar { flex-direction: column; padding: 12px; gap: 8px; border-radius: 16px; background: rgba(255,255,255,0.95); }
+              .hero-search-category { width: 100%; border-left: none; margin-right: 0; padding: 4px 0; background: #f0fdf4; border-radius: 8px; }
+              .hero-search-btn { width: 100%; height: 44px; margin-top: 4px; }
+            }
+          `}</style>
+          <div className="hero-search-bar">
             <Input
               placeholder="Tìm sự kiện..."
               variant="borderless"
@@ -118,8 +130,19 @@ const HomePage = () => {
               style={{ flex: 1, fontSize: 15 }}
               prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             />
+            <Select
+              placeholder="Lĩnh vực"
+              value={selectedCat || undefined}
+              onChange={setSelectedCat}
+              variant="borderless"
+              className="hero-search-category"
+              allowClear
+            >
+              {categories.map(c => <Option key={c.CategoryID} value={c.CategoryID}>{c.Name}</Option>)}
+            </Select>
             <Button
               type="primary" size="large" onClick={handleSearch}
+              className="hero-search-btn"
               style={{ borderRadius: 10, height: 44, paddingInline: 24, fontWeight: 600 }}
             >
               Tìm kiếm

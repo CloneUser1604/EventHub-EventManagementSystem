@@ -182,6 +182,15 @@ const MainLayout = ({ children }) => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      <style>{`
+        .desktop-nav { display: flex !important; }
+        .mobile-menu-btn { display: none !important; }
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: inline-block !important; }
+          .header-user-name { display: none !important; }
+        }
+      `}</style>
       {/* ── Header ─────────────────────────────────────── */}
       <Header style={{
         position: 'sticky', top: 0, zIndex: 100,
@@ -202,8 +211,9 @@ const MainLayout = ({ children }) => {
         <Menu
           mode="horizontal"
           selectedKeys={[activeKey]}
-          style={{ background: 'transparent', border: 'none', flex: 1, justifyContent: 'center', color: 'white', display: 'flex' }}
+          style={{ background: 'transparent', border: 'none', flex: 1, justifyContent: 'center', color: 'white' }}
           theme="dark"
+          className="desktop-nav"
           items={navItems.map(n => ({ ...n, onClick: () => navigate(n.key) }))}
         />
 
@@ -232,7 +242,7 @@ const MainLayout = ({ children }) => {
                   >
                     {user?.fullName?.[0]?.toUpperCase()}
                   </Avatar>
-                  <span style={{ fontWeight: 500, color: 'white', display: mobileOpen ? 'none' : 'block' }}>
+                  <span className="header-user-name" style={{ fontWeight: 500, color: 'white' }}>
                       {user?.fullName} {user?.isCurrentStaff && <span style={{ color: '#10b981', fontWeight: 600 }}>(Staff)</span>}
                   </span>
                 </Space>

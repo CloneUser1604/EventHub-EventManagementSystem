@@ -15,6 +15,7 @@ import useAuthStore from '../../store/authStore';
 import { registrationService } from '../../services/registration.service';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
+import { getImageUrl } from '../../utils/imageHelpers';
 dayjs.extend(duration);
 
 const { Title, Text, Paragraph } = Typography;
@@ -142,7 +143,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
     <div style={{ background: noLayout ? '#fff' : 'inherit' }}>
       {/* Hero */}
       <div style={{ position: 'relative', height: 420, background: 'linear-gradient(135deg,#0f1629,#1a2744)', overflow: 'hidden' }}>
-        {event.CoverImageURL && <img src={event.CoverImageURL.startsWith('http') ? event.CoverImageURL : `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/../uploads/${event.CoverImageURL}`} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />}
+        {event.CoverImageURL && <img src={getImageUrl(event.CoverImageURL)} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,22,41,0.95) 0%, rgba(15,22,41,0.5) 50%, transparent 100%)' }} />
 
         <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
@@ -165,7 +166,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           </Title>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
             <span><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('dddd, DD/MM/YYYY · HH:mm')}</span>
-            {event.VenueName && <span><EnvironmentOutlined style={{ marginRight: 6 }} />{event.VenueName}</span>}
+            <span><EnvironmentOutlined style={{ marginRight: 6 }} />{event.VenueName || 'Chưa cập nhật'}</span>
             <span><TeamOutlined style={{ marginRight: 6 }} />{event.RegisteredCount || 0} đã đăng ký{event.MaxParticipants ? ` / ${event.MaxParticipants}` : ''}</span>
           </div>
         </div>
@@ -288,6 +289,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                 </Tag>
                 <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
+                  <span><EnvironmentOutlined style={{ marginRight: 6 }} />{event.VenueName || 'Chưa cập nhật'}</span>
                   {event.MaxParticipants && (
                     <span><TeamOutlined style={{ marginRight: 6 }} />
                       <span style={{ color: isFull ? '#ef4444' : '#10b981', fontWeight: 600 }}>

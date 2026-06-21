@@ -353,6 +353,13 @@ const forgotPassword = async (req, res) => {
       .input('ResetTokenExpiry', sql.DateTime, resetTokenExpiry)
       .query(`UPDATE Users SET ResetToken = @ResetToken, ResetTokenExpiry = @ResetTokenExpiry WHERE UserID = @UserID`);
 
+    // Ghi log đường dẫn đặt lại mật khẩu để tiện debug khi cấu hình email chưa chuẩn
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    console.log(`\n========================================`);
+    console.log(`🔑 PASSWORD RESET LINK cho ${email}:`);
+    console.log(`👉 ${resetURL}`);
+    console.log(`========================================\n`);
+
     sendPasswordResetEmail(email, user.FullName, resetToken).catch(console.error);
     return successResponse(res, null, msg);
   } catch (error) {

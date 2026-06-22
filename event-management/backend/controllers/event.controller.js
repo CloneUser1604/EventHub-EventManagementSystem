@@ -9,7 +9,7 @@ const getEvents = async (req, res) => {
   try {
     const {
       page = 1, limit = 12,
-      search, categoryId, status, approvalStatus,
+      search, categoryId, venueId, status, approvalStatus,
       startDate, endDate, organizerId,
       sortBy = 'StartDate', sortOrder = 'ASC',
     } = req.query;
@@ -48,6 +48,10 @@ const getEvents = async (req, res) => {
     if (categoryId) {
       conditions.push(`e.CategoryID = @CategoryID`);
       params.push({ name: 'CategoryID', type: sql.Int, value: parseInt(categoryId) });
+    }
+    if (venueId) {
+      conditions.push(`e.VenueID = @VenueID`);
+      params.push({ name: 'VenueID', type: sql.Int, value: parseInt(venueId) });
     }
     if (startDate) {
       conditions.push(`e.StartDate >= @StartDate`);

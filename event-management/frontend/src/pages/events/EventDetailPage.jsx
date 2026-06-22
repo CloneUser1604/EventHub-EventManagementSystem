@@ -15,6 +15,7 @@ import {
   Table,
 } from "antd";
 import {
+
   CalendarOutlined,
   EnvironmentOutlined,
   TeamOutlined,
@@ -29,6 +30,7 @@ import useAuthStore from "../../store/authStore";
 import {registrationService} from "../../services/registration.service";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+
 dayjs.extend(duration);
 
 const {Text} = Typography;
@@ -203,12 +205,14 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
       .replace(/&quot;/g, '"');
   };
 
+
   const fillPct = event.MaxParticipants
     ? Math.round(((event.RegisteredCount || 0) / event.MaxParticipants) * 100)
     : 0;
   const remaining = event.MaxParticipants
     ? event.MaxParticipants - (event.RegisteredCount || 0)
     : "Unlimited";
+
 
   const content = (
     <div
@@ -353,6 +357,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
               Nội bộ
             </span>
           )}
+
         </div>
       </div>
 
@@ -370,6 +375,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
         >
           {event.Title}
         </h1>
+
 
         <div className="figma-layout-grid">
           {/* ── LEFT COLUMN ── */}
@@ -407,6 +413,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   }}
                 >
                   <CalendarOutlined />
+
                 </div>
                 <div>
                   <div

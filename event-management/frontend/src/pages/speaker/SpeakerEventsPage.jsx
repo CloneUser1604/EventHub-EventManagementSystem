@@ -3,6 +3,7 @@ import { Card, Typography, List, Tag, Spin, Button, Empty, Row, Col, Space } fro
 import { CalendarOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { getImageUrl } from '../../utils/imageHelpers';
 
 const { Title, Text } = Typography;
 
@@ -52,7 +53,7 @@ const SpeakerEventsPage = () => {
                 cover={
                   <div style={{ 
                     height: 140, 
-                    backgroundImage: `url(${process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : 'http://localhost:5000'}/uploads/${event.CoverImageURL})`,
+                    backgroundImage: event.CoverImageURL ? `url(${getImageUrl(event.CoverImageURL)})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     backgroundColor: '#f3f4f6'

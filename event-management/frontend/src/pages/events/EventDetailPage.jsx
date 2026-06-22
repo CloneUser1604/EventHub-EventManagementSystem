@@ -15,7 +15,6 @@ import {
   Table,
 } from "antd";
 import {
-
   CalendarOutlined,
   EnvironmentOutlined,
   TeamOutlined,
@@ -30,6 +29,9 @@ import useAuthStore from "../../store/authStore";
 import {registrationService} from "../../services/registration.service";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+
+// Import thêm component FeedbackSection
+import FeedbackSection from "../../components/events/FeedbackSection";
 
 dayjs.extend(duration);
 
@@ -46,7 +48,9 @@ const Countdown = ({targetDate}) => {
         return;
       }
       const d = dayjs.duration(diff);
-      setTimeLeft(`${d.days()}d ${d.hours()}h ${d.minutes()}m ${d.seconds()}s`);
+      setTimeLeft(
+        `${d.days()} ngày ${d.hours()} giờ ${d.minutes()} phút ${d.seconds()} giây`,
+      );
     };
     tick();
     const t = setInterval(tick, 1000);
@@ -54,7 +58,12 @@ const Countdown = ({targetDate}) => {
   }, [targetDate]);
   return (
     <span
-      style={{fontFamily: "monospace", fontWeight: "bold", color: "#2563eb"}}
+      style={{
+        fontFamily: "monospace",
+        fontWeight: "bold",
+        color: "#2563eb",
+        fontSize: "14px",
+      }}
     >
       {timeLeft}
     </span>
@@ -144,17 +153,17 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
   const handleCancel = async () => {
     Modal.confirm({
       title: "Huỷ đăng ký?",
-      content: "Bạn có chắc muốn huỷ đăng ký sự kiện này?",
+      content: "Bạn có chắc chắn muốn huỷ đăng ký tham gia sự kiện này?",
       okText: "Huỷ đăng ký",
       okButtonProps: {danger: true},
       cancelText: "Không",
       onOk: async () => {
         try {
           await registrationService.cancel(myRegistration.RegistrationID);
-          message.success("Đã huỷ đăng ký");
+          message.success("Đã huỷ đăng ký thành công");
           setMyRegistration(null);
         } catch (err) {
-          message.error(err.response?.data?.message || "Huỷ thất bại");
+          message.error(err.response?.data?.message || "Huỷ đăng ký thất bại");
         }
       },
     });
@@ -205,21 +214,19 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
       .replace(/&quot;/g, '"');
   };
 
-
   const fillPct = event.MaxParticipants
     ? Math.round(((event.RegisteredCount || 0) / event.MaxParticipants) * 100)
     : 0;
   const remaining = event.MaxParticipants
     ? event.MaxParticipants - (event.RegisteredCount || 0)
-    : "Unlimited";
-
+    : "Không giới hạn";
 
   const content = (
     <div
       style={{
         backgroundColor: "#ffffff",
         paddingBottom: "80px",
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       }}
     >
       {/* ── CSS Grid & Responsive ── */}
@@ -237,7 +244,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
         }
         .custom-html-content img { max-width: 100%; border-radius: 12px; margin-top: 12px; }
         .figma-btn {
-          width: 100%; height: 50px; border-radius: 12px; font-weight: bold; font-size: 16px; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+          width: 100%; height: 50px; border-radius: 12px; font-weight: bold; font-size: 16px; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
         }
         .figma-btn-primary { background-color: #2563eb; color: white; }
         .figma-btn-primary:hover { background-color: #1d4ed8; }
@@ -301,6 +308,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
               cursor: "pointer",
               fontWeight: 600,
               backdropFilter: "blur(4px)",
+              fontFamily: "inherit",
             }}
           >
             <ArrowLeftOutlined /> Quay lại
@@ -324,7 +332,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                 color: "white",
                 padding: "6px 16px",
                 borderRadius: "20px",
-                fontSize: "12px",
+                fontSize: "13px",
                 fontWeight: "bold",
               }}
             >
@@ -337,11 +345,11 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
               color: "white",
               padding: "6px 16px",
               borderRadius: "20px",
-              fontSize: "12px",
+              fontSize: "13px",
               fontWeight: "bold",
             }}
           >
-            {event.Price === 0 || !event.Price ? "Free" : `$${event.Price}`}
+            {event.Price === 0 || !event.Price ? "Miễn phí" : `$${event.Price}`}
           </span>
           {event.IsInternalOnly && (
             <span
@@ -350,14 +358,13 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                 color: "white",
                 padding: "6px 16px",
                 borderRadius: "20px",
-                fontSize: "12px",
+                fontSize: "13px",
                 fontWeight: "bold",
               }}
             >
               Nội bộ
             </span>
           )}
-
         </div>
       </div>
 
@@ -375,7 +382,6 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
         >
           {event.Title}
         </h1>
-
 
         <div className="figma-layout-grid">
           {/* ── LEFT COLUMN ── */}
@@ -413,18 +419,17 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   }}
                 >
                   <CalendarOutlined />
-
                 </div>
                 <div>
                   <div
                     style={{
-                      fontSize: "12px",
+                      fontSize: "13px",
                       color: "#64748b",
                       fontWeight: 600,
                       marginBottom: "4px",
                     }}
                   >
-                    Date
+                    Ngày tổ chức
                   </div>
                   <div
                     style={{
@@ -433,7 +438,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                       fontWeight: "bold",
                     }}
                   >
-                    {dayjs(event.StartDate).format("MMMM D, YYYY")}
+                    {dayjs(event.StartDate).format("DD/MM/YYYY")}
                   </div>
                 </div>
               </div>
@@ -466,13 +471,13 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                 <div>
                   <div
                     style={{
-                      fontSize: "12px",
+                      fontSize: "13px",
                       color: "#64748b",
                       fontWeight: 600,
                       marginBottom: "4px",
                     }}
                   >
-                    Time
+                    Thời gian
                   </div>
                   <div
                     style={{
@@ -481,7 +486,8 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                       fontWeight: "bold",
                     }}
                   >
-                    {dayjs(event.StartDate).format("h:mm A")}
+                    {dayjs(event.StartDate).format("HH:mm")} -{" "}
+                    {dayjs(event.EndDate).format("HH:mm")}
                   </div>
                 </div>
               </div>
@@ -497,7 +503,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   marginBottom: "16px",
                 }}
               >
-                About this Event
+                Giới thiệu sự kiện
               </h2>
               <div
                 style={{color: "#475569", lineHeight: 1.7, fontSize: "15px"}}
@@ -510,7 +516,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     }}
                   />
                 ) : (
-                  <p>Chưa có mô tả cho sự kiện này.</p>
+                  <p>Chưa có thông tin mô tả chi tiết cho sự kiện này.</p>
                 )}
               </div>
               {/* Dummy tags matching Figma */}
@@ -532,7 +538,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     fontWeight: "bold",
                   }}
                 >
-                  #Coding
+                  #SựKiện
                 </span>
                 <span
                   style={{
@@ -544,7 +550,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     fontWeight: "bold",
                   }}
                 >
-                  #Competition
+                  #SinhViên
                 </span>
                 <span
                   style={{
@@ -556,7 +562,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     fontWeight: "bold",
                   }}
                 >
-                  #Event
+                  #KếtNối
                 </span>
               </div>
             </div>
@@ -571,7 +577,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   marginBottom: "24px",
                 }}
               >
-                Agenda
+                Chương trình sự kiện
               </h2>
               {event.sessions?.length > 0 ? (
                 <div
@@ -602,7 +608,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {dayjs(s.StartTime).format("h:mm A")}
+                        {dayjs(s.StartTime).format("HH:mm")}
                       </div>
                       <div style={{paddingTop: "6px"}}>
                         <h3
@@ -630,7 +636,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                           <p
                             style={{
                               margin: "8px 0 0",
-                              fontSize: "12px",
+                              fontSize: "13px",
                               color: "#94a3b8",
                             }}
                           >
@@ -642,7 +648,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   ))}
                 </div>
               ) : (
-                <Empty description="Chưa có chương trình chi tiết" />
+                <Empty description="Chưa có thông tin chương trình chi tiết" />
               )}
             </div>
 
@@ -656,7 +662,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   marginBottom: "24px",
                 }}
               >
-                Organizer
+                Ban tổ chức
               </h2>
               <div
                 style={{
@@ -709,7 +715,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     marginBottom: "16px",
                   }}
                 >
-                  Quản lý Participant (Admin)
+                  Quản lý Người tham dự (Dành cho Admin)
                 </h2>
                 <Table
                   size="small"
@@ -719,7 +725,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   pagination={{pageSize: 10}}
                   columns={[
                     {
-                      title: "Tên",
+                      title: "Họ và Tên",
                       dataIndex: "FullName",
                       render: (t) => (
                         <span style={{fontWeight: "bold", color: "#334155"}}>
@@ -742,13 +748,16 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                         ) : s === "Late" ? (
                           <Tag color="orange">Đến muộn</Tag>
                         ) : (
-                          <Tag color="red">Vắng</Tag>
+                          <Tag color="red">Vắng mặt</Tag>
                         ),
                     },
                   ]}
                 />
               </div>
             )}
+
+            {/* KHỐI FEEDBACK */}
+            <FeedbackSection eventId={targetId} />
           </div>
 
           {/* ── RIGHT COLUMN (Sticky Sidebar) ── */}
@@ -773,7 +782,9 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   margin: "0 0 24px 0",
                 }}
               >
-                {event.Price === 0 || !event.Price ? "Free" : `$${event.Price}`}
+                {event.Price === 0 || !event.Price
+                  ? "Miễn phí"
+                  : `$${event.Price}`}
               </h2>
 
               {/* Capacity Progress Bar */}
@@ -789,9 +800,9 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                       marginBottom: "8px",
                     }}
                   >
-                    <span>{event.RegisteredCount || 0} registered</span>
+                    <span>{event.RegisteredCount || 0} đã đăng ký</span>
                     <span style={{color: "#64748b", fontWeight: 500}}>
-                      {remaining} seats left
+                      Còn {remaining} chỗ trống
                     </span>
                   </div>
                   <div
@@ -815,12 +826,12 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   </div>
                   <div
                     style={{
-                      fontSize: "12px",
+                      fontSize: "13px",
                       color: "#64748b",
                       fontWeight: 500,
                     }}
                   >
-                    {fillPct}% capacity filled
+                    Đã lấp đầy {fillPct}% sức chứa
                   </div>
                 </div>
               )}
@@ -845,30 +856,30 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                       style={{
                         fontWeight: "bold",
                         color: "#0f172a",
-                        fontSize: "14px",
+                        fontSize: "15px",
                       }}
                     >
-                      Standard Admission
+                      Vé tham dự tiêu chuẩn
                     </div>
                     <div
                       style={{
-                        fontSize: "12px",
+                        fontSize: "13px",
                         color: "#64748b",
                         marginTop: "4px",
                       }}
                     >
-                      Includes full access
+                      Quyền tham gia toàn bộ sự kiện
                     </div>
                   </div>
                   <div
                     style={{
                       color: "#2563eb",
                       fontWeight: "bold",
-                      fontSize: "14px",
+                      fontSize: "15px",
                     }}
                   >
                     {event.Price === 0 || !event.Price
-                      ? "Free"
+                      ? "Miễn phí"
                       : `$${event.Price}`}
                   </div>
                 </div>
@@ -884,10 +895,14 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   }}
                 >
                   <Alert
-                    message="Bạn đã đăng ký thành công!"
+                    message="Bạn đã đăng ký tham dự thành công!"
                     type="success"
                     showIcon
-                    style={{borderRadius: "12px", fontWeight: 500}}
+                    style={{
+                      borderRadius: "12px",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                    }}
                   />
 
                   <button
@@ -923,19 +938,49 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                     />
                   ) : isFull ? (
                     <Alert
-                      message="Sự kiện đã đầy chỗ"
+                      message="Sự kiện đã kín chỗ"
                       type="warning"
                       showIcon
                       style={{borderRadius: "12px"}}
                     />
                   ) : deadlinePassed ? (
                     <Alert
-                      message="Đã hết hạn đăng ký"
+                      message="Đã hết hạn đăng ký tham dự"
                       type="warning"
                       showIcon
                       style={{borderRadius: "12px"}}
                     />
                   ) : null}
+
+                  {/* Đồng hồ đếm ngược */}
+                  {!isPast && event.Status !== "Cancelled" && (
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        padding: "12px 16px",
+                        borderRadius: "12px",
+                        marginTop: 0,
+                        textAlign: "center",
+                        border: "1px solid #e2e8f0",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: "12px",
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          display: "block",
+                          marginBottom: 4,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Thời gian đếm ngược
+                      </Text>
+                      <Countdown targetDate={event.StartDate} />
+                    </div>
+                  )}
 
                   <button
                     onClick={handleRegister}
@@ -951,7 +996,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                       ? "Đang xử lý..."
                       : !isAuthenticated
                         ? "Đăng nhập để đăng ký"
-                        : "Register Now"}
+                        : "Đăng ký ngay"}
                   </button>
                 </div>
               )}
@@ -962,17 +1007,17 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                   className="figma-btn figma-btn-outline"
                   style={{flex: 1, height: "42px", fontSize: "14px"}}
                 >
-                  <HeartOutlined /> Save
+                  <HeartOutlined /> Lưu sự kiện
                 </button>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    message.success("Đã sao chép link!");
+                    message.success("Đã sao chép liên kết sự kiện!");
                   }}
                   className="figma-btn figma-btn-outline"
                   style={{flex: 1, height: "42px", fontSize: "14px"}}
                 >
-                  <ShareAltOutlined /> Share
+                  <ShareAltOutlined /> Chia sẻ
                 </button>
               </div>
             </div>
@@ -988,13 +1033,25 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
         width={420}
         centered
         title={
-          <span style={{fontWeight: 800, color: "#0f172a"}}>
-            {event?.isStaff ? "🎟️ Quét để Check-in" : "🎟️ Vé của bạn"}
+          <span
+            style={{
+              fontWeight: 800,
+              color: "#0f172a",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            {event?.isStaff ? "🎟️ Quét để Check-in" : "🎟️ Mã vé của bạn"}
           </span>
         }
       >
         {myRegistration && (
-          <div style={{textAlign: "center", padding: "16px 0"}}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "16px 0",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
             {event?.isStaff ? (
               <div
                 style={{
@@ -1028,7 +1085,7 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
               >
                 <Text
                   type="secondary"
-                  style={{fontSize: "12px", fontWeight: 600}}
+                  style={{fontSize: "13px", fontWeight: 600}}
                 >
                   Mã OTP của bạn
                 </Text>
@@ -1044,8 +1101,8 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                 >
                   {myRegistration.OTPCode}
                 </div>
-                <Text type="secondary" style={{fontSize: "12px"}}>
-                  ⚠️ Giữ mã này bí mật. Dùng để check-in tại sự kiện.
+                <Text type="secondary" style={{fontSize: "13px"}}>
+                  ⚠️ Vui lòng giữ mã này bí mật. Dùng để check-in tại sự kiện.
                 </Text>
               </div>
             )}
@@ -1055,11 +1112,16 @@ const EventDetailPage = ({adminEventId, noLayout}) => {
                 textAlign: "left",
                 display: "flex",
                 flexDirection: "column",
-                gap: "6px",
+                gap: "8px",
               }}
             >
               <span
-                style={{display: "block", fontWeight: "bold", color: "#0f172a"}}
+                style={{
+                  display: "block",
+                  fontWeight: "bold",
+                  color: "#0f172a",
+                  fontSize: "16px",
+                }}
               >
                 {event.Title}
               </span>

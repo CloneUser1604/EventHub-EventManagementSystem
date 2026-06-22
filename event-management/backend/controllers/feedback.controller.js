@@ -50,11 +50,12 @@ exports.createFeedback = async (req, res) => {
 
     const pool = getPool();
 
-    // ĐÃ SỬA: Chỉ join với bảng Registrations để check xem đã đăng ký chưa
+    // ĐÃ SỬA: Join với Registrations và Attendance để check đăng ký và check-in
     const checkQuery = `
-            SELECT e.EndDate, r.Status as RegistrationStatus
+            SELECT e.EndDate, r.Status as RegistrationStatus, a.AttendanceID
             FROM Events e
             LEFT JOIN Registrations r ON e.EventID = r.EventID AND r.ParticipantID = @userId
+            LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
             WHERE e.EventID = @eventId
         `;
     const checkResult = await pool
@@ -77,11 +78,18 @@ exports.createFeedback = async (req, res) => {
         message: "Sự kiện chưa kết thúc, chưa thể đánh giá.",
       });
 
-    // 2. ĐÃ SỬA: Chỉ kiểm tra xem user ĐÃ ĐĂNG KÝ (Registered) chưa, bỏ qua điểm danh
+    // 2. Kiểm tra xem user ĐÃ ĐĂNG KÝ (Registered) chưa
     if (eventInfo.RegistrationStatus !== "Registered")
       return res.status(403).json({
         success: false,
         message: "Bạn phải đăng ký tham gia sự kiện mới được quyền đánh giá.",
+      });
+
+    // 3. Kiểm tra xem user đã CHECK-IN chưa
+    if (!eventInfo.AttendanceID)
+      return res.status(403).json({
+        success: false,
+        message: "Bạn phải check-in tham gia sự kiện thành công thì mới được quyền đánh giá.",
       });
 
     const insertQuery = `

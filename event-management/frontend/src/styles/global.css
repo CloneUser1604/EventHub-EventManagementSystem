@@ -27,3 +27,15 @@ a{color:inherit;text-decoration:none;}
 .gradient-text{background:linear-gradient(135deg,#2563eb,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .card-hover{transition:var(--transition);cursor:pointer;}
 .card-hover:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)!important;}
+
+/* Fix Ant Design Rate colors */
+.ant-rate-star-full .anticon svg,
+.ant-rate-star-half .ant-rate-star-first .anticon svg {
+  fill: #facc15 !important;
+  color: #facc15 !important;
+}
+.ant-rate-star-zero .anticon svg,
+.ant-rate-star-half .ant-rate-star-second .anticon svg {
+  fill: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}

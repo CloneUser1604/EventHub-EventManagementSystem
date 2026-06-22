@@ -267,9 +267,13 @@ export default function FeedbackSection({eventId}) {
 
       <FeedbackModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditData(null);
+        }}
         eventId={eventId}
         onSuccess={loadData}
+        initialData={editData}
       />
     </div>
   );

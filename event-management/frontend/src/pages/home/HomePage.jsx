@@ -61,23 +61,25 @@ const HomePage = () => {
           { w:400, h:400, bottom:'-100px', right:'-50px', color:'#a78bfa', opacity:0.08 },
           { w:300, h:300, top:'40%', left:'60%', color:'#34d399', opacity:0.05 },
         ].map((b, i) => (
-          <div key={i} style={{
+          <div key={i} className="animate-float" style={{
             position: 'absolute', width: b.w, height: b.h,
             top: b.top, bottom: b.bottom, left: b.left, right: b.right,
             borderRadius: '50%',
             background: `radial-gradient(circle, ${b.color}, transparent 70%)`,
             opacity: b.opacity, pointerEvents: 'none',
+            animationDelay: `${i * 2}s`
           }} />
         ))}
 
         <div style={{ textAlign: 'center', maxWidth: 780, position: 'relative', zIndex: 2 }}>
           {/* Badge */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 100, padding: '6px 16px', marginBottom: 28, backdropFilter: 'blur(8px)' }}>
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.1s', display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 100, padding: '6px 16px', marginBottom: 28, backdropFilter: 'blur(8px)' }}>
             <span style={{ fontSize: 14 }}>✨</span>
             <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>Nền tảng sự kiện đại học #1</Text>
           </div>
 
-          <h1 style={{
+          <h1 className="animate-fade-in-up" style={{
+            animationDelay: '0.2s',
             fontFamily: 'Sora,sans-serif', fontSize: 'clamp(36px, 6vw, 68px)',
             fontWeight: 800, color: 'white', lineHeight: 1.15, marginBottom: 20,
             letterSpacing: '-1px',
@@ -88,7 +90,7 @@ const HomePage = () => {
             </span>
           </h1>
 
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 18, lineHeight: 1.7, marginBottom: 40, maxWidth: 560, margin: '0 auto 40px' }}>
+          <p className="animate-fade-in-up" style={{ animationDelay: '0.3s', color: 'rgba(255,255,255,0.65)', fontSize: 18, lineHeight: 1.7, marginBottom: 40, maxWidth: 560, margin: '0 auto 40px' }}>
             Hội thảo, workshop, cuộc thi, triển lãm — tất cả sự kiện của cộng đồng sinh viên tập trung tại một nơi.
           </p>
 
@@ -120,7 +122,7 @@ const HomePage = () => {
               .hero-search-btn { width: 100%; height: 44px; margin-top: 4px; }
             }
           `}</style>
-          <div className="hero-search-bar">
+          <div className="hero-search-bar animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <Input
               placeholder="Tìm sự kiện..."
               variant="borderless"
@@ -150,7 +152,7 @@ const HomePage = () => {
           </div>
 
           {/* Stats */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
             {[
               { icon: <CalendarOutlined />, value: 120, suffix: '+', label: 'Sự kiện' },
               { icon: <TeamOutlined />, value: 5000, suffix: '+', label: 'Người tham gia' },
@@ -232,9 +234,9 @@ const HomePage = () => {
           </div>
 
           <Row gutter={[20, 20]}>
-            {featuredEvents.map(event => (
+            {featuredEvents.map((event, index) => (
               <Col key={event.EventID} xs={24} sm={12} lg={8}>
-                <EventCard event={event} />
+                <EventCard event={event} index={index} />
               </Col>
             ))}
           </Row>
@@ -263,9 +265,9 @@ const HomePage = () => {
           <Empty description="Chưa có sự kiện nào" />
         ) : (
           <Row gutter={[20, 20]}>
-            {upcomingEvents.map(event => (
+            {upcomingEvents.map((event, index) => (
               <Col key={event.EventID} xs={24} sm={12} lg={6}>
-                <EventCard event={event} />
+                <EventCard event={event} index={index} />
               </Col>
             ))}
           </Row>
@@ -286,14 +288,14 @@ const HomePage = () => {
         background: 'linear-gradient(135deg,#0f1629,#1a2744)',
         padding: '64px 24px', textAlign: 'center',
       }}>
-        <h2 style={{ fontFamily: 'Sora,sans-serif', fontSize: 30, color: 'white', fontWeight: 800, marginBottom: 12 }}>
+        <h2 className="animate-fade-in-up" style={{ fontFamily: 'Sora,sans-serif', fontSize: 30, color: 'white', fontWeight: 800, marginBottom: 12 }}>
           Bạn là ban tổ chức?
         </h2>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32 }}>
+        <p className="animate-fade-in-up" style={{ animationDelay: '0.1s', color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32 }}>
           Tạo và quản lý sự kiện của bạn dễ dàng hơn bao giờ hết.
         </p>
-        <Button type="primary" size="large" onClick={() => navigate('/register')}
-          style={{ borderRadius: 10, height: 50, paddingInline: 36, fontWeight: 700, fontSize: 16 }}>
+        <Button className="animate-fade-in-up" type="primary" size="large" onClick={() => navigate('/register')}
+          style={{ animationDelay: '0.2s', borderRadius: 10, height: 50, paddingInline: 36, fontWeight: 700, fontSize: 16 }}>
           Bắt đầu miễn phí →
         </Button>
       </section>

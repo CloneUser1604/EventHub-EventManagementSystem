@@ -277,11 +277,17 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                     />
                   </div>
                 ),
-              }] : [])
+              }] : []),
+              {
+                key: 'feedback',
+                label: 'Đánh giá & Phản hồi',
+                children: (
+                  <div style={{ paddingTop: 8 }}>
+                    <FeedbackSection eventId={targetId} />
+                  </div>
+                ),
+              }
             ]} />
-
-            {/* KHỐI FEEDBACK */}
-            <FeedbackSection eventId={targetId} />
           </div>
 
           {/* Right: Sticky registration panel */}

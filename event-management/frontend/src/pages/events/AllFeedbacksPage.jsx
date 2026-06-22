@@ -413,7 +413,7 @@ export default function AllFeedbacksPage() {
 
                       {/* Số sao của bình luận đó và nút sửa nếu là của mình */}
                       <div style={{display: "flex", alignItems: "center", gap: 8, flexShrink: 0}}>
-                        {user?.UserID === item.ParticipantID && (
+                        {user?.userId === item.ParticipantID && (
                           <Button
                             type="text"
                             size="small"

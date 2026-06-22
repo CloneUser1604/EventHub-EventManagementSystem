@@ -109,7 +109,7 @@ export default function FeedbackSection({eventId}) {
             Chưa có đánh giá nào cho sự kiện này.
           </div>
           {(() => {
-            const userFeedback = feedbacks.find(f => f.ParticipantID === user?.userId);
+            const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
             return userFeedback ? (
               <Button
                 type="default"
@@ -182,7 +182,7 @@ export default function FeedbackSection({eventId}) {
                     </div>
                   </div>
                   <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                    {user?.userId === item.ParticipantID && (
+                    {user?.userId == item.ParticipantID && (
                       <Button
                         type="text"
                         size="small"
@@ -224,7 +224,7 @@ export default function FeedbackSection({eventId}) {
 
           <div style={{display: "flex", gap: 16, flexWrap: "wrap"}}>
             {(() => {
-              const userFeedback = feedbacks.find(f => f.ParticipantID === user?.userId);
+              const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
               return userFeedback ? (
                 <Button
                   type="default"

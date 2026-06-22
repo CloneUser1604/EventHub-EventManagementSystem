@@ -9,12 +9,15 @@ import {useNavigate} from "react-router-dom";
 import FeedbackModal from "./FeedbackModal";
 import {feedbackService} from "../../services/feedback.service";
 import dayjs from "dayjs";
+import useAuthStore from "../../store/authStore";
 
 export default function FeedbackSection({eventId}) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState({TotalReviews: 0, AverageRating: 0});
   const [modalOpen, setModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const loadData = async () => {
     try {
@@ -40,7 +43,7 @@ export default function FeedbackSection({eventId}) {
         marginTop: 48,
         paddingTop: 48,
         borderTop: "1px solid #e2e8f0",
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
       <div
@@ -105,14 +108,28 @@ export default function FeedbackSection({eventId}) {
           >
             Chưa có đánh giá nào cho sự kiện này.
           </div>
-          <Button
-            type="primary"
-            icon={<MessageOutlined />}
-            onClick={() => setModalOpen(true)}
-            style={{borderRadius: 8, fontWeight: 600, height: 40}}
-          >
-            Viết đánh giá đầu tiên
-          </Button>
+          {(() => {
+            const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
+            return userFeedback ? (
+              <Button
+                type="default"
+                icon={<MessageOutlined />}
+                onClick={() => { setEditData(userFeedback); setModalOpen(true); }}
+                style={{borderRadius: 8, fontWeight: 600, height: 40, color: "#2563eb", borderColor: "#2563eb"}}
+              >
+                Sửa đánh giá của bạn
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                icon={<MessageOutlined />}
+                onClick={() => { setEditData(null); setModalOpen(true); }}
+                style={{borderRadius: 8, fontWeight: 600, height: 40}}
+              >
+                Viết đánh giá đầu tiên
+              </Button>
+            );
+          })()}
         </div>
       ) : (
         <>
@@ -164,11 +181,26 @@ export default function FeedbackSection({eventId}) {
                       </div>
                     </div>
                   </div>
-                  <Rate
-                    disabled
-                    value={item.Rating}
-                    style={{fontSize: 14, color: "#facc15"}}
-                  />
+                  <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                    {user?.userId == item.ParticipantID && (
+                      <Button
+                        type="text"
+                        size="small"
+                        style={{color: "#2563eb", fontSize: 13, fontWeight: 500}}
+                        onClick={() => {
+                          setEditData(item);
+                          setModalOpen(true);
+                        }}
+                      >
+                        Sửa
+                      </Button>
+                    )}
+                    <Rate
+                      disabled
+                      value={item.Rating}
+                      style={{fontSize: 14, color: "#facc15"}}
+                    />
+                  </div>
                 </div>
                 {item.Comment && (
                   <p
@@ -191,14 +223,28 @@ export default function FeedbackSection({eventId}) {
           </div>
 
           <div style={{display: "flex", gap: 16, flexWrap: "wrap"}}>
-            <Button
-              type="primary"
-              icon={<MessageOutlined />}
-              onClick={() => setModalOpen(true)}
-              style={{borderRadius: 10, height: 44, fontWeight: 600}}
-            >
-              Viết đánh giá
-            </Button>
+            {(() => {
+              const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
+              return userFeedback ? (
+                <Button
+                  type="default"
+                  icon={<MessageOutlined />}
+                  onClick={() => { setEditData(userFeedback); setModalOpen(true); }}
+                  style={{borderRadius: 10, height: 44, fontWeight: 600, color: "#2563eb", borderColor: "#2563eb"}}
+                >
+                  Sửa đánh giá của bạn
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  icon={<MessageOutlined />}
+                  onClick={() => { setEditData(null); setModalOpen(true); }}
+                  style={{borderRadius: 10, height: 44, fontWeight: 600}}
+                >
+                  Viết đánh giá
+                </Button>
+              );
+            })()}
 
             {/* ĐÃ SỬA ĐIỀU KIỆN: Chỉ cần có từ 1 đánh giá trở lên là hiện nút View All */}
             {feedbacks.length > 0 && (
@@ -221,9 +267,13 @@ export default function FeedbackSection({eventId}) {
 
       <FeedbackModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditData(null);
+        }}
         eventId={eventId}
         onSuccess={loadData}
+        initialData={editData}
       />
     </div>
   );

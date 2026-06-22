@@ -14,7 +14,7 @@ const statusConfig = {
   Completed:      { color: 'blue',    label: 'Đã kết thúc' },
 };
 
-const EventCard = ({ event, showStatus = false }) => {
+const EventCard = ({ event, showStatus = false, index = 0 }) => {
   const navigate = useNavigate();
   const remaining = event.MaxParticipants ? event.MaxParticipants - (event.RegisteredCount || 0) : null;
   const isFull = remaining !== null && remaining <= 0;
@@ -23,13 +23,14 @@ const EventCard = ({ event, showStatus = false }) => {
 
   return (
     <Card
-      className="card-hover"
+      className="card-hover animate-fade-in-up"
       onClick={() => navigate(`/events/${event.EventID}`)}
+      style={{ borderRadius: 14, overflow: 'hidden', animationDelay: `${index * 0.1}s` }}
       cover={
         <div style={{ position: 'relative', height: 180, overflow: 'hidden', background: 'linear-gradient(135deg,#1a2744,#0f1629)' }}>
           {event.CoverImageURL
-            ? <img src={getImageUrl(event.CoverImageURL)} alt={event.Title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🎓</div>
+            ? <img src={getImageUrl(event.CoverImageURL)} alt={event.Title} className="hover-zoom-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <div className="hover-zoom-img" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🎓</div>
           }
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
@@ -44,9 +45,8 @@ const EventCard = ({ event, showStatus = false }) => {
         </div>
       }
       bodyStyle={{ padding: '14px 16px' }}
-      style={{ borderRadius: 14, overflow: 'hidden' }}
     >
-      <div style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
+      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {event.Title}
       </div>

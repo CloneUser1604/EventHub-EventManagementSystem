@@ -42,7 +42,7 @@ const Countdown = ({ targetDate, size = 'normal' }) => {
 
   return (
     <span style={{
-      fontFamily: 'Sora,monospace',
+      fontFamily: "'Inter', sans-serif",
       fontWeight: 700,
       fontSize: size === 'small' ? 12 : 14,
       color: timeLeft.expired ? '#10b981' : '#f59e0b',
@@ -57,7 +57,7 @@ const TicketModal = ({ registration, onClose }) => {
   if (!registration) return null;
   return (
     <Modal open={!!registration} onCancel={onClose} footer={null} width={400} centered
-      title={<span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700 }}>🎟️ Vé sự kiện</span>}>
+      title={<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>🎟️ Vé sự kiện</span>}>
       <div style={{ textAlign: 'center' }}>
         {/* Event info header */}
         <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
@@ -70,7 +70,7 @@ const TicketModal = ({ registration, onClose }) => {
           <Text style={{ color: '#92400e', fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 6 }}>
             🔑 MÃ OTP CHECK-IN
           </Text>
-          <div style={{ fontFamily: 'Sora,monospace', fontSize: 40, fontWeight: 800, letterSpacing: 10, color: '#1a2744' }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 40, fontWeight: 800, letterSpacing: 10, color: '#1a2744' }}>
             {registration.OTPCode}
           </div>
           <Text style={{ color: '#92400e', fontSize: 11 }}>Giữ mã bí mật — chỉ cung cấp cho Staff khi check-in</Text>
@@ -141,7 +141,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Text strong style={{ fontSize: 15, fontFamily: 'Sora,sans-serif', lineHeight: 1.3 }}>{reg.Title}</Text>
+                <Text strong style={{ fontSize: 15, fontFamily: "'Inter', sans-serif", lineHeight: 1.3 }}>{reg.Title}</Text>
                 {reg.isStaffForThisEvent && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>Staff</Tag>}
                 {reg.isSpeakerForThisEvent && <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Speaker</Tag>}
               </div>
@@ -275,7 +275,7 @@ const MyCalendarPage = () => {
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: '40px 24px 32px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <Title level={2} style={{ color: 'white', fontFamily: 'Sora,sans-serif', margin: '0 0 6px' }}>
+          <Title level={2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
             📅 Lịch của tôi
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
@@ -319,7 +319,7 @@ const MyCalendarPage = () => {
             <Card style={{ borderRadius: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
-                <Text strong style={{ fontFamily: 'Sora,sans-serif', fontSize: 15 }}>
+                <Text strong style={{ fontFamily: "'Inter', sans-serif", fontSize: 15 }}>
                   {currentMonth.format('MM/YYYY')}
                 </Text>
                 <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>

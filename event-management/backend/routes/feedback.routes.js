@@ -15,4 +15,11 @@ router.post(
   feedbackController.createFeedback,
 );
 
+// Cập nhật feedback
+router.put(
+  "/events/:eventId/feedbacks",
+  authenticate,
+  feedbackController.updateFeedback,
+);
+
 module.exports = router;

@@ -194,7 +194,7 @@ const OrganizerEventsPage = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
           <div>
-            <Title level={2} style={{ margin: 0, fontFamily: 'Sora,sans-serif' }}>🗂️ Sự kiện của tôi</Title>
+            <Title level={2} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>🗂️ Sự kiện của tôi</Title>
             <Text type="secondary">Quản lý toàn bộ sự kiện bạn đã tạo</Text>
           </div>
           <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate('/organizer/events/create')}

@@ -5,9 +5,9 @@ exports.getEventFeedbacks = async (req, res) => {
     const {eventId} = req.params;
     const pool = getPool();
 
-    const result = await pool.request().input("eventId", sql.Int, eventId)
+        const result = await pool.request().input("eventId", sql.Int, eventId)
       .query(`
-                SELECT f.FeedbackID, f.Rating, f.Comment, f.CreatedAt, 
+                SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, 
                        u.FullName as UserName, u.AvatarURL
                 FROM Feedbacks f
                 INNER JOIN Users u ON f.ParticipantID = u.UserID
@@ -115,5 +115,42 @@ exports.createFeedback = async (req, res) => {
     res
       .status(500)
       .json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.updateFeedback = async (req, res) => {
+  try {
+    const {eventId} = req.params;
+    const {rating, comment} = req.body;
+    const userId = req.user.UserID;
+
+    const pool = getPool();
+
+    // Kiểm tra xem feedback có tồn tại không
+    const checkQuery = `SELECT FeedbackID FROM Feedbacks WHERE EventID = @eventId AND ParticipantID = @userId`;
+    const checkResult = await pool.request()
+      .input("eventId", sql.Int, eventId)
+      .input("userId", sql.Int, userId)
+      .query(checkQuery);
+
+    if (checkResult.recordset.length === 0) {
+      return res.status(404).json({success: false, message: "Bạn chưa đánh giá sự kiện này."});
+    }
+
+    const updateQuery = `
+      UPDATE Feedbacks 
+      SET Rating = @rating, Comment = @comment, UpdatedAt = GETDATE()
+      WHERE EventID = @eventId AND ParticipantID = @userId
+    `;
+    await pool.request()
+      .input("eventId", sql.Int, eventId)
+      .input("userId", sql.Int, userId)
+      .input("rating", sql.Int, rating)
+      .input("comment", sql.NVarChar, comment || "")
+      .query(updateQuery);
+
+    res.status(200).json({success: true, message: "Cập nhật đánh giá thành công!"});
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
   }
 };

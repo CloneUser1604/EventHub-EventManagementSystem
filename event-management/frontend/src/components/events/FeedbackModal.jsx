@@ -4,17 +4,30 @@ import {feedbackService} from "../../services/feedback.service";
 
 const {TextArea} = Input;
 
-export default function FeedbackModal({open, onClose, eventId, onSuccess}) {
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
+export default function FeedbackModal({open, onClose, eventId, onSuccess, initialData}) {
+  const [rating, setRating] = useState(initialData?.Rating || 0);
+  const [comment, setComment] = useState(initialData?.Comment || "");
   const [loading, setLoading] = useState(false);
+
+  // Cập nhật state nếu initialData thay đổi
+  React.useEffect(() => {
+    if (open) {
+      setRating(initialData?.Rating || 0);
+      setComment(initialData?.Comment || "");
+    }
+  }, [open, initialData]);
 
   const handleSubmit = async () => {
     if (rating === 0) return message.warning("Vui lòng chọn số sao đánh giá!");
     try {
       setLoading(true);
-      await feedbackService.submitFeedback(eventId, rating, comment);
-      message.success("Cảm ơn bạn đã đánh giá sự kiện!");
+      if (initialData) {
+        await feedbackService.updateFeedback(eventId, rating, comment);
+        message.success("Cập nhật đánh giá thành công!");
+      } else {
+        await feedbackService.submitFeedback(eventId, rating, comment);
+        message.success("Cảm ơn bạn đã đánh giá sự kiện!");
+      }
       onSuccess(); // Báo cho component cha load lại dữ liệu
       handleClose();
     } catch (error) {
@@ -78,7 +91,7 @@ export default function FeedbackModal({open, onClose, eventId, onSuccess}) {
             fontSize: 16,
           }}
         >
-          Gửi đánh giá
+          {initialData ? "Lưu thay đổi" : "Gửi đánh giá"}
         </Button>
       </div>
     </Modal>

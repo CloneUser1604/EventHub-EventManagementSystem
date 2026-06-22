@@ -9,12 +9,15 @@ import {useNavigate} from "react-router-dom";
 import FeedbackModal from "./FeedbackModal";
 import {feedbackService} from "../../services/feedback.service";
 import dayjs from "dayjs";
+import useAuthStore from "../../store/authStore";
 
 export default function FeedbackSection({eventId}) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState({TotalReviews: 0, AverageRating: 0});
   const [modalOpen, setModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const loadData = async () => {
     try {
@@ -108,7 +111,7 @@ export default function FeedbackSection({eventId}) {
           <Button
             type="primary"
             icon={<MessageOutlined />}
-            onClick={() => setModalOpen(true)}
+            onClick={() => { setEditData(null); setModalOpen(true); }}
             style={{borderRadius: 8, fontWeight: 600, height: 40}}
           >
             Viết đánh giá đầu tiên
@@ -194,7 +197,7 @@ export default function FeedbackSection({eventId}) {
             <Button
               type="primary"
               icon={<MessageOutlined />}
-              onClick={() => setModalOpen(true)}
+              onClick={() => { setEditData(null); setModalOpen(true); }}
               style={{borderRadius: 10, height: 44, fontWeight: 600}}
             >
               Viết đánh giá

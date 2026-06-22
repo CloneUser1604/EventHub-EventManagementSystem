@@ -77,7 +77,7 @@ export default function FeedbackSection({eventId}) {
                   disabled
                   allowHalf
                   value={Number(stats.AverageRating)}
-                  style={{fontSize: 16, color: "#facc15"}}
+                  style={{fontSize: 16}}
                 />
                 <div style={{fontSize: 13, color: "#64748b", fontWeight: 500}}>
                   Dựa trên {stats.TotalReviews} đánh giá
@@ -170,7 +170,7 @@ export default function FeedbackSection({eventId}) {
                   <Rate
                     disabled
                     value={item.Rating}
-                    style={{fontSize: 14, color: "#facc15"}}
+                    style={{fontSize: 14}}
                   />
                 </div>
                 {item.Comment && (

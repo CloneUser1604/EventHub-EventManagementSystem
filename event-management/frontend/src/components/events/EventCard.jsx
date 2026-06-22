@@ -46,7 +46,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
       }
       bodyStyle={{ padding: '14px 16px' }}
     >
-      <div style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
+      <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {event.Title}
       </div>

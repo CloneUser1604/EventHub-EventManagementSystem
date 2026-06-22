@@ -59,7 +59,7 @@ const ParticipantCheckinPage = () => {
         {success ? (
           <Result
             icon={<CheckCircleFilled style={{ color: '#10b981' }} />}
-            title={<span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700 }}>Tham gia sự kiện thành công!</span>}
+            title={<span style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 700 }}>Tham gia sự kiện thành công!</span>}
             subTitle="Chuyển hướng về trang chủ trong vài giây..."
             style={{ background: 'white', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
           />
@@ -68,7 +68,7 @@ const ParticipantCheckinPage = () => {
             <div style={{ fontSize: 48, color: '#3b82f6', marginBottom: 16 }}>
               <SafetyCertificateOutlined />
             </div>
-            <Title level={3} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 8 }}>
+            <Title level={3} style={{ fontFamily: 'Arial, Helvetica, sans-serif', marginBottom: 8 }}>
               Check-in Sự Kiện
             </Title>
             <Text type="secondary" style={{ display: 'block', marginBottom: 32 }}>

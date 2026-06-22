@@ -80,7 +80,7 @@ const HomePage = () => {
 
           <h1 className="animate-fade-in-up" style={{
             animationDelay: '0.2s',
-            fontFamily: 'Sora,sans-serif', fontSize: 'clamp(36px, 6vw, 68px)',
+            fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 'clamp(36px, 6vw, 68px)',
             fontWeight: 800, color: 'white', lineHeight: 1.15, marginBottom: 20,
             letterSpacing: '-1px',
           }}>
@@ -159,7 +159,7 @@ const HomePage = () => {
               { icon: <TrophyOutlined />, value: 30, suffix: '+', label: 'CLB & tổ chức' },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontFamily: 'Sora,sans-serif', fontWeight: 800, color: 'white' }}>
+                <div style={{ fontSize: 28, fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 800, color: 'white' }}>
                   <Counter target={s.value} suffix={s.suffix} />
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>{s.label}</div>
@@ -223,7 +223,7 @@ const HomePage = () => {
         <section style={{ padding: '56px 24px 0', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
             <div>
-              <Title level={2} style={{ margin: 0, fontFamily: 'Sora,sans-serif', fontSize: 26 }}>
+              <Title level={2} style={{ margin: 0, fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 26 }}>
                 🌟 Sự kiện nổi bật
               </Title>
               <Text type="secondary">Các sự kiện được nhiều người quan tâm nhất</Text>
@@ -249,7 +249,7 @@ const HomePage = () => {
       <section style={{ padding: '56px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <div>
-            <Title level={2} style={{ margin: 0, fontFamily: 'Sora,sans-serif', fontSize: 26 }}>
+            <Title level={2} style={{ margin: 0, fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 26 }}>
               📅 Sự kiện sắp diễn ra
             </Title>
             <Text type="secondary">Đừng bỏ lỡ những sự kiện thú vị sắp tới</Text>
@@ -288,7 +288,7 @@ const HomePage = () => {
         background: 'linear-gradient(135deg,#0f1629,#1a2744)',
         padding: '64px 24px', textAlign: 'center',
       }}>
-        <h2 className="animate-fade-in-up" style={{ fontFamily: 'Sora,sans-serif', fontSize: 30, color: 'white', fontWeight: 800, marginBottom: 12 }}>
+        <h2 className="animate-fade-in-up" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 30, color: 'white', fontWeight: 800, marginBottom: 12 }}>
           Bạn là ban tổ chức?
         </h2>
         <p className="animate-fade-in-up" style={{ animationDelay: '0.1s', color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32 }}>

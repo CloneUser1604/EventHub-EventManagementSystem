@@ -68,8 +68,7 @@ export default function AllFeedbacksPage() {
           maxWidth: 1200,
           margin: "0 auto",
           padding: "40px 24px",
-          fontFamily:
-            "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+          fontFamily: 'Arial, Helvetica, sans-serif'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
         }}
       >
         {/* Nút quay lại */}

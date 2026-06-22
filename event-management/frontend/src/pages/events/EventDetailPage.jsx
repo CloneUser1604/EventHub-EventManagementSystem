@@ -35,7 +35,7 @@ const Countdown = ({ targetDate }) => {
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, [targetDate]);
-  return <span style={{ fontFamily: 'Sora,monospace', fontWeight: 700, color: '#2563eb' }}>{timeLeft}</span>;
+  return <span style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 700, color: '#2563eb' }}>{timeLeft}</span>;
 };
 
 const EventDetailPage = ({ adminEventId, noLayout }) => {
@@ -168,7 +168,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
             {isPast && <Tag color="default">Đã kết thúc</Tag>}
             {event.Status === 'Cancelled' && <Tag color="red">Đã huỷ</Tag>}
           </div>
-          <Title level={1} style={{ color: 'white', fontFamily: 'Sora,sans-serif', margin: '0 0 12px', fontSize: 'clamp(22px,4vw,36px)', lineHeight: 1.2 }}>
+          <Title level={1} style={{ color: 'white', fontFamily: 'Arial, Helvetica, sans-serif', margin: '0 0 12px', fontSize: 'clamp(22px,4vw,36px)', lineHeight: 1.2 }}>
             {event.Title}
           </Title>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
@@ -228,7 +228,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                     children: (
                       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 18px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                          <Text strong style={{ fontFamily: 'Sora,sans-serif', fontSize: 15 }}>{s.Title}</Text>
+                          <Text strong style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 15 }}>{s.Title}</Text>
                           <Tag color="blue" style={{ borderRadius: 6 }}>
                             {dayjs(s.StartTime).format('HH:mm')} – {dayjs(s.EndTime).format('HH:mm')}
                           </Tag>
@@ -250,7 +250,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                       {event.OrganizerName?.[0]}
                     </Avatar>
                     <div>
-                      <Text strong style={{ fontSize: 17, fontFamily: 'Sora,sans-serif', display: 'block' }}>{event.OrganizationName || event.OrganizerName}</Text>
+                      <Text strong style={{ fontSize: 17, fontFamily: 'Arial, Helvetica, sans-serif', display: 'block' }}>{event.OrganizationName || event.OrganizerName}</Text>
                       <Text type="secondary">{event.OrganizerEmail}</Text>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
 
       {/* QR Ticket Modal */}
       <Modal open={ticketModal} onCancel={() => setTicketModal(false)} footer={null} width={420} centered
-        title={<span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700 }}>{event?.isStaff ? '🎟️ Quét để Check-in' : '🎟️ Vé của bạn'}</span>}>
+        title={<span style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 700 }}>{event?.isStaff ? '🎟️ Quét để Check-in' : '🎟️ Vé của bạn'}</span>}>
         {myRegistration && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             {event?.isStaff ? (
@@ -386,7 +386,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
             ) : (
               <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px 20px', textAlign: 'left' }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>Mã OTP của bạn</Text>
-                <div style={{ fontFamily: 'Sora,monospace', fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#1a2744', marginTop: 4 }}>
+                <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#1a2744', marginTop: 4 }}>
                   {myRegistration.OTPCode}
                 </div>
                 <Text type="secondary" style={{ fontSize: 12 }}>⚠️ Giữ mã này bí mật. Dùng để check-in tại sự kiện.</Text>

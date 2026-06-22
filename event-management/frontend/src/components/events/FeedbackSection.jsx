@@ -108,14 +108,29 @@ export default function FeedbackSection({eventId}) {
           >
             Chưa có đánh giá nào cho sự kiện này.
           </div>
-          <Button
-            type="primary"
-            icon={<MessageOutlined />}
-            onClick={() => { setEditData(null); setModalOpen(true); }}
-            style={{borderRadius: 8, fontWeight: 600, height: 40}}
-          >
-            Viết đánh giá đầu tiên
-          </Button>
+          </div>
+          {(() => {
+            const userFeedback = feedbacks.find(f => f.ParticipantID === user?.UserID);
+            return userFeedback ? (
+              <Button
+                type="default"
+                icon={<MessageOutlined />}
+                onClick={() => { setEditData(userFeedback); setModalOpen(true); }}
+                style={{borderRadius: 8, fontWeight: 600, height: 40, color: "#2563eb", borderColor: "#2563eb"}}
+              >
+                Sửa đánh giá của bạn
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                icon={<MessageOutlined />}
+                onClick={() => { setEditData(null); setModalOpen(true); }}
+                style={{borderRadius: 8, fontWeight: 600, height: 40}}
+              >
+                Viết đánh giá đầu tiên
+              </Button>
+            );
+          })()}
         </div>
       ) : (
         <>
@@ -209,14 +224,28 @@ export default function FeedbackSection({eventId}) {
           </div>
 
           <div style={{display: "flex", gap: 16, flexWrap: "wrap"}}>
-            <Button
-              type="primary"
-              icon={<MessageOutlined />}
-              onClick={() => { setEditData(null); setModalOpen(true); }}
-              style={{borderRadius: 10, height: 44, fontWeight: 600}}
-            >
-              Viết đánh giá
-            </Button>
+            {(() => {
+              const userFeedback = feedbacks.find(f => f.ParticipantID === user?.UserID);
+              return userFeedback ? (
+                <Button
+                  type="default"
+                  icon={<MessageOutlined />}
+                  onClick={() => { setEditData(userFeedback); setModalOpen(true); }}
+                  style={{borderRadius: 10, height: 44, fontWeight: 600, color: "#2563eb", borderColor: "#2563eb"}}
+                >
+                  Sửa đánh giá của bạn
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  icon={<MessageOutlined />}
+                  onClick={() => { setEditData(null); setModalOpen(true); }}
+                  style={{borderRadius: 10, height: 44, fontWeight: 600}}
+                >
+                  Viết đánh giá
+                </Button>
+              );
+            })()}
 
             {/* ĐÃ SỬA ĐIỀU KIỆN: Chỉ cần có từ 1 đánh giá trở lên là hiện nút View All */}
             {feedbacks.length > 0 && (

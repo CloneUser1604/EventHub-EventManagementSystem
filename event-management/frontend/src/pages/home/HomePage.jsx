@@ -159,6 +159,9 @@ const HomePage = () => {
               { icon: <TrophyOutlined className="animate-float-icon" style={{ animationDelay: '0.4s' }} />, value: 30, suffix: '+', label: 'CLB & tổ chức' },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{ color: 'var(--blue-light)', fontSize: 28, marginBottom: 8 }}>
+                  {s.icon}
+                </div>
                 <div style={{ fontSize: 28, fontFamily: "'Inter', sans-serif", fontWeight: 800, color: 'white' }}>
                   <Counter target={s.value} suffix={s.suffix} />
                 </div>
@@ -296,10 +299,12 @@ const HomePage = () => {
         <p className="animate-fade-in-up" style={{ animationDelay: '0.1s', color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32 }}>
           Tạo và quản lý sự kiện của bạn dễ dàng hơn bao giờ hết.
         </p>
-        <Button className="animate-fade-in-up animate-soft-pulse" type="primary" size="large" onClick={() => navigate('/register')}
-          style={{ animationDelay: '0.2s', borderRadius: 10, height: 50, paddingInline: 36, fontWeight: 700, fontSize: 16 }}>
-          Bắt đầu miễn phí →
-        </Button>
+        <div className="animate-fade-in-up" style={{ animationDelay: '0.2s', display: 'flex', justifyContent: 'center' }}>
+          <Button className="animate-soft-pulse" type="primary" size="large" onClick={() => navigate('/register')}
+            style={{ borderRadius: 10, height: 50, paddingInline: 36, fontWeight: 700, fontSize: 16 }}>
+            Bắt đầu miễn phí →
+          </Button>
+        </div>
       </section>
     </MainLayout>
   );

@@ -530,8 +530,8 @@ const AdminDashboard = () => {
               <Tabs defaultActiveKey="pending" items={[
                 {
                   key: 'pending',
-                  label: `Sự kiện chờ duyệt (${pendingEvents.length})`,
-                  children: <Table columns={eventCols} dataSource={pendingEvents} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
+                  label: `Sự kiện chờ duyệt (${pendingEvents.filter(e => !e.ProposedChanges).length})`,
+                  children: <Table columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
                 },
                 {
                   key: 'edit_requests',

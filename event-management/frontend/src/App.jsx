@@ -43,7 +43,7 @@ const antdTheme = {
     colorPrimary: "#2563eb",
     colorLink: "#2563eb",
     borderRadius: 8,
-    fontFamily: "'DM Sans', -apple-system, sans-serif",
+    fontFamily: 'Arial, Helvetica, sans-serif',
     fontSize: 15,
   },
   components: {
@@ -60,11 +60,11 @@ const Unauthorized = () => (
     style={{
       textAlign: "center",
       padding: "120px 24px",
-      fontFamily: "DM Sans,sans-serif",
+      fontFamily: 'Arial, Helvetica, sans-serif',
     }}
   >
     <div style={{fontSize: 64, marginBottom: 16}}>🚫</div>
-    <h2 style={{fontFamily: "Sora,sans-serif"}}>Không có quyền truy cập</h2>
+    <h2 style={{fontFamily: 'Arial, Helvetica, sans-serif'}}>Không có quyền truy cập</h2>
     <p style={{color: "#6b7280"}}>Bạn không có quyền truy cập trang này.</p>
   </div>
 );
@@ -74,11 +74,11 @@ const NotFound = () => (
     style={{
       textAlign: "center",
       padding: "120px 24px",
-      fontFamily: "DM Sans,sans-serif",
+      fontFamily: 'Arial, Helvetica, sans-serif',
     }}
   >
     <div style={{fontSize: 64, marginBottom: 16}}>🔍</div>
-    <h2 style={{fontFamily: "Sora,sans-serif"}}>404 — Không tìm thấy trang</h2>
+    <h2 style={{fontFamily: 'Arial, Helvetica, sans-serif'}}>404 — Không tìm thấy trang</h2>
   </div>
 );
 

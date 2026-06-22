@@ -46,6 +46,13 @@ const antdTheme = {
     fontFamily: "'DM Sans', -apple-system, sans-serif",
     fontSize: 15,
   },
+  components: {
+    Rate: {
+      starColor: "#facc15",
+      starHoverColor: "#facc15",
+      starBg: "#e2e8f0"
+    },
+  },
 };
 
 const Unauthorized = () => (

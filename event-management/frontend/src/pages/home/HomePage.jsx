@@ -85,7 +85,7 @@ const HomePage = () => {
             letterSpacing: '-1px',
           }}>
             Khám phá &amp; tham gia<br />
-            <span style={{ background: 'linear-gradient(90deg,#60a5fa,#a78bfa,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <span className="animate-shimmer" style={{ background: 'linear-gradient(90deg,#60a5fa,#a78bfa,#34d399,#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               sự kiện đại học
             </span>
           </h1>
@@ -144,7 +144,7 @@ const HomePage = () => {
             </Select>
             <Button
               type="primary" size="large" onClick={handleSearch}
-              className="hero-search-btn"
+              className="hero-search-btn animate-soft-pulse"
               style={{ borderRadius: 10, height: 44, paddingInline: 24, fontWeight: 600 }}
             >
               Tìm kiếm
@@ -154,9 +154,9 @@ const HomePage = () => {
           {/* Stats */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
             {[
-              { icon: <CalendarOutlined />, value: 120, suffix: '+', label: 'Sự kiện' },
-              { icon: <TeamOutlined />, value: 5000, suffix: '+', label: 'Người tham gia' },
-              { icon: <TrophyOutlined />, value: 30, suffix: '+', label: 'CLB & tổ chức' },
+              { icon: <CalendarOutlined className="animate-float-icon" />, value: 120, suffix: '+', label: 'Sự kiện' },
+              { icon: <TeamOutlined className="animate-float-icon" style={{ animationDelay: '0.2s' }} />, value: 5000, suffix: '+', label: 'Người tham gia' },
+              { icon: <TrophyOutlined className="animate-float-icon" style={{ animationDelay: '0.4s' }} />, value: 30, suffix: '+', label: 'CLB & tổ chức' },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 28, fontFamily: "'Inter', sans-serif", fontWeight: 800, color: 'white' }}>
@@ -199,6 +199,7 @@ const HomePage = () => {
       <section style={{ padding: '40px 24px 0', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Tag
+            className="category-tag-hover"
             onClick={() => navigate('/events')}
             style={{ cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, background: '#1a2744', color: 'white', border: 'none', fontWeight: 600 }}
           >
@@ -206,6 +207,7 @@ const HomePage = () => {
           </Tag>
           {categories.map(c => (
             <Tag
+              className="category-tag-hover"
               key={c.CategoryID}
               onClick={() => navigate(`/events?categoryId=${c.CategoryID}`)}
               style={{ cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151' }}
@@ -294,7 +296,7 @@ const HomePage = () => {
         <p className="animate-fade-in-up" style={{ animationDelay: '0.1s', color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32 }}>
           Tạo và quản lý sự kiện của bạn dễ dàng hơn bao giờ hết.
         </p>
-        <Button className="animate-fade-in-up" type="primary" size="large" onClick={() => navigate('/register')}
+        <Button className="animate-fade-in-up animate-soft-pulse" type="primary" size="large" onClick={() => navigate('/register')}
           style={{ animationDelay: '0.2s', borderRadius: 10, height: 50, paddingInline: 36, fontWeight: 700, fontSize: 16 }}>
           Bắt đầu miễn phí →
         </Button>

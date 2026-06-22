@@ -103,4 +103,47 @@ a{color:inherit;text-decoration:none;}
 }
 .card-hover:hover .hover-zoom-img {
   transform: scale(1.08);
-}
+}
+
+/* Shimmer gradient text */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-shimmer {
+  background-size: 200% auto !important;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Icon floating */
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-float-icon {
+  display: inline-block;
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+/* Category Tags Hover */
+.category-tag-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.category-tag-hover:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--blue-light) !important;
+  color: var(--blue) !important;
+}
+
+/* Continuous Subtle Pulse for Buttons */
+@keyframes softPulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+.animate-soft-pulse {
+  animation: softPulse 2s infinite;
+}
+

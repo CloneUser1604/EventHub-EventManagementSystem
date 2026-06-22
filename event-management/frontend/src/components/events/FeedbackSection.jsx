@@ -167,11 +167,26 @@ export default function FeedbackSection({eventId}) {
                       </div>
                     </div>
                   </div>
-                  <Rate
-                    disabled
-                    value={item.Rating}
-                    style={{fontSize: 14, color: "#facc15"}}
-                  />
+                  <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                    {user?.UserID === item.ParticipantID && (
+                      <Button
+                        type="text"
+                        size="small"
+                        style={{color: "#2563eb", fontSize: 13, fontWeight: 500}}
+                        onClick={() => {
+                          setEditData(item);
+                          setModalOpen(true);
+                        }}
+                      >
+                        Sửa
+                      </Button>
+                    )}
+                    <Rate
+                      disabled
+                      value={item.Rating}
+                      style={{fontSize: 14, color: "#facc15"}}
+                    />
+                  </div>
                 </div>
                 {item.Comment && (
                   <p

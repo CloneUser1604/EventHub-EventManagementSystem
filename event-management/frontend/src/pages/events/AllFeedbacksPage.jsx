@@ -10,16 +10,21 @@ import {
 import MainLayout from "../../components/layout/MainLayout";
 import {feedbackService} from "../../services/feedback.service";
 import useEventStore from "../../store/eventStore";
+import useAuthStore from "../../store/authStore";
+import FeedbackModal from "../../components/events/FeedbackModal";
 import dayjs from "dayjs";
 
 export default function AllFeedbacksPage() {
   const {id} = useParams();
   const navigate = useNavigate();
   const {selectedEvent: event, fetchEventById} = useEventStore();
+  const {user} = useAuthStore();
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterStar, setFilterStar] = useState(0); // 0 = Hiển thị tất cả
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   useEffect(() => {
     fetchEventById(id);
@@ -406,16 +411,30 @@ export default function AllFeedbacksPage() {
                         </div>
                       </div>
 
-                      {/* Số sao của bình luận đó */}
-                      <Rate
-                        disabled
-                        value={item.Rating}
-                        style={{
-                          fontSize: "15px",
-                          color: "#facc15",
-                          flexShrink: 0,
-                        }}
-                      />
+                      {/* Số sao của bình luận đó và nút sửa nếu là của mình */}
+                      <div style={{display: "flex", alignItems: "center", gap: 8, flexShrink: 0}}>
+                        {user?.UserID === item.ParticipantID && (
+                          <Button
+                            type="text"
+                            size="small"
+                            style={{color: "#2563eb", fontSize: 13, fontWeight: 500}}
+                            onClick={() => {
+                              setEditData(item);
+                              setModalOpen(true);
+                            }}
+                          >
+                            Sửa
+                          </Button>
+                        )}
+                        <Rate
+                          disabled
+                          value={item.Rating}
+                          style={{
+                            fontSize: "15px",
+                            color: "#facc15",
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {/* Nội dung comment */}
@@ -447,6 +466,17 @@ export default function AllFeedbacksPage() {
           </div>
         </div>
       </div>
+      
+      <FeedbackModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditData(null);
+        }}
+        eventId={id}
+        onSuccess={loadData}
+        initialData={editData}
+      />
     </MainLayout>
   );
 }

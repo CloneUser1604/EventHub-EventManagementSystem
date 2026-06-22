@@ -61,7 +61,7 @@ export default function FeedbackModal({open, onClose, eventId, onSuccess, initia
         <Rate
           value={rating}
           onChange={setRating}
-          style={{fontSize: 36, marginBottom: 24}}
+          style={{fontSize: 36, color: "#facc15", marginBottom: 24}}
         />
 
         <div style={{textAlign: "left", marginBottom: 8, fontWeight: 600}}>

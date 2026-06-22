@@ -90,6 +90,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
       const res = await registrationService.register(parseInt(targetId));
       message.success(res.data.message);
       await loadMyRegistration();
+      useEventStore.setState(state => ({
+        selectedEvent: { ...state.selectedEvent, RegisteredCount: (state.selectedEvent.RegisteredCount || 0) + 1 }
+      }));
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng ký thất bại');
     } finally {
@@ -108,6 +111,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           await registrationService.cancel(myRegistration.RegistrationID);
           message.success('Đã huỷ đăng ký');
           setMyRegistration(null);
+          useEventStore.setState(state => ({
+            selectedEvent: { ...state.selectedEvent, RegisteredCount: Math.max(0, (state.selectedEvent.RegisteredCount || 0) - 1) }
+          }));
         } catch (err) {
           message.error(err.response?.data?.message || 'Huỷ thất bại');
         }

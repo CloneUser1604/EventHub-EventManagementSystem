@@ -87,7 +87,7 @@ const FirstTimeSetupPage = () => {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f3f4f6', padding: 20 }}>
       <Card style={{ width: '100%', maxWidth: 500, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontFamily: 'Inter', sans-serif }}>Thiết lập tài khoản</Title>
+          <Title level={3} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>Thiết lập tài khoản</Title>
           <Text type="secondary">Chào mừng bạn! Vui lòng hoàn thành thiết lập cho lần đầu đăng nhập.</Text>
         </div>
 

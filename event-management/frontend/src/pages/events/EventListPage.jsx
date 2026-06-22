@@ -88,7 +88,7 @@ const EventListPage = () => {
             display: "block",
             marginBottom: 8,
             fontSize: 13,
-            fontFamily: 'Arial, Helvetica, sans-serif',
+            fontFamily: 'Inter', sans-serif,
           }}
         >
           Lĩnh vực
@@ -98,7 +98,7 @@ const EventListPage = () => {
           onChange={(v) => updateFilter("categoryId", v || "")}
           placeholder="Tất cả lĩnh vực"
           style={{width: "100%"}}
-          dropdownStyle={{fontFamily: 'Arial, Helvetica, sans-serif'}}
+          dropdownStyle={{fontFamily: 'Inter', sans-serif}}
           className="category-filter"
           allowClear
         >
@@ -184,7 +184,7 @@ const EventListPage = () => {
             level={2}
             style={{
               color: "white",
-              fontFamily: 'Arial, Helvetica, sans-serif',
+              fontFamily: 'Inter', sans-serif,
               margin: "0 0 20px",
             }}
           >
@@ -308,7 +308,7 @@ const EventListPage = () => {
             >
               <Text
                 strong
-                style={{fontSize: 15, fontFamily: 'Arial, Helvetica, sans-serif'}}
+                style={{fontSize: 15, fontFamily: 'Inter', sans-serif}}
               >
                 Bộ lọc
               </Text>

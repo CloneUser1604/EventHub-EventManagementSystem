@@ -68,7 +68,7 @@ export default function AllFeedbacksPage() {
           maxWidth: 1200,
           margin: "0 auto",
           padding: "40px 24px",
-          fontFamily: 'Arial, Helvetica, sans-serif',
+          fontFamily: 'Inter', sans-serif,
         }}
       >
         {/* Nút quay lại */}

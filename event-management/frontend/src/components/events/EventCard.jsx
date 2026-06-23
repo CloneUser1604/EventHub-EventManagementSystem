@@ -25,7 +25,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
     <Card
       className="card-hover animate-fade-in-up"
       onClick={() => navigate(`/events/${event.EventID}`)}
-      style={{ borderRadius: 14, overflow: 'hidden', animationDelay: `${index * 0.1}s` }}
+      style={{ borderRadius: 14, overflow: 'hidden', animationDelay: `${index * 0.1}s`, height: '100%', display: 'flex', flexDirection: 'column' }}
       cover={
         <div style={{ position: 'relative', height: 180, overflow: 'hidden', background: 'linear-gradient(135deg,#1a2744,#0f1629)' }}>
           {event.CoverImageURL
@@ -46,7 +46,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           ) : null}
         </div>
       }
-      bodyStyle={{ padding: '14px 16px' }}
+      bodyStyle={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}
     >
       <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -72,7 +72,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
         )}
       </div>
 
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Avatar size={22} style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', fontSize: 11 }}>
             {event.OrganizerName?.[0]}

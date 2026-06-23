@@ -418,6 +418,11 @@ const updateEvent = async (req, res) => {
 
     // Cập nhật sessions cho Draft
     if (parsedSessions.length > 0) {
+      // Lưu trạng thái SpeakerInvitations cũ
+      const oldInvs = await pool.request().input('EventID', sql.Int, parseInt(id)).query(`SELECT SpeakerID, Status FROM SpeakerInvitations WHERE EventID=@EventID`);
+      const oldInvMap = {};
+      oldInvs.recordset.forEach(i => oldInvMap[i.SpeakerID] = i.Status);
+
       // Xoá tất cả session cũ và liên kết
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SpeakerInvitations WHERE EventID=@EventID`);
@@ -449,12 +454,14 @@ const updateEvent = async (req, res) => {
                 .input('SpeakerID', sql.Int, speaker.UserID)
                 .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
                         INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
+              const prevStatus = oldInvMap[speaker.UserID] || 'Pending';
               await pool.request()
                 .input('EventID', sql.Int, parseInt(id))
                 .input('SpeakerID', sql.Int, speaker.UserID)
                 .input('InvitedBy', sql.Int, req.user.UserID)
+                .input('Status', sql.VarChar(20), prevStatus)
                 .query(`IF NOT EXISTS (SELECT 1 FROM SpeakerInvitations WHERE EventID=@EventID AND SpeakerID=@SpeakerID)
-                        INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
+                        INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, @Status)`);
             }
           }
         }

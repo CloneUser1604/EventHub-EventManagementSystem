@@ -138,7 +138,7 @@ const approveEvent = async (req, res) => {
           .input('RelatedID', sql.Int, eventId)
           .input('RelatedType', sql.VarChar(50), 'Event')
           .query(`
-            IF NOT EXISTS (SELECT 1 FROM Notifications WHERE UserID=@UserID AND Type='SpeakerInvitation' AND RelatedID=@RelatedID)
+            IF NOT EXISTS (SELECT 1 FROM Notifications WHERE UserID=@UserID AND Type='SpeakerInvitation' AND RelatedID=@RelatedID AND IsRead=0)
             INSERT INTO Notifications (UserID, Title, Message, Type, RelatedID, RelatedType) VALUES (@UserID, @Title, @Message, @Type, @RelatedID, @RelatedType)
           `);
       }

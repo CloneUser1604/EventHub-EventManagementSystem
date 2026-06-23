@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
-  Modal, Input, message, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
+  Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
 } from 'antd';
 import {
   CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
@@ -19,10 +19,11 @@ import dayjs from 'dayjs';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
-const { confirm } = Modal;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminDashboard = () => {
+  const { message, modal } = AntdApp.useApp();
+  const confirm = modal.confirm;
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   
@@ -66,7 +67,7 @@ const AdminDashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes] = await Promise.all([
+      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes] = await Promise.all([
         eventService.getDashboardStats(),
         adminService.getPendingOrganizers(),
         adminService.getAllOrganizers(),

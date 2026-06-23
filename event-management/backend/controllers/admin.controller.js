@@ -319,6 +319,7 @@ const getAllUsers = async (req, res) => {
       .query(`
         SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, University
         FROM Users
+        WHERE Role != 'Admin'
         ORDER BY CreatedAt DESC
       `);
 
@@ -339,7 +340,11 @@ const updateUserStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Trạng thái isActive phải là boolean' });
     }
 
-    const pool = getPool();
+    const userCheck = await pool.request().input('UserID', sql.Int, userId).query('SELECT Role FROM Users WHERE UserID = @UserID');
+    if (userCheck.recordset.length > 0 && userCheck.recordset[0].Role === 'Admin') {
+      return res.status(403).json({ success: false, message: 'Không thể thao tác trên tài khoản Admin' });
+    }
+
     const result = await pool.request()
       .input('UserID', sql.Int, userId)
       .input('IsActive', sql.Bit, isActive)

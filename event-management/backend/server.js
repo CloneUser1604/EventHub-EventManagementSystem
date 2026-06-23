@@ -91,6 +91,7 @@ app.use("/api/staff", require("./routes/staff.routes"));
 app.use("/api/checkin", require("./routes/checkin.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/speaker", require("./routes/speaker.routes"));
+app.use("/api/venues", require("./routes/venue.routes"));
 app.use("/api", require("./routes/feedback.routes"));
 
 app.use("*", (req, res) =>

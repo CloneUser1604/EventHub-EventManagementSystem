@@ -44,7 +44,6 @@ const roleNav = {
     { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
     { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
     { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Lịch của tôi' },
-    { key: '/staff', icon: <CheckCircleOutlined />, label: 'Điểm danh' },
   ],
   Speaker: [
     { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },

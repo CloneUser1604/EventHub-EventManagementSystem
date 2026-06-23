@@ -136,11 +136,11 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* ── Participant & Speaker ── */}
+            {/* ── Participant, Speaker, & Staff ── */}
             <Route
               path="/my-calendar"
               element={
-                <ProtectedRoute roles={["Participant", "Speaker"]}>
+                <ProtectedRoute roles={["Participant", "Speaker", "Staff"]}>
                   <MyCalendarPage />
                 </ProtectedRoute>
               }

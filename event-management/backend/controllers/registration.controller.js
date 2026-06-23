@@ -131,7 +131,7 @@ const getMyRegistrations = async (req, res) => {
                qt.QRCode, qt.OTPCode, qt.IsUsed,
                a.Status AS AttendanceStatus,
                CAST(CASE WHEN es.EventStaffID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS isStaffForThisEvent,
-               CAST(CASE WHEN spk.SpeakerID IS NOT NULL OR @UserRole = 'Speaker' THEN 1 ELSE 0 END AS BIT) AS isSpeakerForThisEvent
+               CAST(CASE WHEN spk.SpeakerID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS isSpeakerForThisEvent
         FROM Events e
         LEFT JOIN Registrations r ON e.EventID = r.EventID AND r.ParticipantID = @PID
         LEFT JOIN Venues v ON e.VenueID = v.VenueID

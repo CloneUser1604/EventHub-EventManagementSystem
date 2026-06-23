@@ -138,11 +138,7 @@ const getMyRegistrations = async (req, res) => {
         LEFT JOIN QRTickets qt ON r.RegistrationID = qt.RegistrationID
         LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
         LEFT JOIN EventStaffs es ON e.EventID = es.EventID AND es.StaffID = @PID
-        LEFT JOIN (
-           SELECT DISTINCT s.EventID, ss.SpeakerID 
-           FROM SessionSpeakers ss 
-           JOIN Sessions s ON ss.SessionID = s.SessionID
-        ) spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID
+        LEFT JOIN SpeakerInvitations spk ON e.EventID = spk.EventID AND spk.SpeakerID = @PID AND spk.Status = 'Accepted'
         WHERE r.ParticipantID = @PID OR spk.SpeakerID = @PID OR es.StaffID = @PID
       )
       SELECT * FROM MyEvents

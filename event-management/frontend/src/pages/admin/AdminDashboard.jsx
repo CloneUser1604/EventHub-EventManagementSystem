@@ -8,11 +8,12 @@ import {
   CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
   TeamOutlined, CalendarOutlined, UserOutlined, TrophyOutlined,
   ExclamationCircleOutlined, DownloadOutlined, AppstoreOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined, EnvironmentOutlined
 } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
 import { adminService } from '../../services/admin.service';
 import { eventService } from '../../services/event.service';
+import { venueService } from '../../services/venue.service';
 import EventDetailPage from '../events/EventDetailPage';
 import dayjs from 'dayjs';
 
@@ -39,6 +40,7 @@ const AdminDashboard = () => {
   const [pendingSpeakers, setPendingSpeakers] = useState([]);
   const [allSpeakers, setAllSpeakers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [allVenues, setAllVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [rejectModal, setRejectModal] = useState({ open: false, type: '', id: null, title: '' });
@@ -55,6 +57,10 @@ const AdminDashboard = () => {
   const [staffModal, setStaffModal] = useState({ open: false, data: null });
   const [staffForm] = Form.useForm();
 
+  // Venue CRUD Modal
+  const [venueModal, setVenueModal] = useState({ open: false, data: null });
+  const [venueForm] = Form.useForm();
+
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
@@ -69,7 +75,8 @@ const AdminDashboard = () => {
         adminService.getAllSpeakers(),
         adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
         eventService.getEvents({ limit: 200 }),
-        fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json())
+        fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
+        venueService.getAllVenues()
       ]);
       setStats(statsRes.data?.data?.stats || statsRes.data?.stats || {});
       setRecentEvents(statsRes.data?.data?.recentEvents || statsRes.data?.recentEvents || []);
@@ -83,6 +90,7 @@ const AdminDashboard = () => {
       const usersData = usersRes.data?.data || usersRes.data || [];
       setAllUsers(usersData);
       setAvailableStaffs(staffRes.data || []);
+      setAllVenues(venuesRes.data?.data || []);
     } catch (e) { 
       message.error('Tải dữ liệu thất bại'); 
     } finally { 
@@ -188,6 +196,44 @@ const AdminDashboard = () => {
       staffForm.resetFields();
     }
     setStaffModal({ open: true, data });
+  };
+
+  const handleVenueSubmit = async (values) => {
+    try {
+      if (venueModal.data) {
+        const res = await venueService.updateVenue(venueModal.data.VenueID, values);
+        if (!res.data.success) return message.error(res.data.message);
+        message.success('Cập nhật địa điểm thành công');
+      } else {
+        const res = await venueService.createVenue(values);
+        if (!res.data.success) return message.error(res.data.message);
+        message.success('Thêm địa điểm thành công');
+      }
+      setVenueModal({ open: false, data: null });
+      venueForm.resetFields();
+      loadAll();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Lỗi khi lưu địa điểm');
+    }
+  };
+
+  const handleDeleteVenue = async (id) => {
+    try {
+      await venueService.deleteVenue(id);
+      message.success('Xóa địa điểm thành công');
+      loadAll();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể xóa địa điểm vì đang được sử dụng');
+    }
+  };
+
+  const openVenueModal = (data = null) => {
+    if (data) {
+      venueForm.setFieldsValue({ Name: data.Name, Address: data.Address });
+    } else {
+      venueForm.resetFields();
+    }
+    setVenueModal({ open: true, data });
   };
 
   const handleSpeakerAction = async (speakerId, action, reason = '') => {
@@ -406,6 +452,20 @@ const AdminDashboard = () => {
     }
   ];
 
+  const venueCols = [
+    { title: 'Tên địa điểm', dataIndex: 'Name', render: t => <Text strong>{t}</Text> },
+    { title: 'Địa chỉ', dataIndex: 'Address' },
+    {
+      title: 'Hành động', width: 150,
+      render: (_, r) => (
+        <Space>
+          <Button size="small" type="primary" ghost onClick={() => openVenueModal(r)}>Sửa</Button>
+          <Button size="small" danger onClick={() => confirm({ title: `Xóa địa điểm "${r.Name}"?`, content: 'Hành động này không thể hoàn tác.', onOk: () => handleDeleteVenue(r.VenueID) })}>Xóa</Button>
+        </Space>
+      )
+    }
+  ];
+
   /* ── Sidebar Menu ── */
   const menuItems = [
     { key: 'overview', icon: <AppstoreOutlined />, label: 'Tổng quan' },
@@ -416,6 +476,7 @@ const AdminDashboard = () => {
     { key: 'speakers', icon: <UserOutlined />, label: `Diễn giả`, 
       extra: pendingSpeakers.length > 0 ? <Badge count={pendingSpeakers.length} /> : null },
     { key: 'staffs', icon: <TeamOutlined />, label: 'Tình nguyện viên' },
+    { key: 'venues', icon: <EnvironmentOutlined />, label: 'Quản lý Địa điểm' },
     { key: 'users', icon: <UserOutlined />, label: 'Người dùng' },
   ];
 
@@ -579,6 +640,16 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {activeMenu === 'venues' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Địa điểm</Title>
+                <Button type="primary" onClick={() => openVenueModal()}>+ Thêm Địa điểm</Button>
+              </div>
+              <Table columns={venueCols} dataSource={allVenues} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
+            </div>
+          )}
+
           {activeMenu === 'users' && (
             <div>
               <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Người dùng</Title>
@@ -730,6 +801,25 @@ const AdminDashboard = () => {
               ]} />
             </Form.Item>
           )}
+        </Form>
+      </Modal>
+
+      {/* Venue CRUD Modal */}
+      <Modal
+        title={venueModal.data ? "Cập nhật Địa điểm" : "Thêm mới Địa điểm"}
+        open={venueModal.open}
+        onCancel={() => setVenueModal({ open: false, data: null })}
+        onOk={() => venueForm.submit()}
+        okText="Lưu"
+        cancelText="Hủy"
+      >
+        <Form form={venueForm} layout="vertical" onFinish={handleVenueSubmit}>
+          <Form.Item name="Name" label="Tên địa điểm" rules={[{ required: true, message: 'Vui lòng nhập tên địa điểm' }]}>
+            <Input placeholder="VD: Tòa nhà Alpha (Hà Nội)" />
+          </Form.Item>
+          <Form.Item name="Address" label="Địa chỉ" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}>
+            <Input.TextArea placeholder="VD: Khu CNC Hòa Lạc, Thạch Thất, Hà Nội" rows={3} />
+          </Form.Item>
         </Form>
       </Modal>
     </Layout>

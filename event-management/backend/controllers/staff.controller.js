@@ -47,12 +47,12 @@ const getEventParticipants = async (req, res) => {
 const getAvailableStaff = async (req, res) => {
   try {
     const pool = getPool();
-    // Lấy tất cả user có role Staff hoặc Participant
+    // Lấy tất cả user có role Staff
     const result = await pool.request()
       .query(`
         SELECT UserID, FullName, Email, Role, Phone, IsActive, CreatedAt
         FROM Users
-        WHERE Role IN ('Staff', 'Participant')
+        WHERE Role = 'Staff'
       `);
     return res.status(200).json({ success: true, data: result.recordset });
   } catch (error) {

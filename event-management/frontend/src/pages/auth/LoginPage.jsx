@@ -43,7 +43,7 @@ const LoginPage = () => {
                  : role === 'Organizer' ? '/organizer/events'
                  : role === 'Participant' ? '/'
                  : role === 'Speaker' ? '/my-calendar'
-                 : role === 'Staff' ? '/staff'
+                 : role === 'Staff' ? '/'
                  : from === '/dashboard' ? '/' : from;
       navigate(dest, { replace: true });
     } else {

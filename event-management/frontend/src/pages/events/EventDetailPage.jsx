@@ -52,7 +52,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
 
   useEffect(() => {
     fetchEventById(targetId);
-    if (isAuthenticated && (user?.role === 'Participant' || user?.role === 'Speaker')) loadMyRegistration();
+    if (isAuthenticated && (user?.role === 'Participant' || user?.role === 'Speaker' || user?.role === 'Staff')) loadMyRegistration();
   }, [targetId, isAuthenticated, user]);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
 
   const handleRegister = async () => {
     if (!isAuthenticated) return navigate('/login', { state: { from: { pathname: `/events/${targetId}` } } });
-    if (user?.role !== 'Participant' && user?.role !== 'Speaker') return message.warning('Chỉ người dùng cá nhân hoặc diễn giả mới có thể đăng ký tham gia sự kiện');
+    if (user?.role !== 'Participant' && user?.role !== 'Speaker' && user?.role !== 'Staff') return message.warning('Chỉ người dùng cá nhân, diễn giả hoặc staff mới có thể đăng ký tham gia sự kiện');
     setRegistering(true);
     try {
       const res = await registrationService.register(parseInt(targetId));

@@ -37,7 +37,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {event.IsInternalOnly && <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Nội bộ</Tag>}
             {event.CategoryName && <Tag color="blue" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{event.CategoryName}</Tag>}
-            {showStatus && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
+            {showStatus && status.label !== 'Đã kết thúc' && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
           </div>
           {isPast ? (
             <div style={{ position: 'absolute', top: 12, right: 12, background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>

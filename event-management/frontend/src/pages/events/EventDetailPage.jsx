@@ -262,7 +262,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                 children: (
                   <div style={{ padding: '16px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <Text strong style={{ fontSize: 16 }}>Danh sách đã đăng ký</Text>
+                      <Text strong style={{ fontSize: 16 }}>Danh sách Người tham gia</Text>
                     </div>
                     <Table 
                       size="small"
@@ -273,11 +273,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                       columns={[
                         { title: 'Tên', dataIndex: 'FullName', render: t => <Text strong>{t}</Text> },
                         { title: 'Email', dataIndex: 'Email' },
-                        { title: 'Trạng thái', dataIndex: 'Status', render: () => <Tag color="green">Đã đăng ký</Tag> },
-                        { title: 'Điểm danh', dataIndex: 'AttendanceStatus', render: s => (
-                            s === 'Present' ? <Tag color="green">Có mặt</Tag> :
-                            s === 'Late' ? <Tag color="orange">Đến muộn</Tag> :
-                            <Tag color="red">Vắng</Tag>
+                        { title: 'Trạng thái', dataIndex: 'AttendanceStatus', render: s => (
+                            s === 'Present' || s === 'Late' ? <Tag color="green">Đã tham gia</Tag> :
+                            <Tag color="default">Chưa tham gia</Tag>
                         )}
                       ]}
                     />

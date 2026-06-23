@@ -291,7 +291,7 @@ const AdminDashboard = () => {
             ) : (
               <>
                 {r.ProposedChanges && (
-                  <Button type="default" style={{ borderColor: '#f59e0b', color: '#d97706' }} size="small" onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
+                  <Button type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} size="small" onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
                 )}
                 <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => {
                   setSelectedStaffs([]);
@@ -446,7 +446,7 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 150,
       render: (_, r) => (
         <Space>
-          <Button size="small" type="default" style={{ borderColor: '#f59e0b', color: '#d97706' }} onClick={() => openStaffModal(r)}>Sửa</Button>
+          <Button size="small" type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} onClick={() => openStaffModal(r)}>Sửa</Button>
           <Button size="small" danger onClick={() => confirm({ title: 'Khoá Staff này?', onOk: () => handleDeleteStaff(r.UserID) })}>Khoá</Button>
         </Space>
       )
@@ -460,7 +460,7 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 150,
       render: (_, r) => (
         <Space>
-          <Button size="small" type="default" style={{ borderColor: '#f59e0b', color: '#d97706' }} onClick={() => openVenueModal(r)}>Sửa</Button>
+          <Button size="small" type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} onClick={() => openVenueModal(r)}>Sửa</Button>
           <Button size="small" danger onClick={() => confirm({ title: `Xóa địa điểm "${r.Name}"?`, content: 'Hành động này không thể hoàn tác.', onOk: () => handleDeleteVenue(r.VenueID) })}>Xóa</Button>
         </Space>
       )

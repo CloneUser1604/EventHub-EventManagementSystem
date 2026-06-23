@@ -10,7 +10,8 @@ const {
   assignStaff,
   generateStaffSession,
   revokeStaff,
-  participantCheckinWithOTP
+  participantCheckinWithOTP,
+  getEventParticipants
 } = require('../controllers/staff.controller');
 
 // Lấy danh sách Staff khả dụng (Admin)
@@ -23,6 +24,9 @@ router.delete('/:staffId', authenticate, authorize('Admin'), deleteStaff);
 
 // Admin: Lấy danh sách Staff đã được gán cho sự kiện
 router.get('/events/:eventId/assigned', authenticate, authorize('Admin', 'Organizer'), getAssignedStaff);
+
+// Admin/Organizer/Staff: Lấy danh sách người tham gia
+router.get('/events/:eventId/participants', authenticate, authorize('Admin', 'Organizer', 'Staff'), getEventParticipants);
 
 // Admin: Gán Staff vào sự kiện trực tiếp
 router.post('/events/:eventId/assign', authenticate, authorize('Admin'), assignStaff);

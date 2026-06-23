@@ -77,7 +77,7 @@ const EventDashboardPage = () => {
         </div>
       </div>
     )},
-    { title: 'Chức vụ', dataIndex: 'Role', render: r => <Tag color="purple">{r}</Tag> },
+    { title: 'Chức vụ', key: 'Role', render: () => <Tag color="purple">Staff</Tag> },
     { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d).format('DD/MM/YYYY HH:mm') }
   ];
 

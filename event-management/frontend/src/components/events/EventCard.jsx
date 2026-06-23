@@ -79,7 +79,6 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           </Avatar>
           <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>{event.OrganizationName || event.OrganizerName}</span>
         </div>
-        {isPast && <Tag color="default" style={{ margin: 0, fontSize: 11 }}>Đã kết thúc</Tag>}
       </div>
     </Card>
   );

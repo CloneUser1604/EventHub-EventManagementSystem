@@ -62,8 +62,9 @@ const EventDashboardPage = () => {
     { title: 'Mã vé', dataIndex: 'RegistrationID', render: v => `EMS-${v}` },
     { title: 'Trạng thái', dataIndex: 'Status', render: s => <Tag color="green">Đã đăng ký</Tag> },
     { title: 'Vai trò', render: (_, r) => {
-        if (r.InviteStatus === 'Assigned') return <Tag color="blue">Staff / Tham gia</Tag>;
-        return <Tag color="default">Participant</Tag>;
+        const role = r.Role || 'Participant';
+        const colors = { Admin: 'gold', Organizer: 'green', Speaker: 'volcano', Staff: 'purple', Participant: 'default' };
+        return <Tag color={colors[role] || 'default'}>{role}</Tag>;
     }}
   ];
 
@@ -77,7 +78,7 @@ const EventDashboardPage = () => {
         </div>
       </div>
     )},
-    { title: 'Chức vụ', key: 'Role', render: () => <Tag color="purple">Staff</Tag> },
+    { title: 'Chức vụ', render: (_, r) => <Tag color="purple">{r.Role || 'Staff'}</Tag> },
     { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d).format('DD/MM/YYYY HH:mm') }
   ];
 

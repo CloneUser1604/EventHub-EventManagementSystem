@@ -340,13 +340,11 @@ const AdminDashboard = () => {
       render: (_, r) => (
         <Space>
           <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setViewOrgModal({ open: true, org: r })}>Hồ sơ</Button>
-          {r.ApprovalStatus === 'Pending' ? (
+          {r.ApprovalStatus === 'Pending' && (
             <>
               <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => confirm({ title: `Duyệt "${r.OrganizationName}"?`, onOk: () => handleOrgAction(r.OrganizerProfileID, 'approve') })}>Duyệt</Button>
               <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('org', r.OrganizerProfileID, r.OrganizationName)}>Từ chối</Button>
             </>
-          ) : (
-            <Text type="secondary" style={{ fontSize: 12 }}>{r.ApprovalStatus === 'Approved' ? '✅ Đã duyệt' : '❌ Đã từ chối'}</Text>
           )}
         </Space>
       ),

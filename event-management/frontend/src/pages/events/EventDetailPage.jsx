@@ -326,7 +326,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
               {/* Registered state */}
               {myRegistration ? (
                 <div>
-                  <Alert message="✅ Bạn đã đăng ký thành công!" type="success" showIcon style={{ marginBottom: 12, borderRadius: 10 }} />
+                  <Alert message="Bạn đã đăng ký thành công!" type="success" showIcon style={{ marginBottom: 12, borderRadius: 10 }} />
                   <Button type="primary" block size="large" icon={<QrcodeOutlined />} onClick={() => setTicketModal(true)}
                     style={{ borderRadius: 10, height: 46, fontWeight: 700, marginBottom: 10 }}>
                     {event.isStaff ? 'Quét QR Check-in' : 'Xem Mã OTP'}

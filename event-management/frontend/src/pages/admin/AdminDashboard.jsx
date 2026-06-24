@@ -385,7 +385,7 @@ const AdminDashboard = () => {
       title: 'Trạng thái', dataIndex: 'ApprovalStatus', width: 130,
       render: s => {
         const cfg = { Approved: 'green', Rejected: 'red', Pending: 'orange' };
-        const lbl = { Approved: '✅ Đã duyệt', Rejected: '❌ Từ chối', Pending: '⏳ Chờ duyệt' };
+        const lbl = { Approved: 'Đã duyệt', Rejected: 'Từ chối', Pending: 'Chờ duyệt' };
         return <Tag color={cfg[s] || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>{lbl[s] || s}</Tag>;
       },
     },
@@ -423,7 +423,7 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 220,
       render: (_, r) => {
         if (r.IsActive) {
-          return <Tag color="green" style={{ fontWeight: 600, borderRadius: 6 }}>✅ Đã duyệt</Tag>;
+          return <Tag color="green" style={{ fontWeight: 600, borderRadius: 6 }}>Đã duyệt</Tag>;
         }
         return (
           <Space>

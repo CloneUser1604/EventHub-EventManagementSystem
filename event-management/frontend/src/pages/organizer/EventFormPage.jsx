@@ -105,6 +105,23 @@ const EventFormPage = () => {
         return message.error('Vui lòng điền đủ Tiêu đề, Bắt đầu và Kết thúc cho các Chương trình (Phiên)');
       }
 
+      const eventStart = values.dateRange?.[0];
+      const eventEnd = values.dateRange?.[1];
+      if (eventStart && eventEnd) {
+        for (let s of sessions) {
+          const sStart = dayjs(s.startTime || s.StartTime);
+          const sEnd = dayjs(s.endTime || s.EndTime);
+          if (sEnd.isSame(sStart) || sEnd.isBefore(sStart)) {
+            setLoading(false);
+            return message.error(`Thời gian kết thúc của phiên "${s.title || s.Title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`);
+          }
+          if (sStart.isBefore(eventStart) || sEnd.isAfter(eventEnd)) {
+            setLoading(false);
+            return message.error(`Thời gian của phiên "${s.title || s.Title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`);
+          }
+        }
+      }
+
       const parsedSessions = sessions.map(s => ({
         title: s.title || s.Title,
         description: s.description || s.Description,

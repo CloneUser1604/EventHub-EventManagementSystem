@@ -246,6 +246,20 @@ const createEvent = async (req, res) => {
       }
     }
 
+    for (const s of parsedSessions) {
+      if (!s.startTime || !s.endTime) {
+        return errorResponse(res, `Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho phiên "${s.title || 'Không tên'}"`, 400);
+      }
+      const sStart = new Date(s.startTime);
+      const sEnd = new Date(s.endTime);
+      if (sEnd <= sStart) {
+        return errorResponse(res, `Thời gian kết thúc của phiên "${s.title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`, 400);
+      }
+      if (sStart < sDate || sEnd > eDate) {
+        return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
+      }
+    }
+
     const insertResult = await pool.request()
       .input('OrganizerID', sql.Int, organizerId)
       .input('CategoryID', sql.Int, categoryId || null)
@@ -359,6 +373,22 @@ const updateEvent = async (req, res) => {
       try { parsedSessions = JSON.parse(sessions); } catch (e) {}
     } else if (Array.isArray(sessions)) {
       parsedSessions = sessions;
+    }
+
+    if (parsedSessions.length > 0) {
+      for (const s of parsedSessions) {
+        if (!s.startTime || !s.endTime) {
+          return errorResponse(res, `Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho phiên "${s.title || 'Không tên'}"`, 400);
+        }
+        const sStart = new Date(s.startTime);
+        const sEnd = new Date(s.endTime);
+        if (sEnd <= sStart) {
+          return errorResponse(res, `Thời gian kết thúc của phiên "${s.title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`, 400);
+        }
+        if (sStart < sDate || sEnd > eDate) {
+          return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
+        }
+      }
     }
 
     if (req.files && req.files['coverImage'] && req.files['coverImage'].length > 0) {

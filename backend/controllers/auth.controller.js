@@ -266,8 +266,17 @@ const logout = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const pool = getPool();
+    
+    // ĐÃ SỬA: Quét bắt chính xác ID người dùng dù token viết hoa hay viết thường
+    const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
+    
+    if (!exactUserId) {
+       console.log('❌ Lỗi: Token bị thiếu ID người dùng', req.user);
+       return errorResponse(res, 'Lỗi xác thực người dùng', 401);
+    }
+
     const result = await pool.request()
-      .input('UserID', sql.Int, req.user.UserID)
+      .input('UserID', sql.Int, exactUserId)
       .query(`
         SELECT u.UserID, u.FullName, u.Email, u.Role, u.AvatarURL, u.Phone, u.University, u.IsVerified, u.CreatedAt,
                op.OrganizerProfileID, op.OrganizationName, op.ApprovalStatus AS OrgApprovalStatus,
@@ -278,15 +287,24 @@ const getMe = async (req, res) => {
       `);
 
     const row = result.recordset[0];
-    if (!row) return notFoundResponse(res, 'User not found');
+    if (!row) {
+      console.log(`❌ Lỗi: Không tìm thấy tài khoản có ID = ${exactUserId} trong Database`);
+      return notFoundResponse(res, 'User not found');
+    }
 
     const user = {
-      userId: row.UserID, fullName: row.FullName, email: row.Email,
-      role: row.Role, avatarURL: row.AvatarURL, phone: row.Phone,
+      userId: row.UserID, 
+      fullName: row.FullName, // Nếu DB rỗng, dòng này sẽ là null
+      email: row.Email,
+      role: row.Role, 
+      avatarURL: row.AvatarURL, 
+      phone: row.Phone,
       university: row.University,
-      isVerified: row.IsVerified, createdAt: row.CreatedAt,
+      isVerified: row.IsVerified, 
+      createdAt: row.CreatedAt,
     };
 
+    // ... (Phần code xử lý Organizer và Events giữ nguyên như cũ của bạn)
     if (row.OrganizerProfileID) {
       user.organizerProfile = {
         id: row.OrganizerProfileID,
@@ -301,7 +319,7 @@ const getMe = async (req, res) => {
     }
 
     const staffCheck = await pool.request()
-      .input('UserID', sql.Int, req.user.UserID)
+      .input('UserID', sql.Int, exactUserId)
       .query(`
         SELECT TOP 1 1 FROM EventStaffs es
         JOIN Events e ON es.EventID = e.EventID
@@ -309,8 +327,40 @@ const getMe = async (req, res) => {
       `);
     user.isCurrentStaff = staffCheck.recordset.length > 0;
 
+    user.events = { organized: [], registered: [], attended: [] };
+    user.stats = { organized: 0, registered: 0, attended: 0 };
+
+    try {
+      if (user.role === 'Organizer') {
+        const orgEvents = await pool.request()
+          .input('UserID', sql.Int, exactUserId)
+          .query(`SELECT EventID AS id, Title AS title, StartDate AS startDate, Status AS status 
+                  FROM Events WHERE OrganizerID = @UserID ORDER BY StartDate DESC`);
+        user.events.organized = orgEvents.recordset || [];
+        user.stats.organized = user.events.organized.length;
+      } else {
+        const regEvents = await pool.request()
+          .input('UserID', sql.Int, exactUserId)
+          .query(`
+            SELECT e.EventID AS id, e.Title AS title, e.StartDate AS startDate, r.Status AS status
+            FROM Events e
+            JOIN Registrations r ON e.EventID = r.EventID
+            WHERE r.ParticipantID = @UserID
+            ORDER BY e.StartDate DESC
+          `);
+        const allRegs = regEvents.recordset || [];
+        user.events.registered = allRegs.filter(e => e.status !== 'Cancelled');
+        user.events.attended = allRegs.filter(e => e.status === 'Attended' || e.status === 'CheckedIn');
+        user.stats.registered = user.events.registered.length;
+        user.stats.attended = user.events.attended.length;
+      }
+    } catch (eventErr) {
+      console.error("⚠️ Lỗi truy vấn lịch sử sự kiện:", eventErr.message);
+    }
+
     return successResponse(res, user);
   } catch (error) {
+    console.error("❌ Lỗi hệ thống hàm getMe:", error);
     return errorResponse(res, 'Failed to fetch user info');
   }
 };

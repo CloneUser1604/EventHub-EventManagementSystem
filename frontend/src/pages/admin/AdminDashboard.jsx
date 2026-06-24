@@ -46,12 +46,10 @@ const AdminDashboard = () => {
   const [editReasonModal, setEditReasonModal] = useState({ open: false, data: null });
   const [viewOrgModal, setViewOrgModal] = useState({ open: false, org: null });
 
-  // Event Approval with Staff Assignment
   const [approveEventModal, setApproveEventModal] = useState({ open: false, event: null });
   const [selectedStaffs, setSelectedStaffs] = useState([]);
   const [availableStaffs, setAvailableStaffs] = useState([]);
 
-  // Staff CRUD Modal
   const [staffModal, setStaffModal] = useState({ open: false, data: null });
   const [staffForm] = Form.useForm();
 
@@ -60,17 +58,27 @@ const AdminDashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
+      // ĐÃ THÊM BẢN VÁ: Hàm bọc an toàn để API lỗi không làm sập toàn bộ trang
+      const safe = async (promise, fallback = []) => {
+        try { return await promise; } 
+        catch (e) { 
+          console.error('Lỗi API cục bộ:', e); 
+          return { data: { data: fallback } }; 
+        }
+      };
+
       const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes] = await Promise.all([
-        eventService.getDashboardStats(),
-        adminService.getPendingOrganizers(),
-        adminService.getAllOrganizers(),
-        eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
-        adminService.getPendingSpeakers(),
-        adminService.getAllSpeakers(),
-        adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
-        eventService.getEvents({ limit: 200 }),
-        fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json())
+        safe(eventService.getDashboardStats(), { stats: {}, recentEvents: [] }),
+        safe(adminService.getPendingOrganizers()),
+        safe(adminService.getAllOrganizers()),
+        safe(eventService.getEvents({ approvalStatus: 'Pending', limit: 100 })), // API đang lỗi 500
+        safe(adminService.getPendingSpeakers()),
+        safe(adminService.getAllSpeakers()),
+        safe(adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json())),
+        safe(eventService.getEvents({ limit: 200 })), // API đang lỗi 500
+        safe(fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()))
       ]);
+      
       setStats(statsRes.data?.data?.stats || statsRes.data?.stats || {});
       setRecentEvents(statsRes.data?.data?.recentEvents || statsRes.data?.recentEvents || []);
       setPendingOrgs(orgsRes.data?.data || []);
@@ -82,9 +90,10 @@ const AdminDashboard = () => {
       
       const usersData = usersRes.data?.data || usersRes.data || [];
       setAllUsers(usersData);
-      setAvailableStaffs(staffRes.data || []);
+      setAvailableStaffs(staffRes.data || staffRes.data?.data || []);
+      
     } catch (e) { 
-      message.error('Tải dữ liệu thất bại'); 
+      message.error('Tải dữ liệu thất bại toàn hệ thống'); 
     } finally { 
       setLoading(false); 
     }
@@ -110,10 +119,8 @@ const AdminDashboard = () => {
   const handleApproveEventWithStaff = async () => {
     const { event } = approveEventModal;
     try {
-      // 1. Duyệt sự kiện
       await eventService.reviewEvent(event.EventID, 'approve');
       
-      // 2. Gán staff nếu có chọn
       if (selectedStaffs.length > 0) {
         const assignRes = await fetch(`${API_BASE}/staff/events/${event.EventID}/assign`, {
           method: 'POST',

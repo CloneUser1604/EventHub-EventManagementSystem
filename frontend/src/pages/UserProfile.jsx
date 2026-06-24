@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Spin } from 'antd';
 import useAuthStore from '../store/authStore';
-// ĐÃ THÊM: Import công cụ xử lý ảnh
 import { getImageUrl } from '../utils/imageHelpers';
 import '../styles/UserProfile.css';
 
@@ -17,7 +16,6 @@ const UserProfile = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${accessToken}` } };
         const response = await axios.get('http://localhost:5000/api/auth/me', config);
-        
         const userData = response.data.data || response.data;
         setProfileData(userData);
       } catch (error) {
@@ -33,19 +31,18 @@ const UserProfile = () => {
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', marginTop: '100px' }}><Spin size="large" /></div>;
 
   const safeData = profileData || globalUser || {};
+  const actualUser = safeData.user ? safeData.user : safeData;
 
-  const displayName = safeData.fullName || safeData.FullName || safeData.name || 'Người dùng ẩn danh';
-  const email = safeData.email || safeData.Email || 'Chưa cập nhật email';
+  const displayName = actualUser.fullName || actualUser.FullName || actualUser.name || 'Người dùng ẩn danh';
+  const email = actualUser.email || actualUser.Email || 'Chưa cập nhật email';
   
-  // ĐÃ SỬA: Cho ảnh đi qua "màng lọc" getImageUrl để chống lỗi
-  const rawAvatar = safeData.avatarURL || safeData.AvatarURL;
+  const rawAvatar = actualUser.avatarURL || actualUser.AvatarURL;
   const processedAvatar = getImageUrl(rawAvatar);
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=4a25e1&color=fff&size=128&bold=true`;
   const finalAvatar = processedAvatar || defaultAvatar;
 
-  const userRole = safeData.role || safeData.Role || 'Participant';
-  
-  const createdAt = safeData.createdAt || safeData.CreatedAt;
+  const userRole = actualUser.role || actualUser.Role || 'Participant';
+  const createdAt = actualUser.createdAt || actualUser.CreatedAt;
   const joinDate = createdAt ? new Date(createdAt).toLocaleDateString('vi-VN') : 'Đang cập nhật...';
 
   const organizedEvents = safeData.events?.organized || [];
@@ -74,7 +71,6 @@ const UserProfile = () => {
       <div className="profile-container">
         <div className="profile-sidebar">
           <div className="profile-top">
-            {/* ĐÃ SỬA: Dùng ảnh đã được xử lý */}
             <img src={finalAvatar} alt="Avatar" className="profile-avatar" />
             <h2 className="profile-name">{displayName}</h2>
             <p className="profile-email">{email}</p>
@@ -120,7 +116,7 @@ const UserProfile = () => {
                     <div key={idx} className="event-item">
                       <div className="event-info">
                         <h4>{event.Title || event.title}</h4>
-                        <p>📍 {event.Location || event.location || 'Trực tuyến'}</p>
+                        <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
                         <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
                       </div>
                       <span className="status-badge active">{event.Status || event.status || 'Active'}</span>
@@ -139,7 +135,7 @@ const UserProfile = () => {
                       <div key={idx} className="event-item">
                         <div className="event-info">
                           <h4>{event.Title || event.title}</h4>
-                          <p>📍 {event.Location || event.location || 'Trực tuyến'}</p>
+                          <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
                           <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
                         </div>
                         <span className="status-badge registered">Đã đặt chỗ</span>

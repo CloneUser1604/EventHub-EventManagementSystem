@@ -62,8 +62,9 @@ const EventDashboardPage = () => {
     { title: 'Mã vé', dataIndex: 'RegistrationID', render: v => `EMS-${v}` },
     { title: 'Trạng thái', dataIndex: 'Status', render: s => <Tag color="green">Đã đăng ký</Tag> },
     { title: 'Vai trò', render: (_, r) => {
-        if (r.InviteStatus === 'Assigned') return <Tag color="blue">Staff / Tham gia</Tag>;
-        return <Tag color="default">Participant</Tag>;
+        const role = r.Role || 'Participant';
+        const colors = { Admin: 'gold', Organizer: 'green', Speaker: 'volcano', Staff: 'purple', Participant: 'default' };
+        return <Tag color={colors[role] || 'default'}>{role}</Tag>;
     }}
   ];
 
@@ -77,7 +78,7 @@ const EventDashboardPage = () => {
         </div>
       </div>
     )},
-    { title: 'Chức vụ', dataIndex: 'Role', render: r => <Tag color="purple">{r}</Tag> },
+    { title: 'Chức vụ', render: (_, r) => <Tag color="purple">{r.Role || 'Staff'}</Tag> },
     { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d).format('DD/MM/YYYY HH:mm') }
   ];
 
@@ -88,7 +89,7 @@ const EventDashboardPage = () => {
           <Button icon={<LeftOutlined />} onClick={() => navigate('/organizer/events')} ghost style={{ border: 0, padding: 0 }} />
           <div style={{ flex: 1 }}>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Event Dashboard</Text>
-            <Title level={2} style={{ color: 'white', margin: 0, fontFamily: 'Sora,sans-serif' }}>{event.Title}</Title>
+            <Title level={2} style={{ color: 'white', margin: 0, fontFamily: "'Inter', sans-serif" }}>{event.Title}</Title>
           </div>
           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/organizer/events/${id}/edit`)} style={{ borderRadius: 8 }}>
             Chỉnh sửa sự kiện
@@ -115,12 +116,12 @@ const EventDashboardPage = () => {
           <Col xs={24} md={18} lg={19}>
             {activeMenu === 'overview' && (
               <div>
-                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Thống kê sự kiện</Title>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Thống kê sự kiện</Title>
                 <Row gutter={[16, 16]}>
                   <Col xs={24} sm={8}>
                     <Card style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                       <div style={{ fontSize: 13, color: '#64748b' }}>Tổng đăng ký</div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', fontFamily: 'Sora,sans-serif' }}>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', fontFamily: "'Inter', sans-serif" }}>
                         {event.RegisteredCount} <span style={{ fontSize: 14, color: '#94a3b8' }}>/ {event.MaxParticipants || '∞'}</span>
                       </div>
                     </Card>
@@ -128,7 +129,7 @@ const EventDashboardPage = () => {
                   <Col xs={24} sm={8}>
                     <Card style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                       <div style={{ fontSize: 13, color: '#64748b' }}>Staff phụ trách</div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', fontFamily: 'Sora,sans-serif' }}>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', fontFamily: "'Inter', sans-serif" }}>
                         {assignedStaffs.length}
                       </div>
                     </Card>
@@ -139,7 +140,7 @@ const EventDashboardPage = () => {
 
             {activeMenu === 'participants' && (
               <div>
-                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Danh sách Người tham dự</Title>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Danh sách Người tham dự</Title>
                 <Table 
                   columns={participantCols} 
                   dataSource={participants} 
@@ -154,7 +155,7 @@ const EventDashboardPage = () => {
 
             {activeMenu === 'staffs' && (
               <div>
-                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Danh sách Staff (Được phân công bởi Admin)</Title>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Danh sách Staff (Được phân công bởi Admin)</Title>
                 <Table 
                   columns={staffCols} 
                   dataSource={assignedStaffs} 

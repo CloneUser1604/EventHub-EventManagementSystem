@@ -36,7 +36,7 @@ const SpeakerEventsPage = () => {
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px' }}>
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0, fontFamily: 'Sora,sans-serif' }}>Sự kiện của tôi</Title>
+        <Title level={3} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>Sự kiện của tôi</Title>
         <Text type="secondary">Danh sách các sự kiện bạn được mời tham gia với tư cách Diễn giả</Text>
       </div>
 
@@ -69,7 +69,7 @@ const SpeakerEventsPage = () => {
                     {event.Status === 'Published' ? 'Đã duyệt' : event.Status}
                   </Tag>
                 </div>
-                <Title level={5} style={{ margin: '0 0 8px', fontSize: 16, fontFamily: 'Sora,sans-serif' }} ellipsis={{ rows: 2 }}>
+                <Title level={5} style={{ margin: '0 0 8px', fontSize: 16, fontFamily: "'Inter', sans-serif" }} ellipsis={{ rows: 2 }}>
                   {event.Title}
                 </Title>
                 <Space direction="vertical" size={2} style={{ width: '100%', marginBottom: 16 }}>

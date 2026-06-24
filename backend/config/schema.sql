@@ -24,6 +24,7 @@ IF OBJECT_ID('Categories', 'U') IS NOT NULL DROP TABLE Categories;
 IF OBJECT_ID('SpeakerProfiles', 'U') IS NOT NULL DROP TABLE SpeakerProfiles;
 IF OBJECT_ID('OrganizerProfiles', 'U') IS NOT NULL DROP TABLE OrganizerProfiles;
 IF OBJECT_ID('Users', 'U') IS NOT NULL DROP TABLE Users;
+IF OBJECT_ID('Feedbacks', 'U') IS NOT NULL DROP TABLE Feedbacks;
 
 -- ============================================================
 -- 1. USERS
@@ -346,6 +347,20 @@ CREATE TABLE EventSponsors (
   SponsorID      INT            NOT NULL REFERENCES Sponsors(SponsorID),
   SponsorTier    VARCHAR(50)    NULL,  -- Gold, Silver, Bronze, etc.
   UNIQUE (EventID, SponsorID)
+);
+
+-- ============================================================
+-- 21. FEEDBACKS
+-- ============================================================
+CREATE TABLE Feedbacks (
+  FeedbackID    INT IDENTITY(1,1) PRIMARY KEY,
+  EventID       INT NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
+  ParticipantID INT NOT NULL REFERENCES Users(UserID),
+  Rating        INT NOT NULL CHECK (Rating >= 1 AND Rating <= 5),
+  Comment       NVARCHAR(MAX) NULL,
+  CreatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
+  UpdatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
+  UNIQUE (EventID, ParticipantID)
 );
 
 -- ============================================================

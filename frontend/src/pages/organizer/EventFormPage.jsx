@@ -220,7 +220,7 @@ const EventFormPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
           <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/organizer/events')} />
           <div>
-            <Title level={3} style={{ margin: 0, fontFamily: 'Sora,sans-serif' }}>
+            <Title level={3} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>
               {isEdit ? '✏️ Chỉnh sửa sự kiện' : '🎉 Tạo sự kiện mới'}
             </Title>
             <Text type="secondary">Điền đầy đủ thông tin và gửi Admin duyệt để công bố.</Text>
@@ -238,7 +238,7 @@ const EventFormPage = () => {
 
           {/* ── Section 1: Basic Info ── */}
           <Card style={{ borderRadius: 14, marginBottom: 20 }}>
-            <Title level={5} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 20 }}>📋 Thông tin cơ bản</Title>
+            <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>📋 Thông tin cơ bản</Title>
 
             <Form.Item name="title" label="Tên sự kiện" rules={[{ required: true, message: 'Vui lòng nhập tên sự kiện' }, { min: 5, message: 'Tên phải ít nhất 5 ký tự' }]}>
               <Input placeholder="VD: Hội thảo AI trong giáo dục 2025" maxLength={300} showCount />
@@ -293,7 +293,7 @@ const EventFormPage = () => {
 
           {/* ── Section 2: Date & Registration ── */}
           <Card style={{ borderRadius: 14, marginBottom: 20 }}>
-            <Title level={5} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 20 }}>📅 Thời gian & Đăng ký</Title>
+            <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>📅 Thời gian & Đăng ký</Title>
 
             <Form.Item name="isInternalOnly" label="Đối tượng tham dự" initialValue={true}>
               <Radio.Group>
@@ -321,7 +321,7 @@ const EventFormPage = () => {
           {/* ── Section 3: Sessions / Agenda ── */}
           <Card style={{ borderRadius: 14, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Title level={5} style={{ fontFamily: 'Sora,sans-serif', margin: 0 }}>🗓️ Chương trình ({sessions.length} phiên)</Title>
+              <Title level={5} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>🗓️ Chương trình ({sessions.length} phiên)</Title>
               <Button type="dashed" icon={<PlusOutlined />} onClick={addSession}>Thêm phiên</Button>
             </div>
 
@@ -374,7 +374,7 @@ const EventFormPage = () => {
           <Card style={{ borderRadius: 14, marginBottom: 28 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Title level={5} style={{ fontFamily: 'Sora,sans-serif', margin: '0 0 4px' }}>🎤 Diễn giả</Title>
+                <Title level={5} style={{ fontFamily: "'Inter', sans-serif", margin: '0 0 4px' }}>🎤 Diễn giả</Title>
                 <Text type="secondary" style={{ fontSize: 13 }}>Thêm diễn giả cho sự kiện (tuỳ chọn). Tài khoản mới sẽ cần Admin phê duyệt.</Text>
               </div>
               <Button icon={<PlusOutlined />} onClick={() => setSpeakerModal(true)}>Thêm diễn giả</Button>
@@ -421,7 +421,7 @@ const EventFormPage = () => {
       {/* Speaker Modal */}
       <Modal open={speakerModal} onCancel={() => setSpeakerModal(false)} onOk={handleCreateSpeaker}
         confirmLoading={addingSpeaker} okText="Tạo tài khoản"
-        title={<span style={{ fontFamily: 'Sora,sans-serif' }}>🎤 Thêm diễn giả mới</span>}
+        title={<span style={{ fontFamily: "'Inter', sans-serif" }}>🎤 Thêm diễn giả mới</span>}
         width={480}>
         <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 8 }}
           message="Tài khoản diễn giả sẽ cần Admin phê duyệt trước khi kích hoạt." />

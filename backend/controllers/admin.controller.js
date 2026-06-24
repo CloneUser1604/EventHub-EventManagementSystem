@@ -138,7 +138,7 @@ const approveEvent = async (req, res) => {
           .input('RelatedID', sql.Int, eventId)
           .input('RelatedType', sql.VarChar(50), 'Event')
           .query(`
-            IF NOT EXISTS (SELECT 1 FROM Notifications WHERE UserID=@UserID AND Type='SpeakerInvitation' AND RelatedID=@RelatedID)
+            IF NOT EXISTS (SELECT 1 FROM Notifications WHERE UserID=@UserID AND Type='SpeakerInvitation' AND RelatedID=@RelatedID AND IsRead=0)
             INSERT INTO Notifications (UserID, Title, Message, Type, RelatedID, RelatedType) VALUES (@UserID, @Title, @Message, @Type, @RelatedID, @RelatedType)
           `);
       }
@@ -319,6 +319,7 @@ const getAllUsers = async (req, res) => {
       .query(`
         SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, University
         FROM Users
+        WHERE Role != 'Admin'
         ORDER BY CreatedAt DESC
       `);
 
@@ -339,7 +340,11 @@ const updateUserStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Trạng thái isActive phải là boolean' });
     }
 
-    const pool = getPool();
+    const userCheck = await pool.request().input('UserID', sql.Int, userId).query('SELECT Role FROM Users WHERE UserID = @UserID');
+    if (userCheck.recordset.length > 0 && userCheck.recordset[0].Role === 'Admin') {
+      return res.status(403).json({ success: false, message: 'Không thể thao tác trên tài khoản Admin' });
+    }
+
     const result = await pool.request()
       .input('UserID', sql.Int, userId)
       .input('IsActive', sql.Bit, isActive)

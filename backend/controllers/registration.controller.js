@@ -119,6 +119,7 @@ const getMyRegistrations = async (req, res) => {
     const { status } = req.query; // Registered | Cancelled
     const request = pool.request().input('PID', sql.Int, req.user.UserID);
     request.input('Status', sql.VarChar(20), status || null);
+    request.input('UserRole', sql.VarChar(50), req.user.Role);
 
     const result = await request.query(`
       WITH MyEvents AS (

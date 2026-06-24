@@ -44,7 +44,8 @@ const roleNav = {
   ],
   Staff: [
     { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/staff/checkin', icon: <CheckCircleOutlined />, label: 'Check-in' },
+    { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
+    { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Lịch của tôi' },
   ],
   Speaker: [
     { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
@@ -92,7 +93,7 @@ const MainLayout = ({ children }) => {
       </div>
       <Menu style={{ border: 'none' }} items={[
         { key: 'profile', icon: <UserOutlined />, label: 'Hồ sơ cá nhân', onClick: () => navigate('/profile') },
-        { key: 'settings', icon: <SettingOutlined />, label: 'Cài đặt', onClick: () => navigate('/settings') },
+        { key: 'edit', icon: <SettingOutlined />, label: 'Cài đặt', onClick: () => navigate('/settings') },
         { type: 'divider' },
         { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', danger: true, onClick: handleLogout },
       ]} />
@@ -206,7 +207,7 @@ const MainLayout = ({ children }) => {
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>
-          <span style={{ color: 'white', fontFamily: 'Sora,sans-serif', fontWeight: 800, fontSize: 20, letterSpacing: -0.5 }}>EMS</span>
+          <span style={{ color: 'white', fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: -0.5 }}>EMS</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -240,7 +241,7 @@ const MainLayout = ({ children }) => {
                   {/* ĐÃ SỬA: Đưa getImageUrl vào bọc thuộc tính src của Avatar */}
                   <Avatar
                     src={getImageUrl(user?.avatarURL) || undefined}
-                    style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: 'Sora' }}
+                    style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
                     size={36}
                   >
                     {user?.fullName?.[0]?.toUpperCase()}
@@ -262,7 +263,7 @@ const MainLayout = ({ children }) => {
       </Header>
 
       {/* Mobile Drawer */}
-      <Drawer title={<span style={{ fontFamily: 'Sora', fontWeight: 800 }}>🎓 EMS</span>} open={mobileOpen} onClose={() => setMobileOpen(false)} placement="left" width={260}>
+      <Drawer title={<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800 }}>🎓 EMS</span>} open={mobileOpen} onClose={() => setMobileOpen(false)} placement="left" width={260}>
         <Menu mode="vertical" selectedKeys={[activeKey]} items={navItems.map(n => ({ ...n, onClick: () => { navigate(n.key); setMobileOpen(false); } }))} style={{ border: 'none' }} />
       </Drawer>
 

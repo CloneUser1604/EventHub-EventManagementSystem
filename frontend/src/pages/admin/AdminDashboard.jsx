@@ -2,26 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
-  Modal, Input, message, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
+  Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
 } from 'antd';
 import {
   CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
   TeamOutlined, CalendarOutlined, UserOutlined, TrophyOutlined,
   ExclamationCircleOutlined, DownloadOutlined, AppstoreOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined, EnvironmentOutlined
 } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
 import { adminService } from '../../services/admin.service';
 import { eventService } from '../../services/event.service';
+import { venueService } from '../../services/venue.service';
 import EventDetailPage from '../events/EventDetailPage';
 import dayjs from 'dayjs';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
-const { confirm } = Modal;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminDashboard = () => {
+  const { message, modal } = AntdApp.useApp();
+  const confirm = modal.confirm;
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   
@@ -39,6 +41,7 @@ const AdminDashboard = () => {
   const [pendingSpeakers, setPendingSpeakers] = useState([]);
   const [allSpeakers, setAllSpeakers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [allVenues, setAllVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [rejectModal, setRejectModal] = useState({ open: false, type: '', id: null, title: '' });
@@ -53,30 +56,26 @@ const AdminDashboard = () => {
   const [staffModal, setStaffModal] = useState({ open: false, data: null });
   const [staffForm] = Form.useForm();
 
+  // Venue CRUD Modal
+  const [venueModal, setVenueModal] = useState({ open: false, data: null });
+  const [venueForm] = Form.useForm();
+
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      // ĐÃ THÊM BẢN VÁ: Hàm bọc an toàn để API lỗi không làm sập toàn bộ trang
-      const safe = async (promise, fallback = []) => {
-        try { return await promise; } 
-        catch (e) { 
-          console.error('Lỗi API cục bộ:', e); 
-          return { data: { data: fallback } }; 
-        }
-      };
-
-      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes] = await Promise.all([
-        safe(eventService.getDashboardStats(), { stats: {}, recentEvents: [] }),
-        safe(adminService.getPendingOrganizers()),
-        safe(adminService.getAllOrganizers()),
-        safe(eventService.getEvents({ approvalStatus: 'Pending', limit: 100 })), // API đang lỗi 500
-        safe(adminService.getPendingSpeakers()),
-        safe(adminService.getAllSpeakers()),
-        safe(adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json())),
-        safe(eventService.getEvents({ limit: 200 })), // API đang lỗi 500
-        safe(fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()))
+      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes] = await Promise.all([
+        eventService.getDashboardStats(),
+        adminService.getPendingOrganizers(),
+        adminService.getAllOrganizers(),
+        eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
+        adminService.getPendingSpeakers(),
+        adminService.getAllSpeakers(),
+        adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
+        eventService.getEvents({ limit: 200 }),
+        fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
+        venueService.getAllVenues()
       ]);
       
       setStats(statsRes.data?.data?.stats || statsRes.data?.stats || {});
@@ -90,8 +89,8 @@ const AdminDashboard = () => {
       
       const usersData = usersRes.data?.data || usersRes.data || [];
       setAllUsers(usersData);
-      setAvailableStaffs(staffRes.data || staffRes.data?.data || []);
-      
+      setAvailableStaffs(staffRes.data || []);
+      setAllVenues(venuesRes.data?.data || []);
     } catch (e) { 
       message.error('Tải dữ liệu thất bại toàn hệ thống'); 
     } finally { 
@@ -197,6 +196,44 @@ const AdminDashboard = () => {
     setStaffModal({ open: true, data });
   };
 
+  const handleVenueSubmit = async (values) => {
+    try {
+      if (venueModal.data) {
+        const res = await venueService.updateVenue(venueModal.data.VenueID, values);
+        if (!res.data.success) return message.error(res.data.message);
+        message.success('Cập nhật địa điểm thành công');
+      } else {
+        const res = await venueService.createVenue(values);
+        if (!res.data.success) return message.error(res.data.message);
+        message.success('Thêm địa điểm thành công');
+      }
+      setVenueModal({ open: false, data: null });
+      venueForm.resetFields();
+      loadAll();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Lỗi khi lưu địa điểm');
+    }
+  };
+
+  const handleDeleteVenue = async (id) => {
+    try {
+      await venueService.deleteVenue(id);
+      message.success('Xóa địa điểm thành công');
+      loadAll();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể xóa địa điểm vì đang được sử dụng');
+    }
+  };
+
+  const openVenueModal = (data = null) => {
+    if (data) {
+      venueForm.setFieldsValue({ Name: data.Name, Address: data.Address });
+    } else {
+      venueForm.resetFields();
+    }
+    setVenueModal({ open: true, data });
+  };
+
   const handleSpeakerAction = async (speakerId, action, reason = '') => {
     try {
       await adminService.reviewSpeaker(speakerId, action, reason);
@@ -251,7 +288,7 @@ const AdminDashboard = () => {
             ) : (
               <>
                 {r.ProposedChanges && (
-                  <Button type="primary" size="small" ghost onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
+                  <Button type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} size="small" onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
                 )}
                 <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => {
                   setSelectedStaffs([]);
@@ -406,8 +443,22 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 150,
       render: (_, r) => (
         <Space>
-          <Button size="small" type="primary" ghost onClick={() => openStaffModal(r)}>Sửa</Button>
+          <Button size="small" type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} onClick={() => openStaffModal(r)}>Sửa</Button>
           <Button size="small" danger onClick={() => confirm({ title: 'Khoá Staff này?', onOk: () => handleDeleteStaff(r.UserID) })}>Khoá</Button>
+        </Space>
+      )
+    }
+  ];
+
+  const venueCols = [
+    { title: 'Tên địa điểm', dataIndex: 'Name', render: t => <Text strong>{t}</Text> },
+    { title: 'Địa chỉ', dataIndex: 'Address' },
+    {
+      title: 'Hành động', width: 150,
+      render: (_, r) => (
+        <Space>
+          <Button size="small" type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} onClick={() => openVenueModal(r)}>Sửa</Button>
+          <Button size="small" danger onClick={() => confirm({ title: `Xóa địa điểm "${r.Name}"?`, content: 'Hành động này không thể hoàn tác.', onOk: () => handleDeleteVenue(r.VenueID) })}>Xóa</Button>
         </Space>
       )
     }
@@ -423,6 +474,7 @@ const AdminDashboard = () => {
     { key: 'speakers', icon: <UserOutlined />, label: `Diễn giả`, 
       extra: pendingSpeakers.length > 0 ? <Badge count={pendingSpeakers.length} /> : null },
     { key: 'staffs', icon: <TeamOutlined />, label: 'Tình nguyện viên' },
+    { key: 'venues', icon: <EnvironmentOutlined />, label: 'Quản lý Địa điểm' },
     { key: 'users', icon: <UserOutlined />, label: 'Người dùng' },
   ];
 
@@ -451,7 +503,7 @@ const AdminDashboard = () => {
           <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 20 }}>
             E
           </div>
-          {!collapsed && <div style={{ color: 'white', fontSize: 20, fontWeight: 800, fontFamily: 'Sora,sans-serif', letterSpacing: 1 }}>EMS Admin</div>}
+          {!collapsed && <div style={{ color: 'white', fontSize: 20, fontWeight: 800, fontFamily: "'Inter', sans-serif", letterSpacing: 1 }}>EMS Admin</div>}
         </div>
         <Menu
           theme="dark"
@@ -488,7 +540,7 @@ const AdminDashboard = () => {
         <Content style={{ margin: '24px', background: '#fff', padding: activeMenu === 'event_detail' ? 0 : 24, borderRadius: 12, minHeight: 280, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           {activeMenu === 'overview' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Tổng quan hệ thống</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Tổng quan hệ thống</Title>
               <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
                 {[
                   { title: 'Tổng sự kiện', value: stats?.TotalEvents, icon: <CalendarOutlined />, color: '#2563eb' },
@@ -501,7 +553,7 @@ const AdminDashboard = () => {
                     <Card style={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: 'Sora,sans-serif' }}>{s.value ?? 0}</div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: "'Inter', sans-serif" }}>{s.value ?? 0}</div>
                           <div style={{ fontSize: 12, color: '#64748b' }}>{s.title}</div>
                         </div>
                         <div style={{ fontSize: 20, color: s.color, opacity: 0.3 }}>{s.icon}</div>
@@ -511,7 +563,7 @@ const AdminDashboard = () => {
                 ))}
               </Row>
 
-              <Title level={5} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 16 }}>Hoạt động sự kiện gần đây</Title>
+              <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Hoạt động sự kiện gần đây</Title>
               <Table
                 dataSource={recentEvents} rowKey="EventID"
                 pagination={{ pageSize: 5 }}
@@ -533,12 +585,12 @@ const AdminDashboard = () => {
 
           {activeMenu === 'events' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Sự kiện</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Sự kiện</Title>
               <Tabs defaultActiveKey="pending" items={[
                 {
                   key: 'pending',
-                  label: `Sự kiện chờ duyệt (${pendingEvents.length})`,
-                  children: <Table columns={eventCols} dataSource={pendingEvents} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
+                  label: `Sự kiện chờ duyệt (${pendingEvents.filter(e => !e.ProposedChanges).length})`,
+                  children: <Table columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
                 },
                 {
                   key: 'edit_requests',
@@ -556,14 +608,14 @@ const AdminDashboard = () => {
 
           {activeMenu === 'organizers' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Ban tổ chức</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Ban tổ chức</Title>
               <Table columns={orgCols} dataSource={allOrganizers} rowKey="OrganizerProfileID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} rowClassName={r => r.ApprovalStatus === 'Pending' ? 'row-pending' : ''} locale={{ emptyText: 'Chưa có dữ liệu' }} />
             </div>
           )}
 
           {activeMenu === 'speakers' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Diễn giả</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Diễn giả</Title>
               <Table 
                 columns={speakerCols} 
                 dataSource={allSpeakers} 
@@ -579,16 +631,26 @@ const AdminDashboard = () => {
           {activeMenu === 'staffs' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <Title level={4} style={{ fontFamily: 'Sora,sans-serif', margin: 0 }}>Quản lý Tình nguyện viên (Staff)</Title>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Tình nguyện viên (Staff)</Title>
                 <Button type="primary" onClick={() => openStaffModal()}>+ Thêm Staff mới</Button>
               </div>
               <Table columns={staffTableCols} dataSource={availableStaffs} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Staff nào' }} />
             </div>
           )}
 
+          {activeMenu === 'venues' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Địa điểm</Title>
+                <Button type="primary" onClick={() => openVenueModal()}>+ Thêm Địa điểm</Button>
+              </div>
+              <Table columns={venueCols} dataSource={allVenues} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
+            </div>
+          )}
+
           {activeMenu === 'users' && (
             <div>
-              <Title level={4} style={{ fontFamily: 'Sora,sans-serif', marginBottom: 24 }}>Quản lý Người dùng</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Người dùng</Title>
               <Table columns={userCols} dataSource={allUsers} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
             </div>
           )}
@@ -737,6 +799,25 @@ const AdminDashboard = () => {
               ]} />
             </Form.Item>
           )}
+        </Form>
+      </Modal>
+
+      {/* Venue CRUD Modal */}
+      <Modal
+        title={venueModal.data ? "Cập nhật Địa điểm" : "Thêm mới Địa điểm"}
+        open={venueModal.open}
+        onCancel={() => setVenueModal({ open: false, data: null })}
+        onOk={() => venueForm.submit()}
+        okText="Lưu"
+        cancelText="Hủy"
+      >
+        <Form form={venueForm} layout="vertical" onFinish={handleVenueSubmit}>
+          <Form.Item name="Name" label="Tên địa điểm" rules={[{ required: true, message: 'Vui lòng nhập tên địa điểm' }]}>
+            <Input placeholder="VD: Tòa nhà Alpha (Hà Nội)" />
+          </Form.Item>
+          <Form.Item name="Address" label="Địa chỉ" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}>
+            <Input.TextArea placeholder="VD: Khu CNC Hòa Lạc, Thạch Thất, Hà Nội" rows={3} />
+          </Form.Item>
         </Form>
       </Modal>
     </Layout>

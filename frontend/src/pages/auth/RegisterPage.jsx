@@ -105,7 +105,7 @@ const RegisterPage = () => {
       {/* Left panel */}
       <div className="auth-left">
         <div className="auth-brand">
-          <div className="auth-logo">
+          <div className="auth-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <span className="logo-icon">🎓</span>
             <span className="logo-text">EMS</span>
           </div>
@@ -136,6 +136,9 @@ const RegisterPage = () => {
       <div className="auth-right auth-right--scroll">
         <div className="auth-card">
           <div className="auth-card-header">
+            <Button type="link" onClick={() => navigate('/')} style={{ padding: 0, marginBottom: 16, color: '#6b7280' }}>
+              ← Về trang chủ
+            </Button>
             <h2>Tạo tài khoản</h2>
             <p>Chọn loại tài khoản phù hợp với bạn.</p>
           </div>

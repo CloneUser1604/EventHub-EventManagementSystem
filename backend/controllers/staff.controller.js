@@ -26,7 +26,7 @@ const getEventParticipants = async (req, res) => {
     const result = await pool.request()
       .input('EventID', sql.Int, eventId)
       .query(`
-        SELECT r.RegistrationID, r.ParticipantID, u.FullName, u.Email, r.Status, 
+        SELECT r.RegistrationID, r.ParticipantID, u.FullName, u.Email, u.Role, r.Status, 
                CASE WHEN es.EventStaffID IS NOT NULL THEN 'Assigned' ELSE NULL END AS InviteStatus, 
                a.Status AS AttendanceStatus
         FROM Registrations r
@@ -47,12 +47,12 @@ const getEventParticipants = async (req, res) => {
 const getAvailableStaff = async (req, res) => {
   try {
     const pool = getPool();
-    // Lấy tất cả user có role Staff hoặc Participant
+    // Lấy tất cả user có role Staff
     const result = await pool.request()
       .query(`
         SELECT UserID, FullName, Email, Role, Phone, IsActive, CreatedAt
         FROM Users
-        WHERE Role IN ('Staff', 'Participant')
+        WHERE Role = 'Staff'
       `);
     return res.status(200).json({ success: true, data: result.recordset });
   } catch (error) {
@@ -135,7 +135,7 @@ const getAssignedStaff = async (req, res) => {
         SELECT es.EventStaffID, es.StaffID, u.FullName, u.Email, u.Role, u.Phone, es.AssignedAt
         FROM EventStaffs es
         JOIN Users u ON es.StaffID = u.UserID
-        WHERE es.EventID = @EventID
+        WHERE es.EventID = @EventID AND u.Role = 'Staff'
       `);
     return res.status(200).json({ success: true, data: result.recordset });
   } catch (error) {

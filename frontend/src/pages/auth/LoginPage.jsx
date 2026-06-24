@@ -43,7 +43,7 @@ const LoginPage = () => {
                  : role === 'Organizer' ? '/organizer/events'
                  : role === 'Participant' ? '/'
                  : role === 'Speaker' ? '/my-calendar'
-                 : role === 'Staff' ? '/staff'
+                 : role === 'Staff' ? '/'
                  : from === '/dashboard' ? '/' : from;
       navigate(dest, { replace: true });
     } else {
@@ -55,7 +55,7 @@ const LoginPage = () => {
     <div className="auth-page">
       <div className="auth-left">
         <div className="auth-brand">
-          <div className="auth-logo">
+          <div className="auth-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <span className="logo-icon">🎓</span>
             <span className="logo-text">EMS</span>
           </div>
@@ -89,6 +89,9 @@ const LoginPage = () => {
       <div className="auth-right">
         <div className="auth-card">
           <div className="auth-card-header">
+            <Button type="link" onClick={() => navigate('/')} style={{ padding: 0, marginBottom: 16, color: '#6b7280' }}>
+              ← Về trang chủ
+            </Button>
             <h2>Đăng nhập</h2>
             <p>Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.</p>
           </div>

@@ -83,7 +83,10 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   };
 
   const handleRegister = async () => {
-    if (!isAuthenticated) return navigate('/login', { state: { from: { pathname: `/events/${targetId}` } } });
+    if (!isAuthenticated) {
+      message.warning('Vui lòng đăng nhập để đăng ký sự kiện!');
+      return navigate('/login', { state: { from: { pathname: `/events/${targetId}` } } });
+    }
     if (user?.role !== 'Participant' && user?.role !== 'Speaker' && user?.role !== 'Staff') return message.warning('Chỉ người dùng cá nhân, diễn giả hoặc staff mới có thể đăng ký tham gia sự kiện');
     setRegistering(true);
     try {
@@ -347,7 +350,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                     disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published'}
                     style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
                   >
-                    {!isAuthenticated ? '🔒 Đăng nhập để đăng ký' : registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
+                    {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
                   </Button>
                 </>
               )}

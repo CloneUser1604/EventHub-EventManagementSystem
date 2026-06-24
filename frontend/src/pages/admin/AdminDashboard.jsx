@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
   Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
@@ -29,8 +29,36 @@ const AdminDashboard = () => {
   
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('overview');
-  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeMenu = searchParams.get('tab') || 'overview';
+  const selectedEventId = searchParams.get('eventId');
+
+  const setActiveMenu = (menu) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('tab', menu);
+      if (menu !== 'event_detail') newParams.delete('eventId');
+      return newParams;
+    });
+  };
+
+  const setSelectedEventId = (id) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (id) newParams.set('eventId', id);
+      else newParams.delete('eventId');
+      return newParams;
+    });
+  };
+
+  const handleViewEvent = (eventId) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', 'event_detail');
+      p.set('eventId', eventId);
+      return p;
+    });
+  };
   
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
@@ -282,7 +310,7 @@ const AdminDashboard = () => {
         const isApprovedNoChanges = (r.ApprovalStatus === 'Approved' || r.Status === 'Published' || r.Status === 'Completed') && !r.ProposedChanges;
         return (
           <Space size={4}>
-            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => { setActiveMenu('event_detail'); setSelectedEventId(r.EventID); }}>Xem</Button>
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewEvent(r.EventID)}>Xem</Button>
             {isApprovedNoChanges ? (
               <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('cancel_event', r.EventID, r.Title)}>Khóa sự kiện</Button>
             ) : (
@@ -337,13 +365,11 @@ const AdminDashboard = () => {
       render: (_, r) => (
         <Space>
           <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setViewOrgModal({ open: true, org: r })}>Hồ sơ</Button>
-          {r.ApprovalStatus === 'Pending' ? (
+          {r.ApprovalStatus === 'Pending' && (
             <>
               <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => confirm({ title: `Duyệt "${r.OrganizationName}"?`, onOk: () => handleOrgAction(r.OrganizerProfileID, 'approve') })}>Duyệt</Button>
               <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('org', r.OrganizerProfileID, r.OrganizationName)}>Từ chối</Button>
             </>
-          ) : (
-            <Text type="secondary" style={{ fontSize: 12 }}>{r.ApprovalStatus === 'Approved' ? '✅ Đã duyệt' : '❌ Đã từ chối'}</Text>
           )}
         </Space>
       ),

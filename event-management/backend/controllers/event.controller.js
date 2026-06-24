@@ -178,12 +178,7 @@ const getEventById = async (req, res) => {
       return s;
     });
 
-    const sponsors = await pool.request()
-      .input('EventID', sql.Int, parseInt(id))
-      .query(`
-        SELECT sp.*, es.SponsorTier FROM EventSponsors es
-        JOIN Sponsors sp ON es.SponsorID = sp.SponsorID WHERE es.EventID = @EventID
-      `);
+
 
     let isStaff = false;
     if (req.user) {
@@ -194,7 +189,7 @@ const getEventById = async (req, res) => {
       if (staffCheck.recordset.length > 0) isStaff = true;
     }
 
-    return successResponse(res, { ...event, sessions: sessions, sponsors: sponsors.recordset, isStaff });
+    return successResponse(res, { ...event, sessions: sessions, isStaff });
   } catch (error) {
     console.error('getEventById error:', error.message);
     return errorResponse(res, 'Lấy thông tin sự kiện thất bại');

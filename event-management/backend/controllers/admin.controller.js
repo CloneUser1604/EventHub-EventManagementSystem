@@ -186,7 +186,7 @@ const approveEvent = async (req, res) => {
           UNION
           SELECT SpeakerID AS UserID FROM SpeakerInvitations WHERE EventID = @EventID AND Status = 'Accepted'
           UNION
-          SELECT ParticipantID AS UserID FROM StaffInvitations WHERE EventID = @EventID AND Status = 'Accepted'
+          SELECT StaffID AS UserID FROM EventStaffs WHERE EventID = @EventID
         `);
 
       for (const p of participants.recordset) {

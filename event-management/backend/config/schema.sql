@@ -197,20 +197,6 @@ CREATE TABLE EventStaffs (
   UNIQUE (EventID, StaffID)
 );
 
--- ============================================================
--- 10b. STAFF INVITATIONS
--- ============================================================
-CREATE TABLE StaffInvitations (
-  InvitationID INT IDENTITY(1,1) PRIMARY KEY,
-  EventID      INT            NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
-  ParticipantID INT           NOT NULL REFERENCES Users(UserID),
-  InvitedBy    INT            NOT NULL REFERENCES Users(UserID),
-  Status       VARCHAR(20)    NOT NULL DEFAULT 'Pending'
-                 CHECK (Status IN ('Pending','Accepted','Declined')),
-  RespondedAt  DATETIME       NULL,
-  SentAt       DATETIME       NOT NULL DEFAULT GETDATE(),
-  UNIQUE (EventID, ParticipantID)
-);
 
 -- ============================================================
 -- 11. REGISTRATIONS
@@ -319,34 +305,11 @@ CREATE TABLE Notifications (
   Title          NVARCHAR(300)  NOT NULL,
   Message        NVARCHAR(MAX)  NOT NULL,
   Type           VARCHAR(30)    NOT NULL DEFAULT 'General'
-                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP','SpeakerInvitation','StaffInvitation','EventUpdate')),
+                   CHECK (Type IN ('General','EventApproval','Registration','CheckIn','Survey','Reminder','OTP','SpeakerInvitation','EventUpdate')),
   IsRead         BIT            NOT NULL DEFAULT 0,
   RelatedID      INT            NULL,   -- EventID, RegistrationID, etc.
   RelatedType    VARCHAR(50)    NULL,   -- 'Event', 'Registration', etc.
   CreatedAt      DATETIME       NOT NULL DEFAULT GETDATE()
-);
-
--- ============================================================
--- 19. SPONSORS
--- ============================================================
-CREATE TABLE Sponsors (
-  SponsorID   INT IDENTITY(1,1) PRIMARY KEY,
-  Name        NVARCHAR(200)  NOT NULL,
-  LogoURL     VARCHAR(500)   NULL,
-  WebsiteURL  VARCHAR(500)   NULL,
-  Description NVARCHAR(MAX)  NULL,
-  CreatedAt   DATETIME       NOT NULL DEFAULT GETDATE()
-);
-
--- ============================================================
--- 20. EVENT SPONSORS
--- ============================================================
-CREATE TABLE EventSponsors (
-  EventSponsorID INT IDENTITY(1,1) PRIMARY KEY,
-  EventID        INT            NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
-  SponsorID      INT            NOT NULL REFERENCES Sponsors(SponsorID),
-  SponsorTier    VARCHAR(50)    NULL,  -- Gold, Silver, Bronze, etc.
-  UNIQUE (EventID, SponsorID)
 );
 
 -- ============================================================

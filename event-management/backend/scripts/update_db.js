@@ -43,25 +43,6 @@ async function runUpdate() {
       }
     }
 
-    // 4. Create StaffInvitations table if not exists
-    try {
-      await pool.request().query(`
-        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='StaffInvitations' AND xtype='U')
-        CREATE TABLE StaffInvitations (
-            InvitationID INT IDENTITY(1,1) PRIMARY KEY,
-            EventID INT NOT NULL FOREIGN KEY REFERENCES Events(EventID),
-            ParticipantID INT NOT NULL FOREIGN KEY REFERENCES Users(UserID),
-            InvitedBy INT NOT NULL FOREIGN KEY REFERENCES Users(UserID),
-            Status VARCHAR(20) DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Accepted', 'Declined', 'Revoked')),
-            SentAt DATETIME DEFAULT GETDATE(),
-            RespondedAt DATETIME NULL
-        );
-      `);
-      console.log('[+] Ensured StaffInvitations table exists');
-    } catch (e) {
-      console.warn('[!] Error creating StaffInvitations:', e.message);
-    }
-
     console.log('DB Update complete!');
     process.exit(0);
   } catch (error) {

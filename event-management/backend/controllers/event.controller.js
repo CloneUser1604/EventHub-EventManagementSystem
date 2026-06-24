@@ -691,10 +691,10 @@ const getDashboardStats = async (req, res) => {
       GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
     `);
     const registrationsChart = await pool.request().query(`
-      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      SELECT FORMAT(RegisteredAt, '${formatStr}') as label, COUNT(*) as value 
       FROM Registrations 
-      WHERE CreatedAt >= ${dateLimit}
-      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+      WHERE RegisteredAt >= ${dateLimit}
+      GROUP BY FORMAT(RegisteredAt, '${formatStr}') ORDER BY label
     `);
 
     return successResponse(res, { 

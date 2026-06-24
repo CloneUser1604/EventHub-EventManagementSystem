@@ -340,9 +340,9 @@ const forgotPassword = async (req, res) => {
       .input('Email', sql.VarChar(255), email)
       .query('SELECT UserID, FullName, IsActive FROM Users WHERE Email = @Email');
 
-    const msg = 'Nếu email tồn tại, chúng tôi sẽ gửi link đặt lại mật khẩu.';
     const user = result.recordset[0];
-    if (!user || !user.IsActive) return successResponse(res, null, msg);
+    if (!user) return errorResponse(res, 'Tài khoản này không tồn tại. Vui lòng nhập lại email đã đăng ký.', 404);
+    if (!user.IsActive) return errorResponse(res, 'Tài khoản này đã bị khóa. Không thể đặt lại mật khẩu.', 403);
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
@@ -361,7 +361,7 @@ const forgotPassword = async (req, res) => {
     console.log(`========================================\n`);
 
     sendPasswordResetEmail(email, user.FullName, resetToken).catch(console.error);
-    return successResponse(res, null, msg);
+    return successResponse(res, null, 'Đã gửi link đặt lại mật khẩu đến email của bạn.');
   } catch (error) {
     return errorResponse(res, 'Yêu cầu đặt lại mật khẩu thất bại');
   }

@@ -30,7 +30,7 @@ export const ForgotPasswordPage = () => {
           <Result
             icon={<div style={{ fontSize: 64 }}>📬</div>}
             title="Kiểm tra email của bạn"
-            subTitle="Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu. Kiểm tra cả thư mục Spam."
+            subTitle="Chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra cả thư mục Spam."
             extra={
               <Link to="/login">
                 <Button type="primary" size="large" className="auth-submit-btn">

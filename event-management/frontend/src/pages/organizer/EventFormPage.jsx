@@ -302,13 +302,48 @@ const EventFormPage = () => {
               </Radio.Group>
             </Form.Item>
 
-            <Form.Item name="dateRange" label="Ngày bắt đầu – Kết thúc" rules={[{ required: true, message: 'Vui lòng chọn thời gian' }]}>
+            <Form.Item 
+              name="dateRange" 
+              label="Ngày bắt đầu – Kết thúc" 
+              rules={[
+                { required: true, message: 'Vui lòng chọn thời gian' },
+                {
+                  validator: (_, value) => {
+                    if (value && value[0] && value[1]) {
+                      if (value[0].isSame(value[1]) || value[1].isBefore(value[0])) {
+                        return Promise.reject(new Error('Thời gian kết thúc phải diễn ra sau thời gian bắt đầu'));
+                      }
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
               <RangePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }}
                 disabledDate={d => d && d.isBefore(dayjs().startOf('day'))} />
             </Form.Item>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Form.Item name="registrationDeadline" label="Hạn đăng ký (tuỳ chọn)">
+              <Form.Item 
+                name="registrationDeadline" 
+                label="Hạn đăng ký (tuỳ chọn)"
+                dependencies={['dateRange']}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) return Promise.resolve();
+                      const dates = getFieldValue('dateRange');
+                      if (dates && dates[0]) {
+                        const start = dates[0];
+                        if (value.isAfter(start.subtract(1, 'day'))) {
+                          return Promise.reject(new Error('Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu'));
+                        }
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
                 <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }}
                   disabledDate={d => d && d.isBefore(dayjs().startOf('day'))} />
               </Form.Item>

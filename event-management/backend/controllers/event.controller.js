@@ -656,6 +656,10 @@ const getVenues = async (req, res) => {
 
 const getDashboardStats = async (req, res) => {
   try {
+    const { timeRange = 'month' } = req.query; 
+    const formatStr = timeRange === 'day' ? 'yyyy-MM-dd' : 'yyyy-MM';
+    const dateLimit = timeRange === 'day' ? 'DATEADD(day, -30, GETDATE())' : 'DATEADD(month, -6, GETDATE())';
+
     const pool = getPool();
     const stats = await pool.request().query(`
       SELECT
@@ -672,7 +676,36 @@ const getDashboardStats = async (req, res) => {
       SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, u.FullName AS OrganizerName
       FROM Events e JOIN Users u ON e.OrganizerID=u.UserID ORDER BY e.CreatedAt DESC
     `);
-    return successResponse(res, { stats: stats.recordset[0], recentEvents: recentEvents.recordset });
+
+    // Chart Data
+    const eventsChart = await pool.request().query(`
+      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Events 
+      WHERE CreatedAt >= ${dateLimit}
+      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+    `);
+    const usersChart = await pool.request().query(`
+      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Users 
+      WHERE Role='Participant' AND CreatedAt >= ${dateLimit}
+      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+    `);
+    const registrationsChart = await pool.request().query(`
+      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Registrations 
+      WHERE CreatedAt >= ${dateLimit}
+      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+    `);
+
+    return successResponse(res, { 
+      stats: stats.recordset[0], 
+      recentEvents: recentEvents.recordset,
+      charts: {
+        events: eventsChart.recordset,
+        users: usersChart.recordset,
+        registrations: registrationsChart.recordset
+      }
+    });
   } catch (e) {
     console.error('getDashboardStats error:', e.message);
     return errorResponse(res, 'Lấy thống kê thất bại');

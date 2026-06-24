@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
   Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
@@ -62,6 +63,8 @@ const AdminDashboard = () => {
   
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
+  const [chartsData, setChartsData] = useState(null);
+  const [timeRange, setTimeRange] = useState('month');
   const [pendingOrgs, setPendingOrgs] = useState([]);
   const [allOrganizers, setAllOrganizers] = useState([]);
   const [pendingEvents, setPendingEvents] = useState([]);
@@ -91,12 +94,36 @@ const AdminDashboard = () => {
   const [venueForm] = Form.useForm();
 
   useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadStats(); }, [timeRange]);
+
+  const loadStats = async () => {
+    try {
+      const statsRes = await eventService.getDashboardStats(timeRange);
+      setStats(statsRes.data?.data?.stats || statsRes.data?.stats || {});
+      setRecentEvents(statsRes.data?.data?.recentEvents || statsRes.data?.recentEvents || []);
+      setChartsData(statsRes.data?.data?.charts || statsRes.data?.charts || null);
+    } catch (e) {
+      console.error('Failed to load stats:', e);
+    }
+  };
+
+  const combinedLineData = React.useMemo(() => {
+    if (!chartsData) return [];
+    const map = {};
+    chartsData.registrations?.forEach(d => {
+      map[d.label] = { label: d.label, registrations: d.value, users: 0 };
+    });
+    chartsData.users?.forEach(d => {
+      if (!map[d.label]) map[d.label] = { label: d.label, registrations: 0, users: 0 };
+      map[d.label].users = d.value;
+    });
+    return Object.values(map).sort((a, b) => a.label.localeCompare(b.label));
+  }, [chartsData]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [statsRes, orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes] = await Promise.all([
-        eventService.getDashboardStats(),
+      const [orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes] = await Promise.all([
         adminService.getPendingOrganizers(),
         adminService.getAllOrganizers(),
         eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
@@ -107,8 +134,7 @@ const AdminDashboard = () => {
         fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
         venueService.getAllVenues()
       ]);
-      setStats(statsRes.data?.data?.stats || statsRes.data?.stats || {});
-      setRecentEvents(statsRes.data?.data?.recentEvents || statsRes.data?.recentEvents || []);
+
       setPendingOrgs(orgsRes.data?.data || []);
       setAllOrganizers(allOrgsRes.data?.data || []);
       setPendingEvents(eventsRes.data?.data?.events || []);
@@ -569,7 +595,13 @@ const AdminDashboard = () => {
         <Content style={{ margin: '24px', background: '#fff', padding: activeMenu === 'event_detail' ? 0 : 24, borderRadius: 12, minHeight: 280, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           {activeMenu === 'overview' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Tổng quan hệ thống</Title>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Tổng quan hệ thống</Title>
+                <Select value={timeRange} onChange={setTimeRange} style={{ width: 180 }}>
+                  <Select.Option value="month">6 Tháng gần nhất</Select.Option>
+                  <Select.Option value="day">30 Ngày gần nhất</Select.Option>
+                </Select>
+              </div>
               <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
                 {[
                   { title: 'Tổng sự kiện', value: stats?.TotalEvents, icon: <CalendarOutlined />, color: '#2563eb' },
@@ -591,6 +623,43 @@ const AdminDashboard = () => {
                   </Col>
                 ))}
               </Row>
+
+              {chartsData && (
+                <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+                  <Col xs={24} lg={12}>
+                    <Card title="Sự kiện mới tạo" bordered={false} style={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <div style={{ height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartsData.events}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                            <Bar dataKey="value" name="Sự kiện" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card title="Người dùng tham gia" bordered={false} style={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <div style={{ height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={combinedLineData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                            <Legend wrapperStyle={{ paddingTop: 10 }} />
+                            <Line type="monotone" dataKey="registrations" name="Lượt đăng ký" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="users" name="Người dùng mới" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              )}
 
               <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Hoạt động sự kiện gần đây</Title>
               <Table

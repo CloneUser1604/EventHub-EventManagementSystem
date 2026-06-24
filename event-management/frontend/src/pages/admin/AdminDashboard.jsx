@@ -633,7 +633,7 @@ const AdminDashboard = () => {
                           <BarChart data={chartsData.events}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
                             <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
                             <Bar dataKey="value" name="Sự kiện" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
                           </BarChart>
@@ -648,7 +648,7 @@ const AdminDashboard = () => {
                           <LineChart data={combinedLineData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
                             <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
                             <Legend wrapperStyle={{ paddingTop: 10 }} />
                             <Line type="monotone" dataKey="registrations" name="Lượt đăng ký" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />

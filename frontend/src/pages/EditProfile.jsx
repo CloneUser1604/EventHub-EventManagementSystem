@@ -18,7 +18,7 @@ const EditProfile = () => {
   const [existingDocs, setExistingDocs] = useState([]);
   const [newDocs, setNewDocs] = useState(null);
 
-  // ĐÃ THÊM: State quản lý file ảnh đại diện upload từ máy
+  // State quản lý file ảnh đại diện upload từ máy
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
@@ -68,13 +68,22 @@ const EditProfile = () => {
 
   const handleSaveInfo = async (e) => {
     e.preventDefault();
+
+    // ĐÃ THÊM: Validate Số điện thoại chuẩn VN (10 số, bắt đầu bằng số 0)
+    if (formData.phone) {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        return message.warning('Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số và bắt đầu bằng số 0.');
+      }
+    }
+
     setIsSaving(true);
     try {
       const formDataPayload = new FormData();
       formDataPayload.append('fullName', formData.fullName);
       formDataPayload.append('phone', formData.phone);
       
-      // ĐÃ THÊM: Ưu tiên gửi file ảnh, nếu không có thì gửi link URL
+      // Ưu tiên gửi file ảnh, nếu không có thì gửi link URL
       if (avatarFile) {
         formDataPayload.append('avatar', avatarFile);
       } else {
@@ -169,7 +178,6 @@ const EditProfile = () => {
             <p className="view-subtitle">Thông tin này sẽ hiển thị trên hồ sơ công khai của bạn.</p>
 
             <div className="profile-photo-section">
-              {/* ĐÃ SỬA: Hiển thị ảnh Preview từ máy, nếu không có thì lấy ảnh cũ, cuối cùng là UI Avatar */}
               <img 
                 src={avatarPreview || getImageUrl(formData.avatarURL) || 'https://ui-avatars.com/api/?name=User&background=4a25e1&color=fff'} 
                 alt="Avatar" 
@@ -232,9 +240,20 @@ const EditProfile = () => {
                 <label>Địa chỉ Email</label>
                 <input type="email" value={formData.email} disabled style={{ backgroundColor: '#f8fafc' }} />
               </div>
+              
+              {/* ĐÃ SỬA: Chặn nhập chữ, giới hạn 10 ký tự */}
               <div className="input-group">
                 <label>Số điện thoại</label>
-                <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                <input 
+                  type="tel" 
+                  value={formData.phone} 
+                  maxLength="10"
+                  placeholder="Ví dụ: 0912345678"
+                  onChange={(e) => {
+                    const onlyNumbers = e.target.value.replace(/\D/g, '');
+                    setFormData({...formData, phone: onlyNumbers});
+                  }} 
+                />
               </div>
 
               {/* KHU VỰC TẢI TÀI LIỆU (Chỉ hiện với Organizer) */}

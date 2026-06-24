@@ -50,6 +50,15 @@ const AdminDashboard = () => {
       return newParams;
     });
   };
+
+  const handleViewEvent = (eventId) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', 'event_detail');
+      p.set('eventId', eventId);
+      return p;
+    });
+  };
   
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
@@ -304,7 +313,7 @@ const AdminDashboard = () => {
         const isApprovedNoChanges = (r.ApprovalStatus === 'Approved' || r.Status === 'Published' || r.Status === 'Completed') && !r.ProposedChanges;
         return (
           <Space size={4}>
-            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => { setActiveMenu('event_detail'); setSelectedEventId(r.EventID); }}>Xem</Button>
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewEvent(r.EventID)}>Xem</Button>
             {isApprovedNoChanges ? (
               <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('cancel_event', r.EventID, r.Title)}>Khóa sự kiện</Button>
             ) : (

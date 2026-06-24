@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
   Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
@@ -29,8 +29,27 @@ const AdminDashboard = () => {
   
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('overview');
-  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeMenu = searchParams.get('tab') || 'overview';
+  const selectedEventId = searchParams.get('eventId');
+
+  const setActiveMenu = (menu) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('tab', menu);
+      if (menu !== 'event_detail') newParams.delete('eventId');
+      return newParams;
+    });
+  };
+
+  const setSelectedEventId = (id) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (id) newParams.set('eventId', id);
+      else newParams.delete('eventId');
+      return newParams;
+    });
+  };
   
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);

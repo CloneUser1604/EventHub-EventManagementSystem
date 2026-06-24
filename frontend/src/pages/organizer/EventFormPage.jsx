@@ -105,6 +105,23 @@ const EventFormPage = () => {
         return message.error('Vui lòng điền đủ Tiêu đề, Bắt đầu và Kết thúc cho các Chương trình (Phiên)');
       }
 
+      const eventStart = values.dateRange?.[0];
+      const eventEnd = values.dateRange?.[1];
+      if (eventStart && eventEnd) {
+        for (let s of sessions) {
+          const sStart = dayjs(s.startTime || s.StartTime);
+          const sEnd = dayjs(s.endTime || s.EndTime);
+          if (sEnd.isSame(sStart) || sEnd.isBefore(sStart)) {
+            setLoading(false);
+            return message.error(`Thời gian kết thúc của phiên "${s.title || s.Title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`);
+          }
+          if (sStart.isBefore(eventStart) || sEnd.isAfter(eventEnd)) {
+            setLoading(false);
+            return message.error(`Thời gian của phiên "${s.title || s.Title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`);
+          }
+        }
+      }
+
       const parsedSessions = sessions.map(s => ({
         title: s.title || s.Title,
         description: s.description || s.Description,
@@ -302,13 +319,48 @@ const EventFormPage = () => {
               </Radio.Group>
             </Form.Item>
 
-            <Form.Item name="dateRange" label="Ngày bắt đầu – Kết thúc" rules={[{ required: true, message: 'Vui lòng chọn thời gian' }]}>
+            <Form.Item 
+              name="dateRange" 
+              label="Ngày bắt đầu – Kết thúc" 
+              rules={[
+                { required: true, message: 'Vui lòng chọn thời gian' },
+                {
+                  validator: (_, value) => {
+                    if (value && value[0] && value[1]) {
+                      if (value[0].isSame(value[1]) || value[1].isBefore(value[0])) {
+                        return Promise.reject(new Error('Thời gian kết thúc phải diễn ra sau thời gian bắt đầu'));
+                      }
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
               <RangePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }}
                 disabledDate={d => d && d.isBefore(dayjs().startOf('day'))} />
             </Form.Item>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Form.Item name="registrationDeadline" label="Hạn đăng ký (tuỳ chọn)">
+              <Form.Item 
+                name="registrationDeadline" 
+                label="Hạn đăng ký (tuỳ chọn)"
+                dependencies={['dateRange']}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) return Promise.resolve();
+                      const dates = getFieldValue('dateRange');
+                      if (dates && dates[0]) {
+                        const start = dates[0];
+                        if (value.isAfter(start.subtract(1, 'day'))) {
+                          return Promise.reject(new Error('Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu'));
+                        }
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
                 <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }}
                   disabledDate={d => d && d.isBefore(dayjs().startOf('day'))} />
               </Form.Item>

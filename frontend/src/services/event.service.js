@@ -19,5 +19,5 @@ export const eventService = {
   deleteSession: (id, sessionId) => api.delete(`/events/${id}/sessions/${sessionId}`),
   getCategories: () => api.get('/events/categories'),
   getVenues: () => api.get('/events/venues'),
-  getDashboardStats: () => api.get('/events/admin/stats'),
+  getDashboardStats: (timeRange = 'month') => api.get('/events/admin/stats', { params: { timeRange } }),
 };

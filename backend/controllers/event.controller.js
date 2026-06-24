@@ -178,12 +178,7 @@ const getEventById = async (req, res) => {
       return s;
     });
 
-    const sponsors = await pool.request()
-      .input('EventID', sql.Int, parseInt(id))
-      .query(`
-        SELECT sp.*, es.SponsorTier FROM EventSponsors es
-        JOIN Sponsors sp ON es.SponsorID = sp.SponsorID WHERE es.EventID = @EventID
-      `);
+
 
     let isStaff = false;
     if (req.user) {
@@ -194,7 +189,7 @@ const getEventById = async (req, res) => {
       if (staffCheck.recordset.length > 0) isStaff = true;
     }
 
-    return successResponse(res, { ...event, sessions: sessions, sponsors: sponsors.recordset, isStaff });
+    return successResponse(res, { ...event, sessions: sessions, isStaff });
   } catch (error) {
     console.error('getEventById error:', error.message);
     return errorResponse(res, 'Lấy thông tin sự kiện thất bại');
@@ -236,6 +231,33 @@ const createEvent = async (req, res) => {
       documentsURL = JSON.stringify(paths);
     } else {
       return errorResponse(res, 'Tài liệu/Giấy phép sự kiện là bắt buộc', 400);
+    }
+
+    const sDate = new Date(startDate);
+    const eDate = new Date(endDate);
+    if (eDate <= sDate) {
+      return errorResponse(res, 'Thời gian kết thúc phải diễn ra sau thời gian bắt đầu', 400);
+    }
+    const rDate = registrationDeadline ? new Date(registrationDeadline) : null;
+    if (rDate) {
+      const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
+      if (rDate > oneDayBeforeStart) {
+        return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
+      }
+    }
+
+    for (const s of parsedSessions) {
+      if (!s.startTime || !s.endTime) {
+        return errorResponse(res, `Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho phiên "${s.title || 'Không tên'}"`, 400);
+      }
+      const sStart = new Date(s.startTime);
+      const sEnd = new Date(s.endTime);
+      if (sEnd <= sStart) {
+        return errorResponse(res, `Thời gian kết thúc của phiên "${s.title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`, 400);
+      }
+      if (sStart < sDate || sEnd > eDate) {
+        return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
+      }
     }
 
     const insertResult = await pool.request()
@@ -330,6 +352,20 @@ const updateEvent = async (req, res) => {
 
     const { title, description, startDate, endDate,
             registrationDeadline, maxParticipants, categoryId, venueId, editReason, sessions, isInternalOnly } = req.body;
+
+    const sDate = startDate ? new Date(startDate) : new Date(event.StartDate);
+    const eDate = endDate ? new Date(endDate) : new Date(event.EndDate);
+    if (eDate <= sDate) {
+      return errorResponse(res, 'Thời gian kết thúc phải diễn ra sau thời gian bắt đầu', 400);
+    }
+    const rDateString = registrationDeadline !== undefined ? registrationDeadline : event.RegistrationDeadline;
+    const rDate = rDateString ? new Date(rDateString) : null;
+    if (rDate) {
+      const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
+      if (rDate > oneDayBeforeStart) {
+        return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
+      }
+    }
     let { coverImageURL } = req.body;
 
     let parsedSessions = [];
@@ -337,6 +373,22 @@ const updateEvent = async (req, res) => {
       try { parsedSessions = JSON.parse(sessions); } catch (e) {}
     } else if (Array.isArray(sessions)) {
       parsedSessions = sessions;
+    }
+
+    if (parsedSessions.length > 0) {
+      for (const s of parsedSessions) {
+        if (!s.startTime || !s.endTime) {
+          return errorResponse(res, `Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho phiên "${s.title || 'Không tên'}"`, 400);
+        }
+        const sStart = new Date(s.startTime);
+        const sEnd = new Date(s.endTime);
+        if (sEnd <= sStart) {
+          return errorResponse(res, `Thời gian kết thúc của phiên "${s.title || 'Không tên'}" phải diễn ra sau thời gian bắt đầu`, 400);
+        }
+        if (sStart < sDate || sEnd > eDate) {
+          return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
+        }
+      }
     }
 
     if (req.files && req.files['coverImage'] && req.files['coverImage'].length > 0) {
@@ -656,6 +708,10 @@ const getVenues = async (req, res) => {
 
 const getDashboardStats = async (req, res) => {
   try {
+    const { timeRange = 'month' } = req.query; 
+    const formatStr = timeRange === 'day' ? 'yyyy-MM-dd' : 'yyyy-MM';
+    const dateLimit = timeRange === 'day' ? 'DATEADD(day, -30, GETDATE())' : 'DATEADD(month, -6, GETDATE())';
+
     const pool = getPool();
     const stats = await pool.request().query(`
       SELECT
@@ -672,7 +728,36 @@ const getDashboardStats = async (req, res) => {
       SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, u.FullName AS OrganizerName
       FROM Events e JOIN Users u ON e.OrganizerID=u.UserID ORDER BY e.CreatedAt DESC
     `);
-    return successResponse(res, { stats: stats.recordset[0], recentEvents: recentEvents.recordset });
+
+    // Chart Data
+    const eventsChart = await pool.request().query(`
+      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Events 
+      WHERE CreatedAt >= ${dateLimit}
+      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+    `);
+    const usersChart = await pool.request().query(`
+      SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Users 
+      WHERE Role='Participant' AND CreatedAt >= ${dateLimit}
+      GROUP BY FORMAT(CreatedAt, '${formatStr}') ORDER BY label
+    `);
+    const registrationsChart = await pool.request().query(`
+      SELECT FORMAT(RegisteredAt, '${formatStr}') as label, COUNT(*) as value 
+      FROM Registrations 
+      WHERE RegisteredAt >= ${dateLimit}
+      GROUP BY FORMAT(RegisteredAt, '${formatStr}') ORDER BY label
+    `);
+
+    return successResponse(res, { 
+      stats: stats.recordset[0], 
+      recentEvents: recentEvents.recordset,
+      charts: {
+        events: eventsChart.recordset,
+        users: usersChart.recordset,
+        registrations: registrationsChart.recordset
+      }
+    });
   } catch (e) {
     console.error('getDashboardStats error:', e.message);
     return errorResponse(res, 'Lấy thống kê thất bại');

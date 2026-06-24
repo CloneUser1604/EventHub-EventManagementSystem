@@ -100,11 +100,6 @@ const cancelRegistration = async (req, res) => {
       .input('Note', sql.NVarChar(500), note || null)
       .query(`UPDATE Registrations SET Status='Cancelled', CancelledAt=GETDATE(), CancellationNote=@Note WHERE RegistrationID=@RegistrationID`);
 
-    // Xoá lời mời làm Staff nếu có khi huỷ đăng ký
-    await pool.request()
-      .input('EventID', sql.Int, reg.EventID)
-      .input('ParticipantID', sql.Int, reg.ParticipantID)
-      .query(`DELETE FROM StaffInvitations WHERE EventID=@EventID AND ParticipantID=@ParticipantID`);
 
     return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${reg.EventTitle}"`);
   } catch (error) {

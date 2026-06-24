@@ -238,9 +238,11 @@ const MyCalendarPage = () => {
   };
 
   const now = dayjs();
-  const upcoming = registrations.filter(r => r.Status === 'Registered' && dayjs(r.EndDate).isAfter(now));
-  const past = registrations.filter(r => r.Status === 'Registered' && dayjs(r.EndDate).isBefore(now));
-  const cancelled = registrations.filter(r => r.Status === 'Cancelled' || r.EventStatus === 'Cancelled');
+  const upcoming = registrations.filter(r => r.Status === 'Registered' && dayjs(r.StartDate).isAfter(now));
+  const ongoing = registrations.filter(r => r.Status === 'Registered' && !dayjs(r.StartDate).isAfter(now) && dayjs(r.EndDate).isAfter(now));
+  const past = registrations.filter(r => r.Status === 'Registered' && !dayjs(r.EndDate).isAfter(now));
+  const cancelledByUser = registrations.filter(r => r.Status === 'Cancelled' && r.EventStatus !== 'Cancelled');
+  const cancelledEvent = registrations.filter(r => r.EventStatus === 'Cancelled');
 
   const renderList = (list, emptyText) => (
     loading ? <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>
@@ -279,7 +281,7 @@ const MyCalendarPage = () => {
             📅 Lịch của tôi
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
-            {upcoming.length} sự kiện sắp tới · {past.length} đã tham dự
+            {upcoming.length} sắp tới · {ongoing.length} đang diễn ra · {past.length} đã tham dự
           </Text>
         </div>
       </div>
@@ -299,14 +301,24 @@ const MyCalendarPage = () => {
                   children: renderList(upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Bạn chưa đăng ký sự kiện nào sắp tới'),
                 },
                 {
+                  key: 'ongoing',
+                  label: <Badge count={ongoing.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>Đang diễn ra</span></Badge>,
+                  children: renderList(ongoing.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Không có sự kiện nào đang diễn ra'),
+                },
+                {
                   key: 'past',
                   label: `Đã qua (${past.length})`,
                   children: renderList(past.sort((a, b) => dayjs(b.StartDate).diff(dayjs(a.StartDate))), 'Chưa có sự kiện đã qua'),
                 },
                 {
-                  key: 'cancelled',
-                  label: `Đã huỷ (${cancelled.length})`,
-                  children: renderList(cancelled, 'Không có đăng ký nào bị huỷ'),
+                  key: 'cancelled_by_user',
+                  label: `Đã huỷ (${cancelledByUser.length})`,
+                  children: renderList(cancelledByUser, 'Bạn chưa huỷ đăng ký sự kiện nào'),
+                },
+                {
+                  key: 'cancelled_event',
+                  label: `Sự kiện bị huỷ (${cancelledEvent.length})`,
+                  children: renderList(cancelledEvent, 'Không có sự kiện nào bị huỷ'),
                 },
               ]}
             />

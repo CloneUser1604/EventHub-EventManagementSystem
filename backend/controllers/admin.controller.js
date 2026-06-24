@@ -186,7 +186,7 @@ const approveEvent = async (req, res) => {
           UNION
           SELECT SpeakerID AS UserID FROM SpeakerInvitations WHERE EventID = @EventID AND Status = 'Accepted'
           UNION
-          SELECT ParticipantID AS UserID FROM StaffInvitations WHERE EventID = @EventID AND Status = 'Accepted'
+          SELECT StaffID AS UserID FROM EventStaffs WHERE EventID = @EventID
         `);
 
       for (const p of participants.recordset) {
@@ -340,6 +340,7 @@ const updateUserStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Trạng thái isActive phải là boolean' });
     }
 
+    const pool = getPool();
     const userCheck = await pool.request().input('UserID', sql.Int, userId).query('SELECT Role FROM Users WHERE UserID = @UserID');
     if (userCheck.recordset.length > 0 && userCheck.recordset[0].Role === 'Admin') {
       return res.status(403).json({ success: false, message: 'Không thể thao tác trên tài khoản Admin' });

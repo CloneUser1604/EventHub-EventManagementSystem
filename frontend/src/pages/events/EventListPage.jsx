@@ -159,6 +159,7 @@ const EventListPage = () => {
           <Option value="StartDate_ASC">Ngày bắt đầu (sớm nhất)</Option>
           <Option value="StartDate_DESC">Ngày bắt đầu (muộn nhất)</Option>
           <Option value="CreatedAt_DESC">Mới nhất</Option>
+          <Option value="Rating_DESC">Đánh giá (Cao đến thấp)</Option>
           <Option value="Title_ASC">Tên A-Z</Option>
         </Select>
       </div>
@@ -202,24 +203,6 @@ const EventListPage = () => {
               style={{flex: 1, borderRadius: 10}}
               allowClear
             />
-            <Button
-              size="large"
-              icon={<FilterOutlined />}
-              onClick={() => setDrawerOpen(true)}
-              style={{
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "white",
-              }}
-            >
-              Lọc{" "}
-              {hasFilters && (
-                <Tag color="blue" style={{marginLeft: 4, marginRight: -4}}>
-                  !
-                </Tag>
-              )}
-            </Button>
           </div>
 
           {/* Active filters */}
@@ -265,7 +248,9 @@ const EventListPage = () => {
                   }
                   color="cyan"
                 >
-                  Theo ngày
+                  {filters.startDate && filters.endDate 
+                    ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
+                    : "Theo ngày"}
                 </Tag>
               )}
             </div>

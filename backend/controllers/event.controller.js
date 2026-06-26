@@ -68,7 +68,7 @@ const getEvents = async (req, res) => {
 
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
 
-    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt' };
+    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt', Rating: 'AverageRating' };
     const orderCol = validSortCols[sortBy] || 'e.StartDate';
     const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
@@ -98,6 +98,7 @@ const getEvents = async (req, res) => {
           op.OrganizationName,
           c.CategoryID, c.Name AS CategoryName,
           v.VenueID, v.Name AS VenueName, v.Address AS VenueAddress,
+          (SELECT ISNULL(AVG(CAST(Rating AS FLOAT)), 0) FROM Feedbacks f WHERE f.EventID = e.EventID) AS AverageRating,
           (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered') AS RegisteredCount,
           (SELECT COUNT(*) FROM Sessions s WHERE s.EventID = e.EventID) AS SessionCount
         FROM Events e

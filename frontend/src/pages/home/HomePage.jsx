@@ -35,15 +35,21 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchMeta();
-    fetchEvents({ status: 'Published', limit: 8, page: 1, sortBy: 'StartDate', sortOrder: 'ASC' });
+    fetchEvents({ status: 'Published', limit: 100, page: 1 });
   }, []);
 
   const handleSearch = () => {
     navigate(`/events?search=${encodeURIComponent(search)}${selectedCat ? `&categoryId=${selectedCat}` : ''}`);
   };
 
-  const featuredEvents = events.slice(0, 3);
-  const upcomingEvents = events.slice(0, 8);
+  const featuredEvents = [...events]
+    .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
+    .slice(0, 3);
+
+  const upcomingEvents = [...events]
+    .filter(e => dayjs(e.EndDate).isAfter(dayjs()))
+    .sort((a, b) => dayjs(a.StartDate).valueOf() - dayjs(b.StartDate).valueOf())
+    .slice(0, 8);
 
   return (
     <MainLayout>

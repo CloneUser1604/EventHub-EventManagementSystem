@@ -69,18 +69,31 @@ const EditProfile = () => {
   const handleSaveInfo = async (e) => {
     e.preventDefault();
 
-    // ĐÃ THÊM: Validate Số điện thoại chuẩn VN (10 số, bắt đầu bằng số 0)
+    // 1. Validate Họ và Tên
+    const trimmedName = formData.fullName.trim();
+    if (!trimmedName) {
+      return message.warning('Họ và tên không được để trống hoặc chỉ chứa dấu cách!');
+    }
+    // Regex cho phép chữ cái (kể cả tiếng Việt) và dấu cách. Không cho phép số và ký tự đặc biệt.
+    const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$/;
+    if (!nameRegex.test(trimmedName)) {
+      return message.warning('Họ và tên không hợp lệ! Vui lòng không nhập số hoặc ký tự đặc biệt.');
+    }
+
+    // 2. Validate Số điện thoại
     if (formData.phone) {
-      const phoneRegex = /^0\d{9}$/;
+      // Bắt buộc 10 số, bắt đầu bằng 03, 05, 07, 08, 09
+      const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
       if (!phoneRegex.test(formData.phone)) {
-        return message.warning('Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số và bắt đầu bằng số 0.');
+        return message.warning('Số điện thoại không hợp lệ! Vui lòng nhập đúng 10 số đầu số mạng Việt Nam (VD: 09, 03...).');
       }
     }
 
     setIsSaving(true);
     try {
       const formDataPayload = new FormData();
-      formDataPayload.append('fullName', formData.fullName);
+      // Gửi lên server tên đã được cắt khoảng trắng thừa
+      formDataPayload.append('fullName', trimmedName);
       formDataPayload.append('phone', formData.phone);
       
       // Ưu tiên gửi file ảnh, nếu không có thì gửi link URL
@@ -100,7 +113,7 @@ const EditProfile = () => {
       const config = { 
         headers: { 
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'multipart/form-data' // Bắt buộc khi có file
+          'Content-Type': 'multipart/form-data'
         } 
       };
 
@@ -188,7 +201,6 @@ const EditProfile = () => {
                 <p className="photo-hint">Ảnh đại diện <br/><span>Nên dùng ảnh vuông, định dạng JPG/PNG.</span></p>
                 <div className="btn-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   
-                  {/* Nút tải ảnh lên từ máy */}
                   <label style={{
                     background: '#4f46e5', color: 'white', padding: '8px 12px', borderRadius: '6px', 
                     cursor: 'pointer', fontSize: '13px', fontWeight: 500, display: 'inline-block', margin: 0
@@ -202,8 +214,8 @@ const EditProfile = () => {
                         if (e.target.files && e.target.files[0]) {
                           const file = e.target.files[0];
                           setAvatarFile(file);
-                          setAvatarPreview(URL.createObjectURL(file)); // Cập nhật hình xem trước
-                          setFormData({...formData, avatarURL: ''}); // Xóa URL cũ để ưu tiên file
+                          setAvatarPreview(URL.createObjectURL(file)); 
+                          setFormData({...formData, avatarURL: ''}); 
                         }
                       }} 
                     />
@@ -216,7 +228,7 @@ const EditProfile = () => {
                     value={formData.avatarURL} 
                     onChange={(e) => {
                       setFormData({...formData, avatarURL: e.target.value});
-                      setAvatarFile(null); // Bỏ chọn file nếu dán URL
+                      setAvatarFile(null); 
                       setAvatarPreview(null);
                     }} 
                     style={{ flex: 1, minWidth: '150px' }}
@@ -241,7 +253,6 @@ const EditProfile = () => {
                 <input type="email" value={formData.email} disabled style={{ backgroundColor: '#f8fafc' }} />
               </div>
               
-              {/* ĐÃ SỬA: Chặn nhập chữ, giới hạn 10 ký tự */}
               <div className="input-group">
                 <label>Số điện thoại</label>
                 <input 
@@ -256,13 +267,11 @@ const EditProfile = () => {
                 />
               </div>
 
-              {/* KHU VỰC TẢI TÀI LIỆU (Chỉ hiện với Organizer) */}
               {userRole === 'Organizer' && (
                 <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Tài liệu xác minh & Giấy phép sự kiện</label>
                   <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
                     
-                    {/* Hiển thị tài liệu cũ (nếu có) */}
                     {existingDocs.length > 0 && (
                       <div style={{ marginBottom: '16px' }}>
                         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b' }}>Tài liệu hiện tại của bạn:</p>

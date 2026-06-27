@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input, Button, Row, Col, Tag, Spin, Select, Empty, Typography } from 'antd';
-import { SearchOutlined, ArrowRightOutlined, CalendarOutlined, TeamOutlined, TrophyOutlined } from '@ant-design/icons';
+import { 
+  SearchOutlined, ArrowRightOutlined, CalendarOutlined, TeamOutlined, TrophyOutlined,
+  CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined, HeartOutlined, NotificationOutlined, AppstoreOutlined
+} from '@ant-design/icons';
 import MainLayout from '../../components/layout/MainLayout';
 import EventCard from '../../components/events/EventCard';
 import useEventStore from '../../store/eventStore';
@@ -26,6 +29,19 @@ const Counter = ({ target, suffix = '' }) => {
   return <span>{count.toLocaleString()}{suffix}</span>;
 };
 
+const getCategoryIcon = (categoryName) => {
+  const name = (categoryName || '').toLowerCase();
+  if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return <CodeOutlined />;
+  if (name.includes('học thuật') || name.includes('academic')) return <BookOutlined />;
+  if (name.includes('hướng nghiệp') || name.includes('career')) return <RocketOutlined />;
+  if (name.includes('kỹ năng') || name.includes('skill')) return <SmileOutlined />;
+  if (name.includes('thể thao') || name.includes('sport')) return <TrophyOutlined />;
+  if (name.includes('tình nguyện') || name.includes('volunteer')) return <HeartOutlined />;
+  if (name.includes('văn hóa') || name.includes('nghệ thuật') || name.includes('art')) return <NotificationOutlined />;
+  return <AppstoreOutlined />;
+};
+
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { events, isLoading, categories, fetchEvents, fetchMeta } = useEventStore();
@@ -35,15 +51,21 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchMeta();
-    fetchEvents({ status: 'Published', limit: 8, page: 1, sortBy: 'StartDate', sortOrder: 'ASC' });
+    fetchEvents({ status: 'Published', limit: 100, page: 1 });
   }, []);
 
   const handleSearch = () => {
     navigate(`/events?search=${encodeURIComponent(search)}${selectedCat ? `&categoryId=${selectedCat}` : ''}`);
   };
 
-  const featuredEvents = events.slice(0, 3);
-  const upcomingEvents = events.slice(0, 8);
+  const featuredEvents = [...events]
+    .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
+    .slice(0, 3);
+
+  const upcomingEvents = [...events]
+    .filter(e => dayjs(e.EndDate).isAfter(dayjs()))
+    .sort((a, b) => dayjs(a.StartDate).valueOf() - dayjs(b.StartDate).valueOf())
+    .slice(0, 8);
 
   return (
     <MainLayout>
@@ -199,12 +221,35 @@ const HomePage = () => {
       {/* ══════════════════════════════════════════════════
           CATEGORY CHIPS
       ══════════════════════════════════════════════════ */}
-      <section style={{ padding: '40px 24px 0', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <section style={{ padding: '40px 24px 0', maxWidth: 1200, margin: '0 auto', overflow: 'hidden' }}>
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+        `}</style>
+        <div 
+          className="hide-scrollbar" 
+          style={{ 
+            display: 'flex', 
+            gap: 10, 
+            flexWrap: 'nowrap', 
+            justifyContent: 'flex-start', 
+            overflowX: 'auto',
+            paddingBottom: 8 // for scrollbar space if visible
+          }}
+        >
           <Tag
             className="category-tag-hover"
             onClick={() => navigate('/events')}
-            style={{ cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, background: '#1a2744', color: 'white', border: 'none', fontWeight: 600 }}
+            style={{ 
+              cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
+              background: '#1a2744', color: 'white', border: 'none', fontWeight: 600, 
+              flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' 
+            }}
           >
             🔥 Tất cả
           </Tag>
@@ -213,7 +258,12 @@ const HomePage = () => {
               className="category-tag-hover"
               key={c.CategoryID}
               onClick={() => navigate(`/events?categoryId=${c.CategoryID}`)}
-              style={{ cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151' }}
+              icon={getCategoryIcon(c.Name)}
+              style={{ 
+                cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
+                fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', 
+                color: '#374151', flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' 
+              }}
             >
               {c.Name}
             </Tag>

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Tag, Avatar, Tooltip } from 'antd';
 import { 
   CalendarOutlined, EnvironmentOutlined, TeamOutlined, ClockCircleOutlined,
   UserOutlined, CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined,
-  TrophyOutlined, HeartOutlined, NotificationOutlined, AppstoreOutlined
+  TrophyOutlined, HeartOutlined, HeartFilled, NotificationOutlined, AppstoreOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -41,6 +41,17 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
   const isOngoing = !isPast && !isUpcoming;
 
   const status = statusConfig[event.Status] || { color: 'default', label: event.Status };
+
+  const [isFav, setIsFav] = useState(false);
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+      setIsFav(favs.includes(String(event.EventID)));
+    };
+    handleStorageChange();
+    window.addEventListener('favoritesUpdated', handleStorageChange);
+    return () => window.removeEventListener('favoritesUpdated', handleStorageChange);
+  }, [event.EventID]);
 
   return (
     <Card
@@ -80,6 +91,12 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
             {isFull && !isPast && (
               <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
             )}
+            
+            {isFav && (
+              <div style={{ background: '#fff', color: '#ef4444', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <HeartFilled /> YÊU THÍCH
+              </div>
+            )}
           </div>
         </div>
       }
@@ -98,6 +115,10 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
           <EnvironmentOutlined style={{ color: '#7c3aed', flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName || 'Chưa cập nhật'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
+          <UserOutlined style={{ color: '#f59e0b', flexShrink: 0 }} />
+          <span>{event.RegisteredCount || 0} người đã đăng ký</span>
         </div>
         {remaining !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>

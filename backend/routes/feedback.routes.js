@@ -8,6 +8,13 @@ const {authenticate} = require("../middleware/auth");
 // Xem danh sách feedback (Ai cũng xem được)
 router.get("/events/:eventId/feedbacks", feedbackController.getEventFeedbacks);
 
+// Kiểm tra điều kiện đánh giá
+router.get(
+  "/events/:eventId/feedbacks/check-eligibility",
+  authenticate,
+  feedbackController.checkEligibility,
+);
+
 // Viết feedback (Bắt buộc phải đăng nhập -> dùng 'authenticate')
 router.post(
   "/events/:eventId/feedbacks",

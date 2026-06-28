@@ -19,6 +19,18 @@ export default function FeedbackModal({open, onClose, eventId, onSuccess, initia
 
   const handleSubmit = async () => {
     if (rating === 0) return message.warning("Vui lòng chọn số sao đánh giá!");
+    
+    // Nếu là chế độ sửa, kiểm tra xem có thay đổi gì không
+    if (initialData) {
+      const oldComment = (initialData.Comment || "").trim();
+      const newComment = comment.trim();
+      
+      // Bắt buộc nội dung text phải khác
+      if (oldComment === newComment) {
+        return message.warning("Nội dung đánh giá phải khác với nội dung trước đó (chỉ số sao có thể giữ nguyên)!");
+      }
+    }
+
     try {
       setLoading(true);
       if (initialData) {

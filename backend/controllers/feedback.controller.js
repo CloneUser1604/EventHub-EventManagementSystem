@@ -154,3 +154,74 @@ exports.updateFeedback = async (req, res) => {
     res.status(500).json({success: false, message: "Lỗi server", error: error.message});
   }
 };
+
+exports.checkEligibility = async (req, res) => {
+  try {
+    const {eventId} = req.params;
+    const userId = req.user.UserID;
+
+    const pool = getPool();
+
+    const checkQuery = `
+            SELECT e.EndDate, r.Status as RegistrationStatus, a.AttendanceID
+            FROM Events e
+            LEFT JOIN Registrations r ON e.EventID = r.EventID AND r.ParticipantID = @userId
+            LEFT JOIN Attendance a ON r.RegistrationID = a.RegistrationID
+            WHERE e.EventID = @eventId
+        `;
+    const checkResult = await pool
+      .request()
+      .input("eventId", sql.Int, eventId)
+      .input("userId", sql.Int, userId)
+      .query(checkQuery);
+
+    if (checkResult.recordset.length === 0)
+      return res
+        .status(404)
+        .json({success: false, message: "Sự kiện không tồn tại."});
+
+    const eventInfo = checkResult.recordset[0];
+
+    // 1. Kiểm tra xem sự kiện đã kết thúc chưa
+    if (new Date(eventInfo.EndDate) > new Date())
+      return res.status(403).json({
+        success: false,
+        message: "Sự kiện chưa kết thúc, chưa thể đánh giá.",
+      });
+
+    // 2. Kiểm tra xem user ĐÃ ĐĂNG KÝ (Registered) chưa
+    if (eventInfo.RegistrationStatus !== "Registered")
+      return res.status(403).json({
+        success: false,
+        message: "Bạn phải đăng ký tham gia sự kiện mới được quyền đánh giá.",
+      });
+
+    // 3. Kiểm tra xem user đã CHECK-IN chưa
+    if (!eventInfo.AttendanceID)
+      return res.status(403).json({
+        success: false,
+        message: "Bạn phải check-in tham gia sự kiện thành công thì mới được quyền đánh giá.",
+      });
+
+    // 4. Kiểm tra xem user đã đánh giá chưa
+    const checkFeedbackQuery = `SELECT FeedbackID FROM Feedbacks WHERE EventID = @eventId AND ParticipantID = @userId`;
+    const feedbackResult = await pool
+      .request()
+      .input("eventId", sql.Int, eventId)
+      .input("userId", sql.Int, userId)
+      .query(checkFeedbackQuery);
+
+    if (feedbackResult.recordset.length > 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn đã đánh giá sự kiện này rồi.",
+      });
+    }
+
+    res.status(200).json({success: true, message: "Đủ điều kiện đánh giá."});
+  } catch (error) {
+    res
+      .status(500)
+      .json({success: false, message: "Lỗi server", error: error.message});
+  }
+};

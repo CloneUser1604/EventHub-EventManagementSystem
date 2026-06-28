@@ -191,9 +191,8 @@ const EventListPage = () => {
           >
             🔍 Khám phá sự kiện
           </Title>
-          <div style={{display: "flex", gap: 12, maxWidth: 600}}>
+          <div style={{display: "flex", gap: 12, maxWidth: 350}}>
             <Input.Search
-              size="large"
               placeholder="Tìm kiếm sự kiện..."
               value={filters.search}
               onChange={(e) =>
@@ -313,9 +312,11 @@ const EventListPage = () => {
                 marginBottom: 20,
               }}
             >
-              <Text type="secondary">
-                {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
-              </Text>
+              {filters.search && (
+                <Text type="secondary">
+                  {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
+                </Text>
+              )}
             </div>
 
             {isLoading ? (
@@ -343,7 +344,6 @@ const EventListPage = () => {
                     pageSize={filters.limit}
                     onChange={(page) => setFilters((f) => ({...f, page}))}
                     showSizeChanger={false}
-                    showTotal={(t) => `${t} sự kiện`}
                   />
                 </div>
               </>

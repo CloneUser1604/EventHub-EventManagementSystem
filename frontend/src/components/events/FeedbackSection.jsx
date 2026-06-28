@@ -35,6 +35,12 @@ export default function FeedbackSection({eventId}) {
     loadData();
   }, [eventId]);
 
+  useEffect(() => {
+    const handleOpenModal = () => handleWriteFeedback();
+    window.addEventListener('openFeedbackModal', handleOpenModal);
+    return () => window.removeEventListener('openFeedbackModal', handleOpenModal);
+  }, [user, eventId]);
+
   const handleWriteFeedback = async () => {
     try {
       if (!user) {

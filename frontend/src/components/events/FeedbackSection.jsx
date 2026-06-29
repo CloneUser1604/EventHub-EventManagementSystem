@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Rate, Avatar} from "antd";
+import {Button, Rate, Avatar, message} from "antd";
 import {
   MessageOutlined,
   ArrowRightOutlined,
@@ -34,6 +34,28 @@ export default function FeedbackSection({eventId}) {
   useEffect(() => {
     loadData();
   }, [eventId]);
+
+  useEffect(() => {
+    const handleOpenModal = () => handleWriteFeedback();
+    window.addEventListener('openFeedbackModal', handleOpenModal);
+    return () => window.removeEventListener('openFeedbackModal', handleOpenModal);
+  }, [user, eventId]);
+
+  const handleWriteFeedback = async () => {
+    try {
+      if (!user) {
+        message.warning("Vui lòng đăng nhập để đánh giá.");
+        return;
+      }
+      const res = await feedbackService.checkEligibility(eventId);
+      if (res.success) {
+        setEditData(null);
+        setModalOpen(true);
+      }
+    } catch (error) {
+      message.error(error.message || "Bạn chưa đủ điều kiện để đánh giá sự kiện này.");
+    }
+  };
 
   const previewList = feedbacks.slice(0, 3); // Lấy tối đa 3 cái mới nhất để hiển thị nhanh ngoài trang chi tiết
 
@@ -123,7 +145,7 @@ export default function FeedbackSection({eventId}) {
               <Button
                 type="primary"
                 icon={<MessageOutlined />}
-                onClick={() => { setEditData(null); setModalOpen(true); }}
+                onClick={handleWriteFeedback}
                 style={{borderRadius: 8, fontWeight: 600, height: 40}}
               >
                 Viết đánh giá đầu tiên
@@ -238,7 +260,7 @@ export default function FeedbackSection({eventId}) {
                 <Button
                   type="primary"
                   icon={<MessageOutlined />}
-                  onClick={() => { setEditData(null); setModalOpen(true); }}
+                  onClick={handleWriteFeedback}
                   style={{borderRadius: 10, height: 44, fontWeight: 600}}
                 >
                   Viết đánh giá

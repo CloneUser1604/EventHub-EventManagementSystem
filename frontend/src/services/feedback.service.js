@@ -7,6 +7,19 @@ export const feedbackService = {
     return response.json();
   },
 
+  // Kiểm tra điều kiện đánh giá
+  checkEligibility: async (eventId) => {
+    const token = localStorage.getItem("accessToken");
+    const response = await fetch(`${API_URL}/events/${eventId}/feedbacks/check-eligibility`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Không thể kiểm tra điều kiện đánh giá.");
+    return data;
+  },
+
   // Gửi feedback mới
   submitFeedback: async (eventId, rating, comment) => {
     const token = localStorage.getItem("accessToken");

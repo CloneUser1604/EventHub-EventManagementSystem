@@ -7,7 +7,7 @@ import {
 import {
   CalendarOutlined, EnvironmentOutlined, TeamOutlined,
   ClockCircleOutlined, CheckCircleOutlined, UserOutlined,
-  ShareAltOutlined, HeartOutlined, QrcodeOutlined, ArrowLeftOutlined
+  ShareAltOutlined, HeartOutlined, HeartFilled, QrcodeOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import MainLayout from '../../components/layout/MainLayout';
 import useEventStore from '../../store/eventStore';
@@ -49,6 +49,40 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   const [ticketModal, setTicketModal] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [isFav, setIsFav] = useState(false);
+  const [activeTab, setActiveTab] = useState('about');
+
+  const handleWriteReviewClick = () => {
+    setActiveTab('feedback');
+    setTimeout(() => {
+      document.getElementById('event-tabs-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.dispatchEvent(new Event('openFeedbackModal'));
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+      setIsFav(favs.includes(String(targetId)));
+    };
+    handleStorageChange();
+    window.addEventListener('favoritesUpdated', handleStorageChange);
+    return () => window.removeEventListener('favoritesUpdated', handleStorageChange);
+  }, [targetId]);
+
+  const toggleFav = () => {
+    let favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+    if (isFav) {
+      favs = favs.filter(id => id !== String(targetId));
+      message.success('Đã bỏ yêu thích sự kiện');
+    } else {
+      if (!favs.includes(String(targetId))) favs.push(String(targetId));
+      message.success('Đã thêm vào sự kiện yêu thích');
+    }
+    localStorage.setItem('favoriteEvents', JSON.stringify(favs));
+    setIsFav(!isFav);
+    window.dispatchEvent(new Event('favoritesUpdated'));
+  };
 
   useEffect(() => {
     fetchEventById(targetId);
@@ -163,9 +197,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {event.IsInternalOnly ? (
-              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Nội bộ</Tag>
+              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sinh viên trường</Tag>
             ) : (
-              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Công khai</Tag>
+              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Tất cả mọi người</Tag>
             )}
             {event.CategoryName && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{event.CategoryName}</Tag>}
             {isPast && <Tag color="default">Đã kết thúc</Tag>}
@@ -195,8 +229,8 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
         <div className="event-detail-grid">
 
           {/* Left: Main content */}
-          <div style={{ minWidth: 0 }}>
-            <Tabs defaultActiveKey="about" items={[
+          <div style={{ minWidth: 0 }} id="event-tabs-container">
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               {
                 key: 'about',
                 label: 'Giới thiệu',
@@ -301,8 +335,16 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
               <div style={{ marginBottom: 20 }}>
-                <Tag color={event.Status === 'Published' ? 'green' : 'default'} style={{ borderRadius: 6, fontWeight: 600, marginBottom: 12 }}>
-                  {event.Status === 'Published' ? '🟢 Đang mở đăng ký' : event.Status}
+                <Tag color={
+                  event.Status !== 'Published' ? 'default' :
+                  isPast ? 'default' :
+                  deadlinePassed ? 'red' :
+                  isFull ? 'orange' : 'green'
+                } style={{ borderRadius: 6, fontWeight: 600, marginBottom: 12 }}>
+                  {event.Status !== 'Published' ? event.Status :
+                   isPast ? '⚫ Đã kết thúc' :
+                   deadlinePassed ? '🔴 Hết hạn đăng ký' :
+                   isFull ? '🟡 Đã đầy chỗ' : '🟢 Đang mở đăng ký'}
                 </Tag>
                 <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
@@ -337,6 +379,12 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                       Huỷ đăng ký
                     </Button>
                   )}
+                  {isPast && (
+                    <Button type="default" block size="large" onClick={handleWriteReviewClick}
+                      style={{ borderRadius: 10, height: 42, fontWeight: 600, marginTop: 10, borderColor: '#2563eb', color: '#2563eb' }}>
+                      📝 Viết đánh giá
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -358,7 +406,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
               <Divider style={{ margin: '16px 0' }} />
               <Space style={{ width: '100%', justifyContent: 'center' }}>
                 <Button type="text" icon={<ShareAltOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã sao chép link!'); }}>Chia sẻ</Button>
-                <Button type="text" icon={<HeartOutlined />}>Lưu</Button>
+                <Button type="text" onClick={toggleFav} icon={isFav ? <HeartFilled style={{ color: '#ef4444' }} /> : <HeartOutlined />}>
+                  {isFav ? 'Đã yêu thích' : 'Yêu thích'}
+                </Button>
               </Space>
 
               <Divider style={{ margin: '16px 0' }} />

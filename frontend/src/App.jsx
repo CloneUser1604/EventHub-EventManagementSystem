@@ -59,6 +59,8 @@ const antdTheme = {
   },
 };
 
+{/*Unauthorized*/}
+
 const Unauthorized = () => (
   <div
     style={{

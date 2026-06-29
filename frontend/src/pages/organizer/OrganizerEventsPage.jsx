@@ -6,6 +6,7 @@ import MainLayout from '../../components/layout/MainLayout';
 import { eventService } from '../../services/event.service';
 import dayjs from 'dayjs';
 import { getImageUrl } from '../../utils/imageHelpers';
+import useAuthStore from '../../store/authStore';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -21,18 +22,30 @@ const statusConfig = {
 
 const OrganizerEventsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [reasonModal, setReasonModal] = useState({ open: false, reason: '', title: '' });
 
-  useEffect(() => { fetchMyEvents(); }, []);
+  const getDerivedStatus = (e) => {
+    if (e.Status === 'Published' && dayjs(e.EndDate).isBefore(dayjs())) {
+      return 'Completed';
+    }
+    return e.Status;
+  };
+
+  useEffect(() => { 
+    if (user?.UserID) {
+      fetchMyEvents(); 
+    }
+  }, [user?.UserID]);
 
   const fetchMyEvents = async () => {
     setLoading(true);
     try {
-      const res = await eventService.getEvents({ limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
+      const res = await eventService.getEvents({ organizerId: user.UserID, limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
       setEvents(res.data.data.events);
     } catch { message.error('Lấy danh sách thất bại'); }
     finally { setLoading(false); }
@@ -87,7 +100,7 @@ const OrganizerEventsPage = () => {
 
   const filtered = events.filter(e => {
     const matchSearch = !search || e.Title.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = !statusFilter || e.Status === statusFilter;
+    const matchStatus = !statusFilter || getDerivedStatus(e) === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -129,18 +142,21 @@ const OrganizerEventsPage = () => {
       title: 'Trạng thái',
       dataIndex: 'Status',
       width: 130,
-      render: (s, row) => (
-        <div>
-          <Tag color={statusConfig[s]?.color || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>
-            {statusConfig[s]?.label || s}
-          </Tag>
-          {row.ApprovalStatus === 'Pending' && row.Status === 'Published' && (
-            <Tag color="orange" style={{ marginTop: 4, borderRadius: 6, display: 'block', width: 'fit-content' }}>
-              Đang chờ duyệt sửa
+      render: (s, row) => {
+        const derived = getDerivedStatus(row);
+        return (
+          <div>
+            <Tag color={statusConfig[derived]?.color || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>
+              {statusConfig[derived]?.label || derived}
             </Tag>
-          )}
-        </div>
-      ),
+            {row.ApprovalStatus === 'Pending' && row.Status === 'Published' && (
+              <Tag color="orange" style={{ marginTop: 4, borderRadius: 6, display: 'block', width: 'fit-content' }}>
+                Đang chờ duyệt sửa
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Hành động',
@@ -206,7 +222,7 @@ const OrganizerEventsPage = () => {
         {/* Stats bar */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {Object.entries(statusConfig).map(([status, conf]) => {
-            const count = events.filter(e => e.Status === status).length;
+            const count = events.filter(e => getDerivedStatus(e) === status).length;
             if (!count) return null;
             return (
               <div key={status} onClick={() => setStatusFilter(statusFilter === status ? '' : status)}

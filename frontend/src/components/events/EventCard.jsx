@@ -1,9 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Tag, Avatar, Tooltip } from 'antd';
-import { CalendarOutlined, EnvironmentOutlined, TeamOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { 
+  CalendarOutlined, EnvironmentOutlined, TeamOutlined, ClockCircleOutlined,
+  UserOutlined, CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined,
+  TrophyOutlined, HeartOutlined, HeartFilled, NotificationOutlined, AppstoreOutlined
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getImageUrl } from '../../utils/imageHelpers';
+
+const getCategoryStyle = (categoryName) => {
+  const name = (categoryName || '').toLowerCase();
+  if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return { color: 'blue', icon: <CodeOutlined /> };
+  if (name.includes('học thuật') || name.includes('academic')) return { color: 'cyan', icon: <BookOutlined /> };
+  if (name.includes('hướng nghiệp') || name.includes('career')) return { color: 'purple', icon: <RocketOutlined /> };
+  if (name.includes('kỹ năng') || name.includes('skill')) return { color: 'orange', icon: <SmileOutlined /> };
+  if (name.includes('thể thao') || name.includes('sport')) return { color: 'green', icon: <TrophyOutlined /> };
+  if (name.includes('tình nguyện') || name.includes('volunteer')) return { color: 'magenta', icon: <HeartOutlined /> };
+  if (name.includes('văn hóa') || name.includes('nghệ thuật') || name.includes('art')) return { color: 'pink', icon: <NotificationOutlined /> };
+  return { color: 'default', icon: <AppstoreOutlined /> };
+};
 
 const statusConfig = {
   Published:      { color: 'green',   label: 'Đang mở' },
@@ -18,8 +34,24 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
   const navigate = useNavigate();
   const remaining = event.MaxParticipants ? event.MaxParticipants - (event.RegisteredCount || 0) : null;
   const isFull = remaining !== null && remaining <= 0;
-  const isPast = dayjs(event.EndDate).isBefore(dayjs());
+  
+  const now = dayjs();
+  const isPast = dayjs(event.EndDate).isBefore(now);
+  const isUpcoming = dayjs(event.StartDate).isAfter(now);
+  const isOngoing = !isPast && !isUpcoming;
+
   const status = statusConfig[event.Status] || { color: 'default', label: event.Status };
+
+  const [isFav, setIsFav] = useState(false);
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+      setIsFav(favs.includes(String(event.EventID)));
+    };
+    handleStorageChange();
+    window.addEventListener('favoritesUpdated', handleStorageChange);
+    return () => window.removeEventListener('favoritesUpdated', handleStorageChange);
+  }, [event.EventID]);
 
   return (
     <Card
@@ -35,15 +67,36 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {event.IsInternalOnly && <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Nội bộ</Tag>}
-            {event.CategoryName && <Tag color="blue" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{event.CategoryName}</Tag>}
+            {event.CategoryName && (
+              <Tag icon={getCategoryStyle(event.CategoryName).icon} color={getCategoryStyle(event.CategoryName).color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
+                {event.CategoryName}
+              </Tag>
+            )}
             {showStatus && status.label !== 'Đã kết thúc' && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
           </div>
-          {isPast ? (
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>
-          ) : isFull ? (
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
-          ) : null}
+          
+          {/* Top Right Badges */}
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            {isPast ? (
+              <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>
+            ) : isOngoing ? (
+              <div style={{ background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse 2s infinite' }} /> ĐANG DIỄN RA
+              </div>
+            ) : isUpcoming ? (
+              <div style={{ background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>SẮP DIỄN RA</div>
+            ) : null}
+
+            {isFull && !isPast && (
+              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
+            )}
+            
+            {isFav && (
+              <div style={{ background: '#fff', color: '#ef4444', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <HeartFilled /> YÊU THÍCH
+              </div>
+            )}
+          </div>
         </div>
       }
       bodyStyle={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}
@@ -62,6 +115,10 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           <EnvironmentOutlined style={{ color: '#7c3aed', flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName || 'Chưa cập nhật'}</span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
+          <UserOutlined style={{ color: '#f59e0b', flexShrink: 0 }} />
+          <span>{event.RegisteredCount || 0} người đã đăng ký</span>
+        </div>
         {remaining !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             <TeamOutlined style={{ color: isFull ? '#ef4444' : '#10b981', flexShrink: 0 }} />
@@ -70,6 +127,13 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
             </span>
           </div>
         )}
+        <div style={{ marginTop: 4 }}>
+          {event.IsInternalOnly ? (
+            <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Sinh viên trường</Tag>
+          ) : (
+            <Tag color="cyan" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Tất cả mọi người</Tag>
+          )}
+        </div>
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

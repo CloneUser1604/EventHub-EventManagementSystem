@@ -13,8 +13,9 @@ import {
   Tag,
   Typography,
   Drawer,
+  Switch,
 } from "antd";
-import {SearchOutlined, FilterOutlined, CloseOutlined} from "@ant-design/icons";
+import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
@@ -49,6 +50,7 @@ const EventListPage = () => {
     status: "Published",
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showFavs, setShowFavs] = useState(false);
 
   useEffect(() => {
     fetchMeta();
@@ -159,8 +161,15 @@ const EventListPage = () => {
           <Option value="StartDate_ASC">Ngày bắt đầu (sớm nhất)</Option>
           <Option value="StartDate_DESC">Ngày bắt đầu (muộn nhất)</Option>
           <Option value="CreatedAt_DESC">Mới nhất</Option>
+          <Option value="Rating_DESC">Đánh giá (Cao đến thấp)</Option>
           <Option value="Title_ASC">Tên A-Z</Option>
         </Select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fff1f2', borderRadius: 8, border: '1px solid #ffe4e6' }}>
+        <Text strong style={{ fontSize: 13, color: '#be123c', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <HeartFilled /> Sự kiện yêu thích
+        </Text>
+        <Switch checked={showFavs} onChange={setShowFavs} style={{ background: showFavs ? '#e11d48' : '#cbd5e1' }} />
       </div>
       {hasFilters && (
         <Button onClick={clearFilters} icon={<CloseOutlined />} block>
@@ -169,6 +178,8 @@ const EventListPage = () => {
       )}
     </div>
   );
+
+  const displayedEvents = showFavs ? events.filter(e => JSON.parse(localStorage.getItem('favoriteEvents') || '[]').includes(String(e.EventID))) : events;
 
   return (
     <MainLayout>
@@ -190,9 +201,8 @@ const EventListPage = () => {
           >
             🔍 Khám phá sự kiện
           </Title>
-          <div style={{display: "flex", gap: 12, maxWidth: 600}}>
+          <div style={{display: "flex", gap: 12, maxWidth: 350}}>
             <Input.Search
-              size="large"
               placeholder="Tìm kiếm sự kiện..."
               value={filters.search}
               onChange={(e) =>
@@ -202,24 +212,6 @@ const EventListPage = () => {
               style={{flex: 1, borderRadius: 10}}
               allowClear
             />
-            <Button
-              size="large"
-              icon={<FilterOutlined />}
-              onClick={() => setDrawerOpen(true)}
-              style={{
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "white",
-              }}
-            >
-              Lọc{" "}
-              {hasFilters && (
-                <Tag color="blue" style={{marginLeft: 4, marginRight: -4}}>
-                  !
-                </Tag>
-              )}
-            </Button>
           </div>
 
           {/* Active filters */}
@@ -265,7 +257,9 @@ const EventListPage = () => {
                   }
                   color="cyan"
                 >
-                  Theo ngày
+                  {filters.startDate && filters.endDate 
+                    ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
+                    : "Theo ngày"}
                 </Tag>
               )}
             </div>
@@ -328,16 +322,18 @@ const EventListPage = () => {
                 marginBottom: 20,
               }}
             >
-              <Text type="secondary">
-                {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
-              </Text>
+              {filters.search && (
+                <Text type="secondary">
+                  {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
+                </Text>
+              )}
             </div>
 
             {isLoading ? (
               <div style={{textAlign: "center", padding: 80}}>
                 <Spin size="large" />
               </div>
-            ) : events.length === 0 ? (
+            ) : displayedEvents.length === 0 ? (
               <Empty
                 description="Không tìm thấy sự kiện nào"
                 style={{padding: 60}}
@@ -345,7 +341,7 @@ const EventListPage = () => {
             ) : (
               <>
                 <Row gutter={[16, 16]}>
-                  {events.map((event) => (
+                  {displayedEvents.map((event) => (
                     <Col key={event.EventID} xs={24} sm={12} xl={8}>
                       <EventCard event={event} />
                     </Col>
@@ -358,7 +354,6 @@ const EventListPage = () => {
                     pageSize={filters.limit}
                     onChange={(page) => setFilters((f) => ({...f, page}))}
                     showSizeChanger={false}
-                    showTotal={(t) => `${t} sự kiện`}
                   />
                 </div>
               </>

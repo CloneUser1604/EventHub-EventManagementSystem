@@ -197,9 +197,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {event.IsInternalOnly ? (
-              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Nội bộ</Tag>
+              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sinh viên trường</Tag>
             ) : (
-              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Công khai</Tag>
+              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Tất cả mọi người</Tag>
             )}
             {event.CategoryName && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{event.CategoryName}</Tag>}
             {isPast && <Tag color="default">Đã kết thúc</Tag>}

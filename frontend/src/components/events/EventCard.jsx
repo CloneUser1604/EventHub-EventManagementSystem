@@ -67,7 +67,6 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {event.IsInternalOnly && <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Nội bộ</Tag>}
             {event.CategoryName && (
               <Tag icon={getCategoryStyle(event.CategoryName).icon} color={getCategoryStyle(event.CategoryName).color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
                 {event.CategoryName}
@@ -128,6 +127,13 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
             </span>
           </div>
         )}
+        <div style={{ marginTop: 4 }}>
+          {event.IsInternalOnly ? (
+            <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Sinh viên trường</Tag>
+          ) : (
+            <Tag color="cyan" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Tất cả mọi người</Tag>
+          )}
+        </div>
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

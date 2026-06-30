@@ -44,7 +44,7 @@ const EventListPage = () => {
     startDate: "",
     endDate: "",
     page: 1,
-    limit: 12,
+    limit: 6,
     sortBy: "StartDate",
     sortOrder: "ASC",
     status: "Published",

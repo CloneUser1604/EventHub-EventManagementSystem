@@ -357,7 +357,7 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                     </span>
                   )}
                 </div>
-                {!isPast && event.Status !== 'Cancelled' && (
+                {isUpcoming && event.Status !== 'Cancelled' && (
                   <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 8, marginTop: 16, textAlign: 'center', border: '1px solid #e2e8f0' }}>
                     <Text style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 4 }}>Thời gian đếm ngược</Text>
                     <Countdown targetDate={event.StartDate} />
@@ -392,14 +392,16 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                     : isFull ? <Alert message="Sự kiện đã đầy chỗ" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : deadlinePassed ? <Alert message="Đã hết hạn đăng ký" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : null}
-                  <Button
-                    type="primary" block size="large" onClick={handleRegister}
-                    loading={registering}
-                    disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published'}
-                    style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
-                  >
-                    {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
-                  </Button>
+                  {!(isPast || deadlinePassed) && (
+                    <Button
+                      type="primary" block size="large" onClick={handleRegister}
+                      loading={registering}
+                      disabled={isFull || event.Status !== 'Published'}
+                      style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
+                    >
+                      {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
+                    </Button>
+                  )}
                 </>
               )}
 

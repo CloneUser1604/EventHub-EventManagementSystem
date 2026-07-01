@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {useParams, useNavigate} from "react-router-dom";
 // ĐÃ THÊM 'Divider' VÀO DÒNG DƯỚI ĐÂY:
-import {Rate, Progress, Avatar, Button, Spin, Empty, Tag, Divider} from "antd";
+import {Rate, Progress, Avatar, Button, Spin, Empty, Tag, Divider, Pagination, Select} from "antd";
 import {
   ArrowLeftOutlined,
   UserOutlined,
@@ -12,6 +12,8 @@ import {feedbackService} from "../../services/feedback.service";
 import useEventStore from "../../store/eventStore";
 import useAuthStore from "../../store/authStore";
 import FeedbackModal from "../../components/events/FeedbackModal";
+import FeedbackCard from "../../components/events/FeedbackCard";
+import {Checkbox} from "antd";
 import dayjs from "dayjs";
 
 export default function AllFeedbacksPage() {
@@ -25,6 +27,10 @@ export default function AllFeedbacksPage() {
   const [filterStar, setFilterStar] = useState(0); // 0 = Hiển thị tất cả
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [filterMedia, setFilterMedia] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortType, setSortType] = useState('latest');
+  const pageSize = 5;
 
   useEffect(() => {
     fetchEventById(id);
@@ -45,6 +51,11 @@ export default function AllFeedbacksPage() {
     }
   };
 
+  // Reset về trang 1 khi thay đổi bộ lọc
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStar, filterMedia, sortType]);
+
   if (loading) {
     return (
       <MainLayout>
@@ -55,11 +66,31 @@ export default function AllFeedbacksPage() {
     );
   }
 
-  // Lọc danh sách bình luận dựa theo số sao được chọn
-  const filteredFeedbacks =
-    filterStar === 0
-      ? feedbacks
-      : feedbacks.filter((f) => f.Rating === filterStar);
+  // Lọc danh sách bình luận dựa theo số sao được chọn và điều kiện media
+  const filteredFeedbacks = feedbacks.filter((f) => {
+    let matchStar = filterStar === 0 || f.Rating === filterStar;
+    let matchMedia = true;
+    if (filterMedia) {
+      try {
+        let urls = typeof f.MediaURLs === "string" ? JSON.parse(f.MediaURLs) : f.MediaURLs;
+        matchMedia = urls && urls.length > 0;
+      } catch (e) {
+        matchMedia = false;
+      }
+    }
+    return matchStar && matchMedia;
+  });
+
+  let displayFeedbacks = [...filteredFeedbacks];
+  if (sortType === 'mine' && user) {
+    const mineIdx = displayFeedbacks.findIndex(f => f.ParticipantID == user.userId);
+    if (mineIdx > -1) {
+      const mineItem = displayFeedbacks.splice(mineIdx, 1)[0];
+      displayFeedbacks.unshift(mineItem);
+    }
+  }
+
+  const currentFeedbacks = displayFeedbacks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <MainLayout>
@@ -300,6 +331,12 @@ export default function AllFeedbacksPage() {
                 Xoá bộ lọc (Xem tất cả)
               </Button>
             )}
+
+            <Divider style={{margin: "20px 0", borderColor: "#e2e8f0"}} />
+            
+            <Checkbox checked={filterMedia} onChange={(e) => setFilterMedia(e.target.checked)}>
+              <span style={{fontWeight: 500, color: "#334155"}}>Chỉ hiển thị đánh giá có hình ảnh/video</span>
+            </Checkbox>
           </div>
 
           {/* ── CỘT PHẢI: DANH SÁCH BÌNH LUẬN CHI TIẾT ── */}
@@ -329,10 +366,21 @@ export default function AllFeedbacksPage() {
                   "Tất cả bình luận nhận xét"
                 )}
               </div>
-              <div
-                style={{fontSize: "14px", color: "#64748b", fontWeight: 500}}
-              >
-                Tìm thấy {filteredFeedbacks.length} kết quả
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{fontSize: "14px", color: "#64748b", fontWeight: 500}}>
+                  Tìm thấy {filteredFeedbacks.length} kết quả
+                </div>
+                {feedbacks.some(f => f.ParticipantID == user?.userId) && (
+                  <Select 
+                    value={sortType} 
+                    onChange={setSortType}
+                    style={{ width: 170 }}
+                    options={[
+                      { value: 'latest', label: 'Mới nhất' },
+                      { value: 'mine', label: 'Bình luận của bạn' }
+                    ]}
+                  />
+                )}
               </div>
             </div>
 
@@ -353,113 +401,21 @@ export default function AllFeedbacksPage() {
               <div
                 style={{display: "flex", flexDirection: "column", gap: "16px"}}
               >
-                {filteredFeedbacks.map((item) => (
-                  <div
-                    key={item.FeedbackID}
-                    style={{
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "20px",
-                      padding: "24px",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)",
-                    }}
-                  >
-                    {/* Header Card bình luận */}
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: "16px",
-                        gap: "12px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "14px",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Avatar
-                          size={44}
-                          src={item.AvatarURL}
-                          icon={!item.AvatarURL && <UserOutlined />}
-                          style={{backgroundColor: "#2563eb", flexShrink: 0}}
-                        />
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              color: "#0f172a",
-                              fontSize: "16px",
-                              marginBottom: "2px",
-                            }}
-                          >
-                            {item.UserName}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#94a3b8",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {dayjs(item.CreatedAt).format("DD/MM/YYYY · HH:mm")}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Số sao của bình luận đó và nút sửa nếu là của mình */}
-                      <div style={{display: "flex", alignItems: "center", gap: 8, flexShrink: 0}}>
-                        {user?.userId == item.ParticipantID && (
-                          <Button
-                            type="text"
-                            size="small"
-                            style={{color: "#2563eb", fontSize: 13, fontWeight: 500}}
-                            onClick={() => {
-                              setEditData(item);
-                              setModalOpen(true);
-                            }}
-                          >
-                            Sửa
-                          </Button>
-                        )}
-                        <Rate
-                          disabled
-                          value={item.Rating}
-                          style={{
-                            fontSize: "15px",
-                            color: "#facc15",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Nội dung comment */}
-                    <div
-                      style={{
-                        color: "#334155",
-                        fontSize: "15px",
-                        lineHeight: "1.65",
-                        fontWeight: 500,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
-                      {item.Comment || (
-                        <span
-                          style={{
-                            color: "#94a3b8",
-                            fontStyle: "italic",
-                            fontWeight: 400,
-                          }}
-                        >
-                          Người dùng không để lại lời nhắn.
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                {currentFeedbacks.map((item) => (
+                  <FeedbackCard key={item.FeedbackID} item={item} onEdit={(data) => { setEditData(data); setModalOpen(true); }} onSuccess={loadData} />
                 ))}
+                
+                {filteredFeedbacks.length > pageSize && (
+                  <div style={{ textAlign: 'center', marginTop: 16 }}>
+                    <Pagination 
+                      current={currentPage} 
+                      total={filteredFeedbacks.length} 
+                      pageSize={pageSize} 
+                      onChange={setCurrentPage} 
+                      showSizeChanger={false}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

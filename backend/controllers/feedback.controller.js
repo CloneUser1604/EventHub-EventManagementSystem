@@ -7,7 +7,7 @@ exports.getEventFeedbacks = async (req, res) => {
 
         const result = await pool.request().input("eventId", sql.Int, eventId)
       .query(`
-                SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, 
+                SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, f.UpdatedAt, f.MediaURLs, f.Reply, f.RepliedAt, f.ReplyUpdatedAt,
                        u.FullName as UserName, u.AvatarURL
                 FROM Feedbacks f
                 INNER JOIN Users u ON f.ParticipantID = u.UserID
@@ -44,7 +44,9 @@ exports.getEventFeedbacks = async (req, res) => {
 exports.createFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
-    const {rating, comment} = req.body;
+    const rating = parseInt(req.body.rating, 10);
+    const comment = req.body.comment || "";
+    const mediaURLs = req.files ? req.files.map(f => `/uploads/feedbacks/${f.filename}`) : [];
 
     const userId = req.user.UserID;
 
@@ -93,8 +95,8 @@ exports.createFeedback = async (req, res) => {
       });
 
     const insertQuery = `
-            INSERT INTO Feedbacks (EventID, ParticipantID, Rating, Comment)
-            VALUES (@eventId, @userId, @rating, @comment)
+            INSERT INTO Feedbacks (EventID, ParticipantID, Rating, Comment, MediaURLs)
+            VALUES (@eventId, @userId, @rating, @comment, @mediaURLs)
         `;
     await pool
       .request()
@@ -102,6 +104,7 @@ exports.createFeedback = async (req, res) => {
       .input("userId", sql.Int, userId)
       .input("rating", sql.Int, rating)
       .input("comment", sql.NVarChar, comment || "")
+      .input("mediaURLs", sql.NVarChar, mediaURLs.length > 0 ? JSON.stringify(mediaURLs) : null)
       .query(insertQuery);
 
     res
@@ -112,16 +115,39 @@ exports.createFeedback = async (req, res) => {
       return res
         .status(400)
         .json({success: false, message: "Bạn đã đánh giá sự kiện này rồi."});
+    console.error("CREATE FEEDBACK ERROR: ", error);
     res
       .status(500)
-      .json({success: false, message: "Lỗi server", error: error.message});
+      .json({success: false, message: error.message, error: error.message});
   }
 };
 
 exports.updateFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
-    const {rating, comment} = req.body;
+    const rating = parseInt(req.body.rating, 10);
+    const comment = req.body.comment || "";
+    
+    // Process existing media
+    let mediaURLs = [];
+    if (req.body.existingMedia) {
+      try {
+        mediaURLs = JSON.parse(req.body.existingMedia);
+      } catch (e) {
+        if (typeof req.body.existingMedia === 'string') {
+          mediaURLs = [req.body.existingMedia];
+        } else if (Array.isArray(req.body.existingMedia)) {
+          mediaURLs = req.body.existingMedia;
+        }
+      }
+    }
+    
+    // Add new uploaded files
+    if (req.files && req.files.length > 0) {
+      const newMedia = req.files.map(f => `/uploads/feedbacks/${f.filename}`);
+      mediaURLs = [...mediaURLs, ...newMedia];
+    }
+    
     const userId = req.user.UserID;
 
     const pool = getPool();
@@ -139,7 +165,7 @@ exports.updateFeedback = async (req, res) => {
 
     const updateQuery = `
       UPDATE Feedbacks 
-      SET Rating = @rating, Comment = @comment, UpdatedAt = GETDATE()
+      SET Rating = @rating, Comment = @comment, MediaURLs = @mediaURLs, UpdatedAt = GETDATE()
       WHERE EventID = @eventId AND ParticipantID = @userId
     `;
     await pool.request()
@@ -147,11 +173,13 @@ exports.updateFeedback = async (req, res) => {
       .input("userId", sql.Int, userId)
       .input("rating", sql.Int, rating)
       .input("comment", sql.NVarChar, comment || "")
+      .input("mediaURLs", sql.NVarChar, mediaURLs.length > 0 ? JSON.stringify(mediaURLs) : null)
       .query(updateQuery);
 
     res.status(200).json({success: true, message: "Cập nhật đánh giá thành công!"});
   } catch (error) {
-    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
+    console.error("UPDATE FEEDBACK ERROR: ", error);
+    res.status(500).json({success: false, message: error.message, error: error.message});
   }
 };
 
@@ -223,5 +251,113 @@ exports.checkEligibility = async (req, res) => {
     res
       .status(500)
       .json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.deleteFeedback = async (req, res) => {
+  try {
+    const {eventId, feedbackId} = req.params;
+    const userId = req.user.UserID;
+    const pool = getPool();
+    const result = await pool.request()
+      .input("feedbackId", sql.Int, feedbackId)
+      .input("userId", sql.Int, userId)
+      .query(`DELETE FROM Feedbacks WHERE FeedbackID = @feedbackId AND ParticipantID = @userId`);
+    if (result.rowsAffected[0] === 0) return res.status(404).json({success: false, message: "Không tìm thấy đánh giá hoặc bạn không có quyền xóa."});
+    res.status(200).json({success: true, message: "Đã xóa đánh giá thành công."});
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.replyFeedback = async (req, res) => {
+  try {
+    const {eventId, feedbackId} = req.params;
+    const {reply} = req.body;
+    const userId = req.user.UserID;
+    const pool = getPool();
+
+    // Check if user is organizer of this event
+    const eventResult = await pool.request().input("eventId", sql.Int, eventId).input("userId", sql.Int, userId)
+      .query(`SELECT EventID FROM Events WHERE EventID = @eventId AND OrganizerID = @userId`);
+    
+    if (eventResult.recordset.length === 0) return res.status(403).json({success: false, message: "Bạn không có quyền trả lời đánh giá này."});
+
+    await pool.request()
+      .input("feedbackId", sql.Int, feedbackId)
+      .input("reply", sql.NVarChar, reply)
+      .query(`
+        UPDATE Feedbacks 
+        SET Reply = @reply, 
+            ReplyUpdatedAt = CASE WHEN Reply IS NOT NULL THEN GETDATE() ELSE NULL END,
+            RepliedAt = CASE WHEN Reply IS NULL THEN GETDATE() ELSE RepliedAt END
+        WHERE FeedbackID = @feedbackId
+      `);
+    
+    res.status(200).json({success: true, message: "Đã gửi câu trả lời."});
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.reportFeedback = async (req, res) => {
+  try {
+    const {eventId, feedbackId} = req.params;
+    const {reason} = req.body;
+    const userId = req.user.UserID;
+    const pool = getPool();
+
+    // Verify Organizer
+    const eventResult = await pool.request().input("eventId", sql.Int, eventId).input("userId", sql.Int, userId)
+      .query(`SELECT EventID FROM Events WHERE EventID = @eventId AND OrganizerID = @userId`);
+    if (eventResult.recordset.length === 0) return res.status(403).json({success: false, message: "Bạn không có quyền thao tác."});
+
+    await pool.request()
+      .input("feedbackId", sql.Int, feedbackId)
+      .input("reason", sql.NVarChar, reason)
+      .input("userId", sql.Int, userId)
+      .query(`UPDATE Feedbacks SET IsReported = 1, ReportReason = @reason, ReportedAt = GETDATE(), ReportedBy = @userId WHERE FeedbackID = @feedbackId`);
+    
+    res.status(200).json({success: true, message: "Đã báo cáo đánh giá lên Admin."});
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.getReportedFeedbacks = async (req, res) => {
+  try {
+    const pool = getPool();
+    const result = await pool.request().query(`
+      SELECT f.*, e.Title as EventTitle, u.FullName as ParticipantName, o.FullName as ReporterName
+      FROM Feedbacks f
+      JOIN Events e ON f.EventID = e.EventID
+      JOIN Users u ON f.ParticipantID = u.UserID
+      JOIN Users o ON f.ReportedBy = o.UserID
+      WHERE f.IsReported = 1
+      ORDER BY f.ReportedAt DESC
+    `);
+    res.status(200).json({success: true, data: result.recordset});
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
+  }
+};
+
+exports.resolveReport = async (req, res) => {
+  try {
+    const {feedbackId} = req.params;
+    const {action} = req.body; // 'delete' or 'dismiss'
+    const pool = getPool();
+
+    if (action === 'delete') {
+      await pool.request().input("feedbackId", sql.Int, feedbackId)
+        .query(`DELETE FROM Feedbacks WHERE FeedbackID = @feedbackId`);
+      res.status(200).json({success: true, message: "Đã xóa đánh giá vi phạm."});
+    } else {
+      await pool.request().input("feedbackId", sql.Int, feedbackId)
+        .query(`UPDATE Feedbacks SET IsReported = 0, ReportReason = NULL, ReportedAt = NULL, ReportedBy = NULL WHERE FeedbackID = @feedbackId`);
+      res.status(200).json({success: true, message: "Đã bỏ qua báo cáo."});
+    }
+  } catch (error) {
+    res.status(500).json({success: false, message: "Lỗi server", error: error.message});
   }
 };

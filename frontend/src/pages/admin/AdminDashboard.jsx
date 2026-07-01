@@ -15,6 +15,7 @@ import useAuthStore from '../../store/authStore';
 import { adminService } from '../../services/admin.service';
 import { eventService } from '../../services/event.service';
 import { venueService } from '../../services/venue.service';
+import { feedbackService } from '../../services/feedback.service';
 import EventDetailPage from '../events/EventDetailPage';
 import dayjs from 'dayjs';
 
@@ -73,6 +74,7 @@ const AdminDashboard = () => {
   const [allSpeakers, setAllSpeakers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [allVenues, setAllVenues] = useState([]);
+  const [reportedFeedbacks, setReportedFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [rejectModal, setRejectModal] = useState({ open: false, type: '', id: null, title: '' });
@@ -121,7 +123,7 @@ const AdminDashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes] = await Promise.all([
+      const [orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes, reportedRes] = await Promise.all([
         adminService.getPendingOrganizers(),
         adminService.getAllOrganizers(),
         eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
@@ -130,7 +132,8 @@ const AdminDashboard = () => {
         adminService.getAllUsers && adminService.getAllUsers() || fetch(API_BASE + '/admin/users', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
         eventService.getEvents({ limit: 200 }),
         fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
-        venueService.getAllVenues()
+        venueService.getAllVenues(),
+        feedbackService.getReportedFeedbacks().catch(() => ({ data: [] }))
       ]);
 
       setPendingOrgs(orgsRes.data?.data || []);
@@ -144,6 +147,7 @@ const AdminDashboard = () => {
       setAllUsers(usersData);
       setAvailableStaffs(staffRes.data || []);
       setAllVenues(venuesRes.data?.data || []);
+      setReportedFeedbacks(reportedRes.data || []);
     } catch (e) { 
       message.error('Tải dữ liệu thất bại toàn hệ thống'); 
     } finally { 
@@ -308,6 +312,16 @@ const AdminDashboard = () => {
     if (type === 'cancel_event') await handleEventAction(id, 'cancel', rejectReason);
     if (type === 'speaker') await handleSpeakerAction(id, 'reject', rejectReason);
     setRejectModal({ open: false });
+  };
+
+  const handleResolveReport = async (feedbackId, action) => {
+    try {
+      await feedbackService.resolveReport(feedbackId, action);
+      message.success(action === 'delete' ? 'Đã xoá đánh giá vi phạm' : 'Đã bỏ qua báo cáo');
+      loadAll();
+    } catch (e) {
+      message.error(e.message || 'Lỗi xử lý báo cáo');
+    }
   };
 
   const handleLogout = () => {
@@ -515,6 +529,23 @@ const AdminDashboard = () => {
     }
   ];
 
+  const reportedFeedbackCols = [
+    { title: 'Người viết Đánh giá', dataIndex: 'ParticipantName', width: 200, render: t => <Text style={{ color: '#2563eb', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Nội dung Đánh giá', dataIndex: 'Comment', width: 300, render: t => <Text style={{ color: '#334155' }}>{t || '(Chỉ có số sao)'}</Text> },
+    { title: 'Người báo cáo', dataIndex: 'ReporterName', width: 200, render: t => <Text style={{ color: '#059669', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 250, render: t => <Text style={{ color: '#dc2626', fontWeight: 500 }}>{t}</Text> },
+    { title: 'Sự kiện', dataIndex: 'EventTitle', width: 200, render: t => <Text strong>{t}</Text> },
+    {
+      title: 'Hành động', width: 200,
+      render: (_, r) => (
+        <Space>
+          <Button size="small" danger onClick={() => confirm({ title: 'Xoá đánh giá vi phạm này?', content: 'Đánh giá sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveReport(r.FeedbackID, 'delete') })}>Xoá đánh giá</Button>
+          <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Đánh giá vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveReport(r.FeedbackID, 'dismiss') })}>Bỏ qua</Button>
+        </Space>
+      )
+    }
+  ];
+
   /* ── Sidebar Menu ── */
   const menuItems = [
     { key: 'overview', icon: <AppstoreOutlined />, label: 'Tổng quan' },
@@ -527,6 +558,8 @@ const AdminDashboard = () => {
     { key: 'staffs', icon: <TeamOutlined />, label: 'Tình nguyện viên' },
     { key: 'venues', icon: <EnvironmentOutlined />, label: 'Quản lý Địa điểm' },
     { key: 'users', icon: <UserOutlined />, label: 'Người dùng' },
+    { key: 'reported_feedbacks', icon: <ExclamationCircleOutlined />, label: 'Phản hồi vi phạm',
+      extra: reportedFeedbacks.length > 0 ? <Badge count={reportedFeedbacks.length} /> : null },
   ];
 
   if (loading && !stats) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
@@ -746,6 +779,13 @@ const AdminDashboard = () => {
             <div>
               <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Người dùng</Title>
               <Table columns={userCols} dataSource={allUsers} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
+            </div>
+          )}
+
+          {activeMenu === 'reported_feedbacks' && (
+            <div>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Phản hồi vi phạm</Title>
+              <Table columns={reportedFeedbackCols} dataSource={reportedFeedbacks} rowKey="FeedbackID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có báo cáo vi phạm nào' }} />
             </div>
           )}
 

@@ -7,6 +7,7 @@ const ensureDir = (dir) => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recurs
 ensureDir('uploads/organizer-docs');
 ensureDir('uploads/avatars');
 ensureDir('uploads/events');
+ensureDir('uploads/feedbacks');
 
 // ─── XỬ LÝ CHUNG CHO PROFILE (Cả Tài liệu & Avatar) ────────────────────────
 const profileStorage = multer.diskStorage({
@@ -62,4 +63,24 @@ const uploadEvent = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB / file
 });
 
-module.exports = { uploadOrgDocs, uploadEvent };
+// ─── XỬ LÝ CHO FEEDBACK ────────────────────────
+const feedbackStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/feedbacks'),
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    cb(null, `feedback_${Date.now()}_${safe}`);
+  },
+});
+
+const uploadFeedback = multer({
+  storage: feedbackStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB / file for videos
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.avi'];
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Chỉ chấp nhận file ảnh hoặc video'), false);
+  }
+});
+
+module.exports = { uploadOrgDocs, uploadEvent, uploadFeedback };

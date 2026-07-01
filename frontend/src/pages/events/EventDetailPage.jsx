@@ -347,10 +347,10 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                    isFull ? '🟡 Đã đầy chỗ' : '🟢 Đang mở đăng ký'}
                 </Tag>
                 <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
-                  <span><EnvironmentOutlined style={{ marginRight: 6 }} />{event.VenueName || 'Chưa cập nhật'}</span>
+                  <span><CalendarOutlined style={{ marginRight: 6, color: '#2563eb' }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
+                  <span><EnvironmentOutlined style={{ marginRight: 6, color: '#7c3aed' }} />{event.VenueName || 'Chưa cập nhật'}</span>
                   {event.MaxParticipants && (
-                    <span><TeamOutlined style={{ marginRight: 6 }} />
+                    <span><TeamOutlined style={{ marginRight: 6, color: isFull ? '#ef4444' : '#10b981' }} />
                       <span style={{ color: isFull ? '#ef4444' : '#10b981', fontWeight: 600 }}>
                         {event.MaxParticipants - (event.RegisteredCount || 0)} chỗ còn lại
                       </span> / {event.MaxParticipants}

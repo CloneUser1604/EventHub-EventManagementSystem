@@ -78,7 +78,7 @@ const registerEvent = async (req, res) => {
       .input('RelatedType', sql.VarChar(50), 'Event')
       .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
 
-    return createdResponse(res, { registrationId, qrCode, otpCode }, 'Đăng ký thành công! QR Code và OTP đã được tạo.');
+    return createdResponse(res, { registrationId, qrCode, otpCode }, 'Đăng ký thành công! Mã OTP đã được tạo. Vui lòng xem vé để check-in.');
   } catch (error) {
     console.error('registerEvent error:', error);
     return errorResponse(res, 'Đăng ký thất bại');

@@ -173,6 +173,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   
   const isPastedHTML = event?.Description && (event.Description.includes('&lt;div') || event.Description.includes('&lt;style') || event.Description.includes('&lt;!DOCTYPE') || event.Description.includes('&lt;section'));
 
+  // ĐÃ THÊM: Biến kiểm tra điều kiện chặn Đăng ký
+  const notFptStudent = isAuthenticated && event.IsInternalOnly && user?.university !== 'Đại học FPT';
+
   const unescapeHTML = (htmlStr) => {
     if (!htmlStr) return '';
     if (isPastedHTML) {
@@ -388,14 +391,17 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                 </div>
               ) : (
                 <>
+                  {/* ĐÃ THÊM: Hiện thông báo màu cam nếu bị chặn */}
                   {isPast ? <Alert message="Sự kiện đã kết thúc" type="info" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : isFull ? <Alert message="Sự kiện đã đầy chỗ" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : deadlinePassed ? <Alert message="Đã hết hạn đăng ký" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
+                    : notFptStudent ? <Alert message="Sự kiện nội bộ chỉ dành cho sinh viên trường Đại học FPT" type="error" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : null}
                   <Button
                     type="primary" block size="large" onClick={handleRegister}
                     loading={registering}
-                    disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published'}
+                    // ĐÃ SỬA: Thêm điều kiện khóa nút (disabled) nếu bị chặn do không phải SV FPT
+                    disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published' || notFptStudent}
                     style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
                   >
                     {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}

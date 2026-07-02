@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Avatar, Rate, Button, Image, Modal, Input, message, Tag} from "antd";
-import {UserOutlined, DeleteOutlined, MessageOutlined, WarningOutlined} from "@ant-design/icons";
+import {UserOutlined, DeleteOutlined, MessageOutlined, WarningOutlined, EditOutlined} from "@ant-design/icons";
 import dayjs from "dayjs";
 import {feedbackService} from "../../services/feedback.service";
 import useAuthStore from "../../store/authStore";
@@ -117,8 +117,8 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
         <div style={{display: "flex", alignItems: "center", gap: 8, flexShrink: 0}}>
           {isParticipant && (
             <>
-              <Button type="text" size="small" style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => onEdit(item)}>Sửa</Button>
-              <Button type="text" size="small" danger style={{fontSize: 13, fontWeight: 500}} onClick={handleDelete}>Xóa</Button>
+              <Button type="text" size="small" icon={<EditOutlined />} style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => onEdit(item)}>Sửa</Button>
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{fontSize: 13, fontWeight: 500}} onClick={handleDelete}>Xóa</Button>
             </>
           )}
           {isOrganizer && !isParticipant && (

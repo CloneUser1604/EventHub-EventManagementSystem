@@ -33,7 +33,7 @@ const roleNav = {
   Organizer: [
     { key: '/', label: 'Home' },
     { key: '/events', label: 'Events' },
-    { key: '/organizer/events', label: 'My Calendar' },
+    { key: '/organizer/events', label: 'My Events' },
     { key: '/organizer/events/create', label: 'Create Event' },
   ],
   Admin: [

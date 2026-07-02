@@ -261,6 +261,23 @@ const createEvent = async (req, res) => {
       }
     }
 
+    if (venueId) {
+      const overlapCheck = await pool.request()
+        .input('VenueID', sql.Int, venueId)
+        .input('StartDate', sql.DateTime, new Date(startDate))
+        .input('EndDate', sql.DateTime, new Date(endDate))
+        .query(`
+          SELECT Title FROM Events 
+          WHERE VenueID = @VenueID 
+            AND ApprovalStatus = 'Approved'
+            AND (@StartDate < EndDate AND @EndDate > StartDate)
+        `);
+      
+      if (overlapCheck.recordset.length > 0) {
+        return errorResponse(res, `Địa điểm này đã được đặt cho sự kiện "${overlapCheck.recordset[0].Title}" trong khoảng thời gian bạn chọn. Vui lòng chọn địa điểm hoặc thời gian khác.`, 400);
+      }
+    }
+
     const insertResult = await pool.request()
       .input('OrganizerID', sql.Int, organizerId)
       .input('CategoryID', sql.Int, categoryId || null)
@@ -389,6 +406,25 @@ const updateEvent = async (req, res) => {
         if (sStart < sDate || sEnd > eDate) {
           return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
         }
+      }
+    }
+
+    if (venueId !== undefined && venueId !== null) {
+      const overlapCheck = await pool.request()
+        .input('VenueID', sql.Int, venueId)
+        .input('StartDate', sql.DateTime, sDate)
+        .input('EndDate', sql.DateTime, eDate)
+        .input('EventID', sql.Int, parseInt(id))
+        .query(`
+          SELECT Title FROM Events 
+          WHERE VenueID = @VenueID 
+            AND EventID != @EventID
+            AND ApprovalStatus = 'Approved'
+            AND (@StartDate < EndDate AND @EndDate > StartDate)
+        `);
+      
+      if (overlapCheck.recordset.length > 0) {
+        return errorResponse(res, `Địa điểm này đã được đặt cho sự kiện "${overlapCheck.recordset[0].Title}" trong khoảng thời gian bạn chọn. Vui lòng chọn địa điểm hoặc thời gian khác.`, 400);
       }
     }
 

@@ -26,36 +26,36 @@ const { Text } = Typography;
 
 const roleNav = {
   Participant: [
-    { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
-    { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Lịch của tôi' },
+    { key: '/', label: 'Home' },
+    { key: '/events', label: 'Events' },
+    { key: '/my-calendar', label: 'My Calendar' },
   ],
   Organizer: [
-    { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
-    { key: '/organizer/events', icon: <CalendarOutlined />, label: 'Sự kiện của tôi' },
-    { key: '/organizer/events/create', icon: <PlusOutlined />, label: 'Tạo sự kiện' },
+    { key: '/', label: 'Home' },
+    { key: '/events', label: 'Events' },
+    { key: '/organizer/events', label: 'My Events' },
+    { key: '/organizer/events/create', label: 'Create Event' },
   ],
   Admin: [
-    { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/admin/organizers', icon: <TeamOutlined />, label: 'Ban tổ chức' },
-    { key: '/admin/events', icon: <CheckCircleOutlined />, label: 'Duyệt sự kiện' },
-    { key: '/events', icon: <SearchOutlined />, label: 'Tất cả sự kiện' },
+    { key: '/admin', label: 'Dashboard' },
+    { key: '/admin/organizers', label: 'Organizers' },
+    { key: '/admin/events', label: 'Approve Events' },
+    { key: '/events', label: 'Events' },
   ],
   Staff: [
-    { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
-    { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Lịch của tôi' },
+    { key: '/', label: 'Home' },
+    { key: '/events', label: 'Events' },
+    { key: '/my-calendar', label: 'My Calendar' },
   ],
   Speaker: [
-    { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-    { key: '/my-calendar', icon: <CalendarOutlined />, label: 'Sự kiện của tôi' },
+    { key: '/', label: 'Home' },
+    { key: '/my-calendar', label: 'My Calendar' },
   ],
 };
 
 const publicNav = [
-  { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
-  { key: '/events', icon: <SearchOutlined />, label: 'Sự kiện' },
+  { key: '/', label: 'Home' },
+  { key: '/events', label: 'Events' },
 ];
 
 const MainLayout = ({ children }) => {
@@ -193,6 +193,28 @@ const MainLayout = ({ children }) => {
           .mobile-menu-btn { display: inline-block !important; }
           .header-user-name { display: none !important; }
         }
+        /* Custom horizontal menu styling to match the screenshot */
+        .desktop-nav.ant-menu-dark {
+          background: transparent !important;
+        }
+        .desktop-nav.ant-menu-dark .ant-menu-item {
+          background-color: transparent !important;
+          color: rgba(255, 255, 255, 0.75) !important;
+          font-weight: 500;
+          font-size: 15px;
+          border-bottom: 2px solid transparent !important;
+          transition: all 0.3s;
+          padding: 0 16px !important;
+        }
+        .desktop-nav.ant-menu-dark .ant-menu-item:hover,
+        .desktop-nav.ant-menu-dark .ant-menu-item-active {
+          color: #2563eb !important;
+        }
+        .desktop-nav.ant-menu-dark .ant-menu-item-selected {
+          color: #2563eb !important;
+          border-bottom: 2px solid #2563eb !important;
+          background-color: transparent !important;
+        }
       `}</style>
       {/* ── Header ─────────────────────────────────────── */}
       <Header style={{
@@ -273,7 +295,7 @@ const MainLayout = ({ children }) => {
       {/* ── Footer ──────────────────────────────────────── */}
       <Footer style={{ background: '#0f1629', color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '20px 24px' }}>
         <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-          © {new Date().getFullYear()} EMS — Event Management System · Powered by Anthropic Claude
+          © {new Date().getFullYear()} EMS — Event Management System
         </Text>
       </Footer>
 

@@ -7,7 +7,7 @@ import {
 import {
   CalendarOutlined, EnvironmentOutlined, TeamOutlined,
   ClockCircleOutlined, CheckCircleOutlined, UserOutlined,
-  ShareAltOutlined, HeartOutlined, QrcodeOutlined, ArrowLeftOutlined
+  ShareAltOutlined, HeartOutlined, HeartFilled, QrcodeOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import MainLayout from '../../components/layout/MainLayout';
 import useEventStore from '../../store/eventStore';
@@ -49,6 +49,40 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   const [ticketModal, setTicketModal] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [isFav, setIsFav] = useState(false);
+  const [activeTab, setActiveTab] = useState('about');
+
+  const handleWriteReviewClick = () => {
+    setActiveTab('feedback');
+    setTimeout(() => {
+      document.getElementById('event-tabs-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.dispatchEvent(new Event('openFeedbackModal'));
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+      setIsFav(favs.includes(String(targetId)));
+    };
+    handleStorageChange();
+    window.addEventListener('favoritesUpdated', handleStorageChange);
+    return () => window.removeEventListener('favoritesUpdated', handleStorageChange);
+  }, [targetId]);
+
+  const toggleFav = () => {
+    let favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+    if (isFav) {
+      favs = favs.filter(id => id !== String(targetId));
+      message.success('Đã bỏ yêu thích sự kiện');
+    } else {
+      if (!favs.includes(String(targetId))) favs.push(String(targetId));
+      message.success('Đã thêm vào sự kiện yêu thích');
+    }
+    localStorage.setItem('favoriteEvents', JSON.stringify(favs));
+    setIsFav(!isFav);
+    window.dispatchEvent(new Event('favoritesUpdated'));
+  };
 
   useEffect(() => {
     fetchEventById(targetId);
@@ -139,6 +173,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
   
   const isPastedHTML = event?.Description && (event.Description.includes('&lt;div') || event.Description.includes('&lt;style') || event.Description.includes('&lt;!DOCTYPE') || event.Description.includes('&lt;section'));
 
+  // ĐÃ THÊM: Biến kiểm tra điều kiện chặn Đăng ký
+  const notFptStudent = isAuthenticated && event.IsInternalOnly && user?.university !== 'Đại học FPT';
+
   const unescapeHTML = (htmlStr) => {
     if (!htmlStr) return '';
     if (isPastedHTML) {
@@ -163,9 +200,9 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {event.IsInternalOnly ? (
-              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Nội bộ</Tag>
+              <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>Sinh viên trường</Tag>
             ) : (
-              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Sự kiện Công khai</Tag>
+              <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600 }}>Tất cả mọi người</Tag>
             )}
             {event.CategoryName && <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{event.CategoryName}</Tag>}
             {isPast && <Tag color="default">Đã kết thúc</Tag>}
@@ -195,8 +232,8 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
         <div className="event-detail-grid">
 
           {/* Left: Main content */}
-          <div style={{ minWidth: 0 }}>
-            <Tabs defaultActiveKey="about" items={[
+          <div style={{ minWidth: 0 }} id="event-tabs-container">
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               {
                 key: 'about',
                 label: 'Giới thiệu',
@@ -301,21 +338,29 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
               <div style={{ marginBottom: 20 }}>
-                <Tag color={event.Status === 'Published' ? 'green' : 'default'} style={{ borderRadius: 6, fontWeight: 600, marginBottom: 12 }}>
-                  {event.Status === 'Published' ? '🟢 Đang mở đăng ký' : event.Status}
+                <Tag color={
+                  event.Status !== 'Published' ? 'default' :
+                  isPast ? 'default' :
+                  deadlinePassed ? 'red' :
+                  isFull ? 'orange' : 'green'
+                } style={{ borderRadius: 6, fontWeight: 600, marginBottom: 12 }}>
+                  {event.Status !== 'Published' ? event.Status :
+                   isPast ? '⚫ Đã kết thúc' :
+                   deadlinePassed ? '🔴 Hết hạn đăng ký' :
+                   isFull ? '🟡 Đã đầy chỗ' : '🟢 Đang mở đăng ký'}
                 </Tag>
                 <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span><CalendarOutlined style={{ marginRight: 6 }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
-                  <span><EnvironmentOutlined style={{ marginRight: 6 }} />{event.VenueName || 'Chưa cập nhật'}</span>
+                  <span><CalendarOutlined style={{ marginRight: 6, color: '#2563eb' }} />{dayjs(event.StartDate).format('DD/MM/YYYY · HH:mm')}</span>
+                  <span><EnvironmentOutlined style={{ marginRight: 6, color: '#7c3aed' }} />{event.VenueName || 'Chưa cập nhật'}</span>
                   {event.MaxParticipants && (
-                    <span><TeamOutlined style={{ marginRight: 6 }} />
+                    <span><TeamOutlined style={{ marginRight: 6, color: isFull ? '#ef4444' : '#10b981' }} />
                       <span style={{ color: isFull ? '#ef4444' : '#10b981', fontWeight: 600 }}>
                         {event.MaxParticipants - (event.RegisteredCount || 0)} chỗ còn lại
                       </span> / {event.MaxParticipants}
                     </span>
                   )}
                 </div>
-                {!isPast && event.Status !== 'Cancelled' && (
+                {isUpcoming && event.Status !== 'Cancelled' && (
                   <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 8, marginTop: 16, textAlign: 'center', border: '1px solid #e2e8f0' }}>
                     <Text style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 4 }}>Thời gian đếm ngược</Text>
                     <Countdown targetDate={event.StartDate} />
@@ -337,28 +382,49 @@ const EventDetailPage = ({ adminEventId, noLayout }) => {
                       Huỷ đăng ký
                     </Button>
                   )}
+                  {isPast && (
+                    <Button type="default" block size="large" onClick={handleWriteReviewClick}
+                      style={{ borderRadius: 10, height: 42, fontWeight: 600, marginTop: 10, borderColor: '#2563eb', color: '#2563eb' }}>
+                      📝 Viết đánh giá
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
+                  {/* ĐÃ THÊM: Hiện thông báo màu cam nếu bị chặn */}
                   {isPast ? <Alert message="Sự kiện đã kết thúc" type="info" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : isFull ? <Alert message="Sự kiện đã đầy chỗ" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : deadlinePassed ? <Alert message="Đã hết hạn đăng ký" type="warning" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
+                    : notFptStudent ? <Alert message="Sự kiện nội bộ chỉ dành cho sinh viên trường Đại học FPT" type="error" showIcon style={{ borderRadius: 10, marginBottom: 12 }} />
                     : null}
                   <Button
                     type="primary" block size="large" onClick={handleRegister}
                     loading={registering}
-                    disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published'}
+                    // ĐÃ SỬA: Thêm điều kiện khóa nút (disabled) nếu bị chặn do không phải SV FPT
+                    disabled={isPast || isFull || deadlinePassed || event.Status !== 'Published' || notFptStudent}
                     style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
                   >
                     {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
                   </Button>
+                  {!(isPast || deadlinePassed) && (
+                    <Button
+                      type="primary" block size="large" onClick={handleRegister}
+                      loading={registering}
+                      disabled={isFull || event.Status !== 'Published'}
+                      style={{ borderRadius: 10, height: 50, fontWeight: 700, fontSize: 15, marginBottom: 10 }}
+                    >
+                      {registering ? 'Đang đăng ký...' : '🎟️ Đăng ký tham dự'}
+                    </Button>
+                  )}
                 </>
               )}
 
               <Divider style={{ margin: '16px 0' }} />
               <Space style={{ width: '100%', justifyContent: 'center' }}>
                 <Button type="text" icon={<ShareAltOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã sao chép link!'); }}>Chia sẻ</Button>
-                <Button type="text" icon={<HeartOutlined />}>Lưu</Button>
+                <Button type="text" onClick={toggleFav} icon={isFav ? <HeartFilled style={{ color: '#ef4444' }} /> : <HeartOutlined />}>
+                  {isFav ? 'Đã yêu thích' : 'Yêu thích'}
+                </Button>
               </Space>
 
               <Divider style={{ margin: '16px 0' }} />

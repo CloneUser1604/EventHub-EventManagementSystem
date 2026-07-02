@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Tag, Avatar, Tooltip } from 'antd';
 import { 
   CalendarOutlined, EnvironmentOutlined, TeamOutlined, ClockCircleOutlined,
   UserOutlined, CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined,
-  TrophyOutlined, HeartOutlined, NotificationOutlined, AppstoreOutlined
+  TrophyOutlined, HeartOutlined, HeartFilled, NotificationOutlined, AppstoreOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -34,8 +34,24 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
   const navigate = useNavigate();
   const remaining = event.MaxParticipants ? event.MaxParticipants - (event.RegisteredCount || 0) : null;
   const isFull = remaining !== null && remaining <= 0;
-  const isPast = dayjs(event.EndDate).isBefore(dayjs());
+  
+  const now = dayjs();
+  const isPast = dayjs(event.EndDate).isBefore(now);
+  const isUpcoming = dayjs(event.StartDate).isAfter(now);
+  const isOngoing = !isPast && !isUpcoming;
+
   const status = statusConfig[event.Status] || { color: 'default', label: event.Status };
+
+  const [isFav, setIsFav] = useState(false);
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const favs = JSON.parse(localStorage.getItem('favoriteEvents') || '[]');
+      setIsFav(favs.includes(String(event.EventID)));
+    };
+    handleStorageChange();
+    window.addEventListener('favoritesUpdated', handleStorageChange);
+    return () => window.removeEventListener('favoritesUpdated', handleStorageChange);
+  }, [event.EventID]);
 
   return (
     <Card
@@ -59,11 +75,29 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
             )}
             {showStatus && status.label !== 'Đã kết thúc' && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
           </div>
-          {isPast ? (
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>
-          ) : isFull ? (
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
-          ) : null}
+          
+          {/* Top Right Badges */}
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            {isPast ? (
+              <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>
+            ) : isOngoing ? (
+              <div style={{ background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse 2s infinite' }} /> ĐANG DIỄN RA
+              </div>
+            ) : isUpcoming ? (
+              <div style={{ background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>SẮP DIỄN RA</div>
+            ) : null}
+
+            {isFull && !isPast && (
+              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
+            )}
+            
+            {isFav && (
+              <div style={{ background: '#fff', color: '#ef4444', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <HeartFilled /> YÊU THÍCH
+              </div>
+            )}
+          </div>
         </div>
       }
       bodyStyle={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}
@@ -84,7 +118,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
           <UserOutlined style={{ color: '#f59e0b', flexShrink: 0 }} />
-          <span>{event.RegisteredCount || 0} người đăng ký</span>
+          <span>{event.RegisteredCount || 0} người đã đăng ký</span>
         </div>
         {remaining !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
@@ -94,6 +128,13 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
             </span>
           </div>
         )}
+        <div style={{ marginTop: 4 }}>
+          {event.IsInternalOnly ? (
+            <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Sinh viên trường</Tag>
+          ) : (
+            <Tag color="cyan" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Tất cả mọi người</Tag>
+          )}
+        </div>
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

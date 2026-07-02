@@ -27,9 +27,15 @@ const registerEvent = async (req, res) => {
     if (event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants)
       return errorResponse(res, 'Sự kiện đã đầy chỗ', 400);
     
+    // ĐÃ SỬA: Lấy trực tiếp thông tin trường Đại học từ DB thay vì Token
+    const userRes = await pool.request()
+      .input('UserID', sql.Int, participantId)
+      .query('SELECT University FROM Users WHERE UserID = @UserID');
+    const userUniv = userRes.recordset[0]?.University;
+
     // Check internal only
-    if (event.IsInternalOnly && !req.user.University) {
-      return forbiddenResponse(res, 'Sự kiện này chỉ dành cho sinh viên trong trường');
+    if (event.IsInternalOnly && userUniv !== 'Đại học FPT') {
+      return forbiddenResponse(res, 'Sự kiện này chỉ dành cho sinh viên trường Đại học FPT');
     }
 
     // Check duplicate
@@ -72,7 +78,7 @@ const registerEvent = async (req, res) => {
       .input('RelatedType', sql.VarChar(50), 'Event')
       .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
 
-    return createdResponse(res, { registrationId, qrCode, otpCode }, 'Đăng ký thành công! QR Code và OTP đã được tạo.');
+    return createdResponse(res, { registrationId, qrCode, otpCode }, 'Đăng ký thành công! Mã OTP đã được tạo. Vui lòng xem vé để check-in.');
   } catch (error) {
     console.error('registerEvent error:', error);
     return errorResponse(res, 'Đăng ký thất bại');
@@ -99,7 +105,6 @@ const cancelRegistration = async (req, res) => {
       .input('RegistrationID', sql.Int, parseInt(id))
       .input('Note', sql.NVarChar(500), note || null)
       .query(`UPDATE Registrations SET Status='Cancelled', CancelledAt=GETDATE(), CancellationNote=@Note WHERE RegistrationID=@RegistrationID`);
-
 
     return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${reg.EventTitle}"`);
   } catch (error) {

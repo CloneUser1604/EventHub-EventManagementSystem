@@ -27,15 +27,31 @@ const verifyOTP = async (req, res) => {
 
     const pool = getPool();
 
-    // 2. Check if participant is registered
+    // 2. Check if participant is registered and event time is valid
     const regResult = await pool.request()
       .input('EventID', sql.Int, eventId)
       .input('ParticipantID', sql.Int, participantId)
-      .query("SELECT RegistrationID, Status FROM Registrations WHERE EventID = @EventID AND ParticipantID = @ParticipantID");
+      .query(`
+        SELECT r.RegistrationID, r.Status, e.StartDate, e.EndDate 
+        FROM Registrations r
+        JOIN Events e ON r.EventID = e.EventID
+        WHERE r.EventID = @EventID AND r.ParticipantID = @ParticipantID
+      `);
 
     const registration = regResult.recordset[0];
     if (!registration || registration.Status !== 'Registered') {
       return res.status(403).json({ success: false, message: 'Bạn chưa đăng ký hoặc đăng ký đã bị huỷ' });
+    }
+
+    const now = new Date();
+    const startDate = new Date(registration.StartDate);
+    const endDate = new Date(registration.EndDate);
+
+    if (now < startDate) {
+      return res.status(400).json({ success: false, message: 'Sự kiện chưa diễn ra, không thể check-in' });
+    }
+    if (now > endDate) {
+      return res.status(400).json({ success: false, message: 'Sự kiện đã kết thúc, không thể check-in' });
     }
 
     // 3. Verify OTP

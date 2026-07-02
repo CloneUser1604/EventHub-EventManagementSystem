@@ -13,8 +13,9 @@ import {
   Tag,
   Typography,
   Drawer,
+  Switch,
 } from "antd";
-import {SearchOutlined, FilterOutlined, CloseOutlined} from "@ant-design/icons";
+import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
@@ -43,12 +44,13 @@ const EventListPage = () => {
     startDate: "",
     endDate: "",
     page: 1,
-    limit: 12,
+    limit: 6,
     sortBy: "StartDate",
     sortOrder: "ASC",
     status: "Published",
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showFavs, setShowFavs] = useState(false);
 
   useEffect(() => {
     fetchMeta();
@@ -163,6 +165,12 @@ const EventListPage = () => {
           <Option value="Title_ASC">Tên A-Z</Option>
         </Select>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fff1f2', borderRadius: 8, border: '1px solid #ffe4e6' }}>
+        <Text strong style={{ fontSize: 13, color: '#be123c', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <HeartFilled /> Sự kiện yêu thích
+        </Text>
+        <Switch checked={showFavs} onChange={setShowFavs} style={{ background: showFavs ? '#e11d48' : '#cbd5e1' }} />
+      </div>
       {hasFilters && (
         <Button onClick={clearFilters} icon={<CloseOutlined />} block>
           Xoá bộ lọc
@@ -170,6 +178,8 @@ const EventListPage = () => {
       )}
     </div>
   );
+
+  const displayedEvents = showFavs ? events.filter(e => JSON.parse(localStorage.getItem('favoriteEvents') || '[]').includes(String(e.EventID))) : events;
 
   return (
     <MainLayout>
@@ -323,7 +333,7 @@ const EventListPage = () => {
               <div style={{textAlign: "center", padding: 80}}>
                 <Spin size="large" />
               </div>
-            ) : events.length === 0 ? (
+            ) : displayedEvents.length === 0 ? (
               <Empty
                 description="Không tìm thấy sự kiện nào"
                 style={{padding: 60}}
@@ -331,7 +341,7 @@ const EventListPage = () => {
             ) : (
               <>
                 <Row gutter={[16, 16]}>
-                  {events.map((event) => (
+                  {displayedEvents.map((event) => (
                     <Col key={event.EventID} xs={24} sm={12} xl={8}>
                       <EventCard event={event} />
                     </Col>

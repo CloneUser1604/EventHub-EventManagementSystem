@@ -4,10 +4,11 @@ const router = express.Router();
 const { uploadOrgDocs } = require('../middleware/upload');
 const {
   register, verifyEmail, resendVerification,
-  login, refreshToken, logout, getMe,
+  login, refreshToken, logout, getMe, updateMe,
   forgotPassword, resetPassword, changePassword,
   createSpeaker, approveSpeaker,
   approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
+  updateSettings, deleteAccount,
 } = require('../controllers/auth.controller');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, registerRules, loginRules, forgotPasswordRules, resetPasswordRules, changePasswordRules, createSpeakerRules } = require('../middleware/validators');
@@ -26,6 +27,12 @@ router.post('/reset-password', authLimiter, resetPasswordRules, validate, resetP
 
 // Protected
 router.post('/logout', authenticate, logout);
+
+// Settings & Account
+router.put('/settings', authenticate, updateSettings);
+router.delete('/account', authenticate, deleteAccount);
+
+// Protected
 router.get('/me', authenticate, getMe);
 
 router.get('/fix-avatar-column', async (req, res) => {

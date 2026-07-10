@@ -40,7 +40,7 @@ const UserProfile = () => {
   
   const rawAvatar = actualUser.avatarURL || actualUser.AvatarURL;
   const processedAvatar = getImageUrl(rawAvatar);
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=4a25e1&color=fff&size=128&bold=true`;
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=27272a&color=fff&size=128&bold=true`;
   const finalAvatar = processedAvatar || defaultAvatar;
 
   const userRole = actualUser.role || actualUser.Role || 'Participant';

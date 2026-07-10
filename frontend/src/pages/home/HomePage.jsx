@@ -10,6 +10,7 @@ import {
   Select,
   Empty,
   Typography,
+  Carousel,
 } from "antd";
 import {
   SearchOutlined,
@@ -17,10 +18,15 @@ import {
   CalendarOutlined,
   TeamOutlined,
   TrophyOutlined,
+  LeftOutlined,
+  RightOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
+import useSettingStore from "../../store/settingStore";
+import { useTranslation } from "../../hooks/useTranslation";
 import dayjs from "dayjs";
 
 const {Title, Text} = Typography;
@@ -49,6 +55,82 @@ const Counter = ({target, suffix = ""}) => {
   );
 };
 
+// ─── Custom Featured Card ──────────────────────────────────────
+const FeaturedEventCard = ({ event, index }) => {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  return (
+    <div
+      onClick={() => navigate(`/events/${event.EventID}`)}
+      className="featured-card-hover"
+      style={{
+        position: "relative",
+        height: 420,
+        borderRadius: 20,
+        overflow: "hidden",
+        cursor: "pointer",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        background: "#18181b",
+        margin: "12px",
+      }}
+    >
+      <img
+        src={event.CoverImageURL || "https://images.unsplash.com/photo-1540575467063-178a50c2df87"}
+        alt={event.Title}
+        className="featured-card-img"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          opacity: 0.85,
+          transition: "transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(to top, rgba(24,24,27,1) 0%, rgba(24,24,27,0.3) 60%, transparent 100%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: "32px 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <Tag color="#27272A" style={{ margin: 0, border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, fontWeight: 500, color: "white" }}>
+            {event.CategoryName ? (t(`categories.${event.CategoryName}`) !== `categories.${event.CategoryName}` ? t(`categories.${event.CategoryName}`) : event.CategoryName) : t('home.stats.events')}
+          </Tag>
+          <div style={{ background: "#F9FAFB", color: "#18181B", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 14 }}>🔥</span> {event.RegisteredCount || 0} {t('home.registered') || "ĐĂNG KÝ"}
+          </div>
+        </div>
+        
+        <h3 style={{ margin: 0, color: "white", fontSize: 24, fontFamily: "'Geist', sans-serif", fontWeight: 700, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {event.Title}
+        </h3>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 20, color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <CalendarOutlined style={{ color: "#F9FAFB" }} /> {dayjs(event.StartDate).format("DD/MM - HH:mm")}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <EnvironmentOutlined style={{ color: "#F9FAFB" }} /> {event.VenueName?.split(" ")[0] || "Online"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const {events, isLoading, categories, fetchEvents, fetchMeta} =
@@ -56,11 +138,22 @@ const HomePage = () => {
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("");
   const heroRef = useRef(null);
+  const carouselRef = useRef(null);
+  const { theme } = useSettingStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchMeta();
     fetchEvents({status: "Published", limit: 100, page: 1});
   }, []);
+
+  const handleScrollLeft = () => {
+    carouselRef.current?.prev();
+  };
+
+  const handleScrollRight = () => {
+    carouselRef.current?.next();
+  };
 
   const handleSearch = () => {
     navigate(
@@ -69,8 +162,9 @@ const HomePage = () => {
   };
 
   const featuredEvents = [...events]
+    .filter((e) => dayjs(e.EndDate).isAfter(dayjs())) // Sắp hoặc đang diễn ra
     .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
-    .slice(0, 3);
+    .slice(0, 5);
 
   const upcomingEvents = [...events]
     .filter((e) => dayjs(e.StartDate).isAfter(dayjs()))
@@ -175,7 +269,7 @@ const HomePage = () => {
                 fontWeight: 500,
               }}
             >
-              Nền tảng sự kiện đại học #1
+              {t('home.badge')}
             </Text>
           </div>
 
@@ -183,7 +277,7 @@ const HomePage = () => {
             className="animate-fade-in-up"
             style={{
               animationDelay: "0.2s",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Geist', sans-serif",
               fontSize: "clamp(36px, 6vw, 68px)",
               fontWeight: 800,
               color: "white",
@@ -192,7 +286,7 @@ const HomePage = () => {
               letterSpacing: "-1px",
             }}
           >
-            Khám phá &amp; tham gia
+            {t('home.heroTitle1')}
             <br />
             <span
               className="animate-shimmer"
@@ -203,7 +297,7 @@ const HomePage = () => {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              sự kiện đại học
+              {t('home.heroTitle2')}
             </span>
           </h1>
 
@@ -211,16 +305,13 @@ const HomePage = () => {
             className="animate-fade-in-up"
             style={{
               animationDelay: "0.3s",
-              color: "rgba(255,255,255,0.65)",
-              fontSize: 18,
-              lineHeight: 1.7,
+              fontSize: "clamp(16px, 2vw, 20px)",
+              color: "rgba(255,255,255,0.7)",
               marginBottom: 40,
-              maxWidth: 560,
-              margin: "0 auto 40px",
+              lineHeight: 1.6,
             }}
           >
-            Hội thảo, workshop, cuộc thi, triển lãm — tất cả sự kiện của cộng
-            đồng sinh viên tập trung tại một nơi.
+            {t('home.heroSubtitle')}
           </p>
 
           {/* Search Bar */}
@@ -256,16 +347,16 @@ const HomePage = () => {
             style={{animationDelay: "0.4s"}}
           >
             <Input
-              placeholder="Tìm sự kiện..."
-              variant="borderless"
+              size="large"
+              placeholder={t('home.searchPlaceholder')}
+              prefix={<SearchOutlined style={{color: "#9ca3af"}} />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onPressEnter={handleSearch}
-              style={{flex: 1, fontSize: 15}}
-              prefix={<SearchOutlined style={{color: "#9ca3af"}} />}
+              style={{flex: 1, borderRadius: 12, border: "none"}}
             />
             <Select
-              placeholder="Lĩnh vực"
+              placeholder={t('home.categoryPlaceholder')}
               value={selectedCat || undefined}
               onChange={setSelectedCat}
               variant="borderless"
@@ -274,7 +365,7 @@ const HomePage = () => {
             >
               {categories.map((c) => (
                 <Option key={c.CategoryID} value={c.CategoryID}>
-                  {c.Name}
+                  {t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name}
                 </Option>
               ))}
             </Select>
@@ -282,15 +373,14 @@ const HomePage = () => {
               type="primary"
               size="large"
               onClick={handleSearch}
-              className="hero-search-btn animate-soft-pulse"
               style={{
-                borderRadius: 10,
-                height: 44,
-                paddingInline: 24,
+                borderRadius: 12,
+                padding: "0 32px",
                 fontWeight: 600,
+                background: "var(--onyx-accent)",
               }}
             >
-              Tìm kiếm
+              {t('home.searchBtn')}
             </Button>
           </div>
 
@@ -301,39 +391,14 @@ const HomePage = () => {
               animationDelay: "0.5s",
               display: "flex",
               justifyContent: "center",
-              gap: 48,
+              gap: 40,
               flexWrap: "wrap",
             }}
           >
             {[
-              {
-                icon: <CalendarOutlined className="animate-float-icon" />,
-                value: 120,
-                suffix: "+",
-                label: "Sự kiện",
-              },
-              {
-                icon: (
-                  <TeamOutlined
-                    className="animate-float-icon"
-                    style={{animationDelay: "0.2s"}}
-                  />
-                ),
-                value: 5000,
-                suffix: "+",
-                label: "Người tham gia",
-              },
-              {
-                icon: (
-                  <TrophyOutlined
-                    className="animate-float-icon"
-                    style={{animationDelay: "0.4s"}}
-                  />
-                ),
-                value: 30,
-                suffix: "+",
-                label: "CLB & tổ chức",
-              },
+              {val: events.length || 1500, label: t('home.stats.events'), suffix: "+"},
+              {val: 50000, label: t('home.stats.users'), suffix: "+"},
+              {val: 200, label: t('home.stats.organizers'), suffix: "+"},
             ].map((s, i) => (
               <div key={i} style={{textAlign: "center"}}>
                 <div
@@ -343,17 +408,19 @@ const HomePage = () => {
                     marginBottom: 8,
                   }}
                 >
-                  {s.icon}
+                  {i === 0 && <CalendarOutlined className="animate-float-icon" />}
+                  {i === 1 && <TeamOutlined className="animate-float-icon" style={{animationDelay: "0.2s"}} />}
+                  {i === 2 && <TrophyOutlined className="animate-float-icon" style={{animationDelay: "0.4s"}} />}
                 </div>
                 <div
                   style={{
                     fontSize: 28,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist', sans-serif",
                     fontWeight: 800,
                     color: "white",
                   }}
                 >
-                  <Counter target={s.value} suffix={s.suffix} />
+                  <Counter target={s.val} suffix={s.suffix} />
                 </div>
                 <div
                   style={{
@@ -377,7 +444,7 @@ const HomePage = () => {
         >
           <path
             d="M0 60 C360 0 1080 0 1440 60 L1440 60 L0 60Z"
-            fill="#f9fafb"
+            fill={theme === 'dark' ? '#000000' : '#f9fafb'}
           />
         </svg>
 
@@ -397,6 +464,16 @@ const HomePage = () => {
           }
           .home-category-filter .ant-select-arrow {
             color: #166534 !important;
+          }
+          .featured-card-hover {
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+          }
+          .featured-card-hover:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15) !important;
+          }
+          .featured-card-hover:hover .featured-card-img {
+            transform: scale(1.05);
           }
         `}</style>
       </section>
@@ -429,7 +506,7 @@ const HomePage = () => {
               fontWeight: 600,
             }}
           >
-            🔥 Tất cả
+            🔥 {t('categories.Tất cả')}
           </Tag>
           {categories.map((c) => (
             <Tag
@@ -447,7 +524,7 @@ const HomePage = () => {
                 color: "#374151",
               }}
             >
-              {c.Name}
+              {t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name}
             </Tag>
           ))}
         </div>
@@ -458,49 +535,70 @@ const HomePage = () => {
       ══════════════════════════════════════════════════ */}
       {featuredEvents.length > 0 && (
         <section
-          style={{padding: "56px 24px 0", maxWidth: 1200, margin: "0 auto"}}
+          style={{padding: "60px 24px", maxWidth: 1200, margin: "0 auto"}}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 28,
+              alignItems: "flex-end",
+              marginBottom: 32,
             }}
           >
             <div>
               <Title
                 level={2}
                 style={{
+                  fontFamily: "'Geist', sans-serif",
+                  fontSize: 32,
+                  fontWeight: 800,
                   margin: 0,
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 26,
+                  color: theme === 'dark' ? '#fff' : '#18181b',
                 }}
               >
-                🌟 Sự kiện nổi bật
+                {t('home.featured')} <span style={{color: "#f59e0b"}}>★</span>
               </Title>
-              <Text type="secondary">
-                Các sự kiện được nhiều người quan tâm nhất
+              <Text style={{color: theme === 'dark' ? '#a1a1aa' : '#71717a', fontSize: 16}}>
+                {t('home.heroSubtitle')}
               </Text>
             </div>
-            <Button
-              type="link"
-              onClick={() => navigate("/events")}
-              icon={<ArrowRightOutlined />}
-              iconPosition="end"
-              style={{fontWeight: 600, color: "#2563eb"}}
-            >
-              Xem tất cả
-            </Button>
+            
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button 
+                shape="circle" 
+                icon={<LeftOutlined />} 
+                onClick={handleScrollLeft} 
+                style={{ border: '1px solid var(--whisper-border)', color: 'var(--charcoal-ink)' }}
+              />
+              <Button 
+                shape="circle" 
+                icon={<RightOutlined />} 
+                onClick={handleScrollRight}
+                style={{ border: '1px solid var(--whisper-border)', color: 'var(--charcoal-ink)' }}
+              />
+            </div>
           </div>
 
-          <Row gutter={[20, 20]}>
-            {featuredEvents.map((event, index) => (
-              <Col key={event.EventID} xs={24} sm={12} lg={8}>
-                <EventCard event={event} index={index} />
-              </Col>
-            ))}
-          </Row>
+          <div style={{ margin: "0 -12px" }}>
+            <Carousel
+              ref={carouselRef}
+              autoplay
+              autoplaySpeed={3000}
+              slidesToShow={3}
+              infinite={true}
+              dots={false}
+              responsive={[
+                { breakpoint: 1024, settings: { slidesToShow: 2 } },
+                { breakpoint: 768, settings: { slidesToShow: 1 } },
+              ]}
+            >
+              {featuredEvents.map((event, index) => (
+                <div key={event.EventID}>
+                  <FeaturedEventCard event={event} index={index} />
+                </div>
+              ))}
+            </Carousel>
+          </div>
         </section>
       )}
 
@@ -523,14 +621,15 @@ const HomePage = () => {
               level={2}
               style={{
                 margin: 0,
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Geist', sans-serif",
                 fontSize: 26,
+                color: theme === 'dark' ? '#fff' : '#18181b',
               }}
             >
-              📅 Sự kiện sắp diễn ra
+              📅 {t('home.upcoming')}
             </Title>
-            <Text type="secondary">
-              Đừng bỏ lỡ những sự kiện thú vị sắp tới
+            <Text style={{color: theme === 'dark' ? '#a1a1aa' : '#71717a'}}>
+              {t('home.upcomingSubtitle')}
             </Text>
           </div>
           <Button
@@ -540,7 +639,7 @@ const HomePage = () => {
             iconPosition="end"
             style={{fontWeight: 600, color: "#2563eb"}}
           >
-            Tất cả sự kiện
+            {t('home.allEvents')}
           </Button>
         </div>
 
@@ -571,9 +670,10 @@ const HomePage = () => {
               fontWeight: 600,
               border: "2px solid #2563eb",
               color: "#2563eb",
+              background: 'transparent',
             }}
           >
-            Xem tất cả sự kiện <ArrowRightOutlined />
+            {t('home.viewAll')} <ArrowRightOutlined />
           </Button>
         </div>
       </section>
@@ -591,14 +691,14 @@ const HomePage = () => {
         <h2
           className="animate-fade-in-up"
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Geist', sans-serif",
             fontSize: 30,
             color: "white",
             fontWeight: 800,
             marginBottom: 12,
           }}
         >
-          Bạn là ban tổ chức?
+          {t('home.ctaTitle')}
         </h2>
         <p
           className="animate-fade-in-up"
@@ -609,7 +709,7 @@ const HomePage = () => {
             marginBottom: 32,
           }}
         >
-          Tạo và quản lý sự kiện của bạn dễ dàng hơn bao giờ hết.
+          {t('home.ctaSubtitle')}
         </p>
         <div
           className="animate-fade-in-up"
@@ -632,7 +732,7 @@ const HomePage = () => {
               fontSize: 16,
             }}
           >
-            Bắt đầu miễn phí →
+            {t('home.ctaBtn')}
           </Button>
         </div>
       </section>

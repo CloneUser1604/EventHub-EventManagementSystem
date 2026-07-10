@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { connectDB, getPool, sql } = require('../config/db');
 
 const venuesToSeed = [

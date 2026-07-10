@@ -7,6 +7,7 @@ import { blogService } from '../../services/blog.service';
 import { eventService } from '../../services/event.service';
 import useAuthStore from '../../store/authStore';
 import MainLayout from '../../components/layout/MainLayout';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -111,6 +112,7 @@ const ImageGrid = ({ imageUrl, maxVisible = 3 }) => {
 };
 
 const BlogPage = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
@@ -452,18 +454,18 @@ const BlogPage = () => {
 
   const handlePost = async () => {
     if (!content.trim()) {
-      message.warning('Vui lòng nhập nội dung bài viết');
+      message.warning(t('blog.enterContent'));
       return;
     }
 
     if (showPoll) {
       if (!pollQuestion.trim()) {
-        message.warning('Vui lòng nhập câu hỏi thăm dò');
+        message.warning(t('blog.enterPollQuestion'));
         return;
       }
       const validOptions = pollOptions.filter(o => o.trim());
       if (validOptions.length < 2) {
-        message.warning('Vui lòng nhập ít nhất 2 lựa chọn');
+        message.warning(t('blog.enterTwoOptions'));
         return;
       }
     }
@@ -486,7 +488,7 @@ const BlogPage = () => {
       const res = await blogService.createBlog(formData);
       
       if (res.data?.success) {
-        message.success('Đăng bài thành công');
+        message.success(t('blog.postSuccess'));
         localStorage.removeItem('blog_draft');
         setHasDraft(false);
         setContent('');
@@ -500,7 +502,7 @@ const BlogPage = () => {
         fetchBlogs(blogsSort, currentEventFilter);
       }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Lỗi khi đăng bài');
+      message.error(error.response?.data?.message || t('blog.postError'));
     } finally {
       setSubmitting(false);
     }
@@ -508,20 +510,20 @@ const BlogPage = () => {
 
   const handleDelete = (id) => {
     Modal.confirm({
-      title: 'Xác nhận',
-      content: 'Bạn có chắc chắn muốn xóa bài viết này không?',
-      okText: 'Xóa',
-      cancelText: 'Hủy',
+      title: t('blog.confirm'),
+      content: t('blog.confirmDelete'),
+      okText: t('blog.delete'),
+      cancelText: t('blog.cancel'),
       okType: 'danger',
       onOk: async () => {
         try {
           const res = await blogService.deleteBlog(id);
           if (res.data?.success) {
-            message.success('Đã xóa bài viết');
+            message.success(t('blog.deleteSuccess'));
             fetchBlogs();
           }
         } catch (error) {
-          message.error(error.response?.data?.message || 'Lỗi khi xóa bài viết');
+          message.error(error.response?.data?.message || t('blog.deleteError'));
         }
       }
     });
@@ -761,10 +763,10 @@ const BlogPage = () => {
 
   const handleDeleteComment = (commentId, blogId) => {
     Modal.confirm({
-      title: 'Xác nhận',
-      content: 'Bạn có chắc chắn muốn xóa bình luận này không?',
-      okText: 'Xoá',
-      cancelText: 'Hủy',
+      title: t('blog.confirm'),
+      content: t('blog.confirmDeleteComment', { defaultValue: 'Bạn có chắc chắn muốn xóa bình luận này không?' }),
+      okText: t('blog.delete'),
+      cancelText: t('blog.cancel'),
       okType: 'danger',
       onOk: async () => {
         try {
@@ -872,7 +874,7 @@ const BlogPage = () => {
               color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : '#374151',
               borderLeft: activeView === 'feed' && !currentEventFilter ? '3px solid #4f46e5' : '3px solid transparent',
             }}
-        >Dành cho bạn</Button>
+        >{t('blog.forYou')}</Button>
         <Button 
           type="primary" 
           shape="round" 
@@ -884,7 +886,7 @@ const BlogPage = () => {
             setIsModalVisible(true);
           }}
         >
-          Blog mới
+          {t('blog.newBlogs')}
         </Button>
         <Button 
           type="text" 
@@ -902,7 +904,7 @@ const BlogPage = () => {
             width: '100%',
           }} 
           icon={<SearchOutlined style={{ fontSize: 22, color: activeView === 'search' ? '#4f46e5' : '#374151' }} />}
-        >Tìm kiếm</Button>
+        >{t('blog.search')}</Button>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Button 
@@ -919,7 +921,7 @@ const BlogPage = () => {
             }} 
             icon={<HeartOutlined style={{ fontSize: 22, color: activeView === 'activity' ? '#4f46e5' : '#374151' }} />}
           >
-            Thông báo
+            {t('blog.notifications')}
             {notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length > 0 && (
               <Badge count={notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length} />
             )}
@@ -937,7 +939,7 @@ const BlogPage = () => {
               width: '100%',
             }} 
             icon={<FormOutlined style={{ fontSize: 22, color: activeView === 'drafts' ? '#4f46e5' : '#374151' }} />}
-          >Bài viết nháp</Button>
+          >{t('blog.drafts')}</Button>
           <Button 
             type="text" 
             onClick={() => setActiveView('saved')} 
@@ -951,7 +953,7 @@ const BlogPage = () => {
               width: '100%',
             }} 
             icon={<BookOutlined style={{ fontSize: 22, color: activeView === 'saved' ? '#4f46e5' : '#374151' }} />}
-          >Đã lưu</Button>
+          >{t('blog.saved')}</Button>
         </div>
       </div>
 
@@ -960,11 +962,11 @@ const BlogPage = () => {
       
       {activeView === 'activity' ? (
         <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>Thông báo</Title>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.notifications')}</Title>
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-            <Button shape="round" type={notificationFilter === 'all' ? 'primary' : 'default'} onClick={() => setNotificationFilter('all')}>Tất cả</Button>
-            <Button shape="round" type={notificationFilter === 'comments' ? 'primary' : 'default'} onClick={() => setNotificationFilter('comments')}>Bình luận</Button>
-            <Button shape="round" type={notificationFilter === 'likes' ? 'primary' : 'default'} onClick={() => setNotificationFilter('likes')}>Lượt thích</Button>
+            <Button shape="round" type={notificationFilter === 'all' ? 'primary' : 'default'} onClick={() => setNotificationFilter('all')}>{t('blog.filterAll')}</Button>
+            <Button shape="round" type={notificationFilter === 'comments' ? 'primary' : 'default'} onClick={() => setNotificationFilter('comments')}>{t('blog.filterComments')}</Button>
+            <Button shape="round" type={notificationFilter === 'likes' ? 'primary' : 'default'} onClick={() => setNotificationFilter('likes')}>{t('blog.filterLikes')}</Button>
           </div>
           {loadingNotifications ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin size="large" /></div>
@@ -981,25 +983,25 @@ const BlogPage = () => {
                 let typeIcon = null;
                 let typeColor = '#6366f1';
                 if (item.Type === 'blog_like') {
-                  actionText = `đã thích bài blog của bạn`;
+                  actionText = t('blog.likedYourBlog');
                   typeIcon = <HeartFilled style={{ color: '#ef4444', fontSize: 13 }} />;
                   typeColor = '#fef2f2';
                 }
                 if (item.Type === 'blog_comment') {
-                  const title = item.TargetTitle ? `"${item.TargetTitle}"` : 'bài blog';
-                  actionText = `đã bình luận về ${title}`;
+                  const title = item.TargetTitle ? `"${item.TargetTitle}"` : t('blog.blogPost');
+                  actionText = `${t('blog.commentedOn')} ${title}`;
                   typeIcon = <MessageOutlined style={{ color: '#3b82f6', fontSize: 13 }} />;
                   typeColor = '#eff6ff';
                 }
                 if (item.Type === 'comment_reply') {
                   const preview = item.TargetTitle?.length > 40 ? item.TargetTitle.substring(0, 40) + '...' : item.TargetTitle;
-                  actionText = `đã trả lời bình luận "${preview}" của bạn`;
+                  actionText = `${t('blog.repliedToYourComment')} "${preview}"`;
                   typeIcon = <MessageOutlined style={{ color: '#8b5cf6', fontSize: 13 }} />;
                   typeColor = '#f5f3ff';
                 }
                 if (item.Type === 'comment_like') {
                   const preview = item.TargetTitle?.length > 40 ? item.TargetTitle.substring(0, 40) + '...' : item.TargetTitle;
-                  actionText = `đã thích bình luận "${preview}" của bạn`;
+                  actionText = `${t('blog.likedYourComment')} "${preview}"`;
                   typeIcon = <HeartFilled style={{ color: '#ef4444', fontSize: 13 }} />;
                   typeColor = '#fef2f2';
                 }
@@ -1036,7 +1038,7 @@ const BlogPage = () => {
                         <div>
                           <Text type="secondary" style={{ fontSize: 12 }}>
                             {dayjs(item.CreatedAt).subtract(7, 'hour').fromNow(true)
-                              .replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')} trước
+                              .replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')} {t('blog.ago')}
                           </Text>
                           {(item.Type === 'blog_comment' || item.Type === 'comment_reply') && item.CommentContent && (
                             <div style={{ marginTop: 4, fontSize: 13, color: '#374151', fontStyle: 'italic' }}>
@@ -1054,18 +1056,18 @@ const BlogPage = () => {
                   </List.Item>
                 );
               }}
-              locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}><BellOutlined style={{ fontSize: 40, marginBottom: 12 }} /><div>Chưa có thông báo nào</div></div> }}
+              locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}><BellOutlined style={{ fontSize: 40, marginBottom: 12 }} /><div>{t('blog.noNotifications')}</div></div> }}
             />
           )}
         </div>
       ) : activeView === 'drafts' ? (
         <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>Bài viết nháp</Title>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.drafts')}</Title>
           {hasDraft ? (
             <div style={{ padding: '16px', border: '1px solid #f0f0f0', borderRadius: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setIsModalVisible(true)}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>Bản nháp đang lưu</div>
-                <div style={{ color: '#9ca3af', fontSize: 14 }}>Chạm để tiếp tục chỉnh sửa</div>
+                <div style={{ fontWeight: 600, fontSize: 16 }}>{t('blog.draftSaved')}</div>
+                <div style={{ color: '#9ca3af', fontSize: 14 }}>{t('blog.clickToEdit')}</div>
               </div>
               <Space>
                 <Button 
@@ -1075,24 +1077,24 @@ const BlogPage = () => {
                     e.stopPropagation();
                     localStorage.removeItem('blog_draft');
                     setHasDraft(false);
-                    message.success('Đã xóa bản nháp');
+                    message.success(t('blog.draftDeleted'));
                   }} 
                 >
-                  Xóa
+                  {t('blog.delete')}
                 </Button>
-                <Button type="primary" shape="round">Mở</Button>
+                <Button type="primary" shape="round">{t('blog.open')}</Button>
               </Space>
             </div>
           ) : (
-            <Empty description="Không có bản nháp nào" />
+            <Empty description={t('blog.noDrafts')} />
           )}
         </div>
       ) : activeView === 'saved' ? (
         <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>Đã lưu</Title>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.saved')}</Title>
           <Input 
             prefix={<SearchOutlined style={{ color: '#9ca3af', fontSize: 20 }} />}
-            placeholder="Tìm kiếm bài viết đã lưu"
+            placeholder={t('blog.searchSaved')}
             value={savedSearchQuery}
             onChange={(e) => setSavedSearchQuery(e.target.value)}
             style={{ borderRadius: 24, backgroundColor: '#f3f4f6', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
@@ -1135,7 +1137,7 @@ const BlogPage = () => {
                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e5e7eb'; e.currentTarget.style.borderColor = '#d1d5db'; }}
                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
                           >
-                            Tham gia sự kiện: {item.EventTitle}
+                            {t('blog.joinEvent')}: {item.EventTitle}
                           </span>
                         </div>
                       )}
@@ -1143,7 +1145,7 @@ const BlogPage = () => {
                   </div>
                 </div>
               )}
-              locale={{ emptyText: 'Chưa có bài viết nào được lưu' }}
+              locale={{ emptyText: t('blog.noSavedBlogs') }}
             />
           )}
         </div>
@@ -1151,7 +1153,7 @@ const BlogPage = () => {
         <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
           <Input 
             prefix={<SearchOutlined style={{ color: '#9ca3af', fontSize: 20 }} />}
-            placeholder="Tìm kiếm"
+            placeholder={t('blog.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ borderRadius: 24, backgroundColor: '#f3f4f6', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
@@ -1162,7 +1164,7 @@ const BlogPage = () => {
             <div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'inline-block', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 18, marginBottom: 4, color: '#1d4ed8' }}>
-                  Kết quả tìm kiếm
+                  {t('blog.searchResults')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1181,12 +1183,12 @@ const BlogPage = () => {
                         <div style={{ fontWeight: 600, fontSize: 16 }}>
                           {ev.title}
                         </div>
-                        <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} bài viết · {ev.score} lượt tương tác</div>
+                        <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} {t('blog.blogCount')} · {ev.score} {t('blog.interactionCount')}</div>
                       </div>
                       <span style={{ fontSize: 18, color: '#4f46e5' }}>→</span>
                     </div>
                   ))
-                  : <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: '32px 0' }}>Không tìm thấy chủ đề phù hợp</div>
+                  : <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: '32px 0' }}>{t('blog.noResultsFound')}</div>
                 }
               </div>
             </div>
@@ -1195,7 +1197,7 @@ const BlogPage = () => {
             <div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'inline-block', backgroundColor: '#fef08a', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 20, marginBottom: 4 }}>
-                  Đang thịnh hành
+                  {t('blog.trending')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1208,11 +1210,11 @@ const BlogPage = () => {
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 16 }}>{ev.title}</div>
-                      <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} bài viết đang thảo luận · {ev.score} lượt tương tác</div>
+                      <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} {t('blog.blogsDiscussing')} · {ev.score} {t('blog.interactionCount')}</div>
                     </div>
                   </div>
                 )) : (
-                  <div style={{ color: '#9ca3af', fontSize: 14 }}>Hiện chưa có sự kiện nào nổi bật</div>
+                  <div style={{ color: '#9ca3af', fontSize: 14 }}>{t('blog.noTrendingEvents')}</div>
                 )}
               </div>
             </div>
@@ -1242,8 +1244,8 @@ const BlogPage = () => {
             variant="borderless"
             style={{ fontWeight: 600, fontSize: 15 }}
           >
-            <Option value="new">Mới nhất</Option>
-            <Option value="trending">Thịnh hành</Option>
+            <Option value="new">{t('blog.newest')}</Option>
+            <Option value="trending">{t('blog.trending')}</Option>
           </Select>
         </div>
         
@@ -1260,9 +1262,9 @@ const BlogPage = () => {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
               <Avatar src={getAvatarUrl(user?.avatarURL || user?.AvatarURL)} icon={<UserOutlined />} size={40} />
-              <div style={{ color: '#9ca3af', fontSize: 15 }}>Có gì mới?</div>
+              <div style={{ color: '#9ca3af', fontSize: 15 }}>{t('blog.whatsNew')}</div>
             </div>
-            <Button type="primary" shape="round" style={{ fontWeight: 600 }}>Đăng</Button>
+            <Button type="primary" shape="round" style={{ fontWeight: 600 }}>{t('blog.post')}</Button>
           </div>
         </div>
 
@@ -1463,7 +1465,7 @@ const BlogPage = () => {
                 image={Empty.PRESENTED_IMAGE_SIMPLE} 
                 description={
                   <span style={{ color: '#9ca3af', fontSize: 15 }}>
-                    Chưa có bài viết nào trên bảng tin.
+                    {t('blog.noSavedBlogs', { defaultValue: 'Chưa có bài viết nào trên bảng tin.' })}
                   </span>
                 } 
                 style={{ padding: '60px 0' }}
@@ -1487,11 +1489,11 @@ const BlogPage = () => {
         closable={false}
         bodyStyle={{ padding: 0 }}
         style={{ top: 40 }}
-        title={<div style={{ textAlign: 'center', fontWeight: 700, fontSize: 18 }}>Blog mới</div>}
+        title={<div style={{ textAlign: 'center', fontWeight: 700, fontSize: 18 }}>{t('blog.newBlogs', { defaultValue: 'Blog mới' })}</div>}
       >
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button type="text" onClick={() => setIsModalVisible(false)} style={{ margin: -8 }}>Hủy</Button>
-          <Button type="primary" shape="round" onClick={handlePost} loading={submitting} disabled={!content.trim() && !title.trim() && fileList.length === 0 && !showPoll}>Đăng</Button>
+          <Button type="text" onClick={() => setIsModalVisible(false)} style={{ margin: -8 }}>{t('blog.cancel')}</Button>
+          <Button type="primary" shape="round" onClick={handlePost} loading={submitting} disabled={!content.trim() && !title.trim() && fileList.length === 0 && !showPoll}>{t('blog.post')}</Button>
         </div>
 
         <div style={{ padding: 24, maxHeight: '70vh', overflowY: 'auto' }} className="hide-scrollbar">
@@ -1499,12 +1501,12 @@ const BlogPage = () => {
             <Avatar src={getAvatarUrl(user?.avatarURL || user?.AvatarURL)} icon={<UserOutlined />} size={40} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>{user?.FullName || 'Bạn'}</span>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>{user?.FullName || t('blog.you')}</span>
                 <span style={{ color: '#9ca3af' }}>&gt;</span>
                 <Select
                   showSearch
                   allowClear
-                  placeholder="Cộng đồng hoặc chủ đề"
+                  placeholder={t('blog.communityOrTopic')}
                   variant="borderless"
                   loading={loadingEvents}
                   style={{ width: 240 }}
@@ -1521,7 +1523,7 @@ const BlogPage = () => {
               </div>
               
               <TextArea
-                placeholder="Có gì mới?"
+                placeholder={t('blog.whatsNew')}
                 autoSize={{ minRows: 2, maxRows: 10 }}
                 variant="borderless"
                 value={content}
@@ -1546,7 +1548,7 @@ const BlogPage = () => {
               {showPoll && (
                 <div style={{ border: '1px solid #f0f0f0', borderRadius: 16, padding: 16, marginBottom: 16, boxSizing: 'border-box' }}>
                   <Input 
-                    placeholder="Hỏi một câu..." 
+                    placeholder={t('blog.askAQuestion')} 
                     variant="borderless"
                     value={pollQuestion}
                     onChange={(e) => setPollQuestion(e.target.value)}
@@ -1555,7 +1557,7 @@ const BlogPage = () => {
                   {pollOptions.map((opt, index) => (
                     <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                       <Input 
-                        placeholder={`Lựa chọn ${index + 1}`}
+                        placeholder={`${t('blog.pollOption')} ${index + 1}`}
                         value={opt}
                         onChange={(e) => updatePollOption(index, e.target.value)}
                         style={{ borderRadius: 8, flex: 1 }}
@@ -1567,7 +1569,7 @@ const BlogPage = () => {
                   ))}
                   {pollOptions.length < 4 && (
                     <Button type="dashed" block onClick={addPollOption} style={{ marginTop: 8, borderRadius: 8 }}>
-                      Thêm lựa chọn
+                      {t('blog.addOption')}
                     </Button>
                   )}
                 </div>
@@ -1593,14 +1595,14 @@ const BlogPage = () => {
               </div>
               
               <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#9ca3af', fontSize: 15 }}>Lựa chọn về bài viết</span>
+                <span style={{ color: '#9ca3af', fontSize: 15 }}>{t('blog.postSettings')}</span>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <Button 
                     shape="round"
                     onClick={saveDraft}
                     style={{ fontWeight: 600, padding: '0 24px' }}
                   >
-                    Lưu nháp
+                    {t('blog.saveDraft')}
                   </Button>
                   <Button 
                     type="primary" 
@@ -1610,7 +1612,7 @@ const BlogPage = () => {
                     disabled={!content.trim()}
                     style={{ fontWeight: 600, padding: '0 24px', backgroundColor: content.trim() ? '#000' : '#f3f4f6', color: content.trim() ? '#fff' : '#9ca3af', border: 'none' }}
                   >
-                    Đăng
+                    {t('blog.post')}
                   </Button>
                 </div>
               </div>
@@ -1635,7 +1637,7 @@ const BlogPage = () => {
             <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center' }}>
               <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setDetailModalVisible(false); setDetailBlog(null); }} style={{ marginRight: 16, fontSize: 18 }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 18 }}>Chi tiết bài viết</div>
+              <div style={{ fontWeight: 600, fontSize: 18 }}>{t('blog.postDetails')}</div>
             </div>
             </div>
             
@@ -1659,14 +1661,14 @@ const BlogPage = () => {
                     </div>
                     <Space>
                       {(user?.role === 'Admin' || user?.userId === detailBlog.AuthorID) && (
-                        <Button type="text" danger size="small" onClick={() => { handleDelete(detailBlog.BlogID); setDetailModalVisible(false); }}>Xóa</Button>
+                        <Button type="text" danger size="small" onClick={() => { handleDelete(detailBlog.BlogID); setDetailModalVisible(false); }}>{t('blog.delete')}</Button>
                       )}
                       <Dropdown 
                         menu={{ 
                           items: [
                             ...(user?.role !== 'Admin' && user?.userId !== detailBlog.AuthorID ? [{
                               key: 'report',
-                              label: <span style={{ color: '#ff4d4f' }}>Báo cáo</span>,
+                              label: <span style={{ color: '#ff4d4f' }}>{t('blog.report')}</span>,
                               onClick: (e) => {
                                 e.domEvent.stopPropagation();
                                 setReportBlogId(detailBlog.BlogID);
@@ -1794,11 +1796,11 @@ const BlogPage = () => {
                         <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} />
                       </Upload>
                       <Input 
-                        placeholder={`Trả lời ${detailBlog.AuthorName}...`}
+                        placeholder={`${t('blog.replyTo')} ${detailBlog.AuthorName}...`}
                         value={commentInput}
                         onChange={(e) => setCommentInput(e.target.value)}
                         onPressEnter={() => handleAddComment(detailBlog.BlogID)}
-                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}>Đăng</Button>}
+                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}>{t('blog.post')}</Button>}
                         style={{ borderRadius: 24, backgroundColor: '#f9fafb', border: '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15 }}
                       />
                     </div>
@@ -1825,7 +1827,7 @@ const BlogPage = () => {
                       const replies = allComments.filter(c => c.ParentCommentID).sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt));
                       
                       if (allComments.length === 0) {
-                        return <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: 20 }}>Chưa có bình luận nào</div>;
+                        return <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: 20 }}>{t('blog.noComments')}</div>;
                       }
                       
                       return parentComments.map(comment => (
@@ -1837,8 +1839,8 @@ const BlogPage = () => {
                               <div style={{ display: 'flex', alignItems: 'center' }}>
                                 <Text strong style={{ fontSize: 15 }}>{comment.AuthorName}</Text>
                                 {comment.AuthorRole && <span style={{ fontSize: 11, padding: '2px 6px', backgroundColor: getRoleStyle(comment.AuthorRole).bg, color: getRoleStyle(comment.AuthorRole).color, borderRadius: 10, marginLeft: 6 }}>{comment.AuthorRole}</span>}
-                                <Text type="secondary" style={{ fontSize: 14, marginLeft: 6 }}>{dayjs(comment.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')}</Text>
-                                {comment.UpdatedAt && <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>(đã chỉnh sửa)</Text>}
+                                <Text type="secondary" style={{ fontSize: 14, marginLeft: 6 }}>{dayjs(comment.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')} {t('blog.ago')}</Text>
+                                {comment.UpdatedAt && <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>{t('blog.edited')}</Text>}
                               </div>
                               
                               {editingCommentId === comment.CommentID ? (

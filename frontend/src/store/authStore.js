@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/auth.service';
+import useSettingStore from './settingStore';
 
 const useAuthStore = create(
   persist(
@@ -69,6 +70,11 @@ const useAuthStore = create(
         try { await authService.logout(); } catch {}
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        
+        // Đặt lại mặc định giao diện Sáng và Tiếng Việt khi đăng xuất
+        useSettingStore.getState().setTheme('light');
+        useSettingStore.getState().setLanguage('vi');
+
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
 

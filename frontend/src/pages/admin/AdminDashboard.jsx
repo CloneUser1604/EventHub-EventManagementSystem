@@ -401,7 +401,7 @@ const AdminDashboard = () => {
             ) : (
               <>
                 {r.ProposedChanges && (
-                  <Button type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} size="small" onClick={() => setEditReasonModal({ open: true, data: r })}>Thay đổi</Button>
+                  <Button type="primary" ghost style={{ color: '#60a5fa', borderColor: '#60a5fa' }} size="small" onClick={() => setEditReasonModal({ open: true, data: r })}>Lý do</Button>
                 )}
                 <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => {
                   setSelectedStaffs([]);

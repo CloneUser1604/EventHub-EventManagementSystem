@@ -39,27 +39,28 @@ import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import {getImageUrl} from "../../utils/imageHelpers";
 import FeedbackSection from "../../components/events/FeedbackSection";
+import { useTranslation } from "../../hooks/useTranslation";
 dayjs.extend(duration);
 
 const {Title, Text, Paragraph} = Typography;
 
 // ─── Countdown Timer ──────────────────────────────────────────
-const Countdown = ({targetDate}) => {
+const Countdown = ({targetDate, t}) => {
   const [timeLeft, setTimeLeft] = useState("");
   useEffect(() => {
     const tick = () => {
       const diff = dayjs(targetDate).diff(dayjs());
       if (diff <= 0) {
-        setTimeLeft("Đã bắt đầu");
+        setTimeLeft(t ? t('eventDetail.started') : "Đã bắt đầu");
         return;
       }
       const d = dayjs.duration(diff);
       setTimeLeft(`${d.days()}d ${d.hours()}h ${d.minutes()}m ${d.seconds()}s`);
     };
     tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, [targetDate]);
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate, t]);
   return (
     <span
       style={{
@@ -86,6 +87,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const { t } = useTranslation();
 
   const handleWriteReviewClick = () => {
     setActiveTab("feedback");
@@ -206,9 +208,9 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
 
   const handleCancel = async () => {
     Modal.confirm({
-      title: "Huỷ đăng ký?",
+      title: t('eventDetail.cancelRegistration'),
       content: "Bạn có chắc muốn huỷ đăng ký sự kiện này?",
-      okText: "Huỷ đăng ký",
+      okText: t('eventDetail.cancelRegistration'),
       okButtonProps: {danger: true},
       cancelText: "Không",
       onOk: async () => {
@@ -342,26 +344,26 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 padding: 0,
               }}
             >
-              Quay lại
+              {t('eventDetail.back')}
             </Button>
           )}
           <div style={{display: "flex", gap: 8, marginBottom: 12}}>
             {event.IsInternalOnly ? (
               <Tag color="purple" style={{borderRadius: 6, fontWeight: 600}}>
-                Sự kiện Nội bộ
+                {t('eventDetail.internal')}
               </Tag>
             ) : (
               <Tag color="cyan" style={{borderRadius: 6, fontWeight: 600}}>
-                Sự kiện Công khai
+                {t('eventDetail.public')}
               </Tag>
             )}
             {event.CategoryName && (
               <Tag color="blue" style={{borderRadius: 6, fontWeight: 600}}>
-                {event.CategoryName}
+                {t(`categories.${event.CategoryName}`) !== `categories.${event.CategoryName}` ? t(`categories.${event.CategoryName}`) : event.CategoryName}
               </Tag>
             )}
-            {isPast && <Tag color="default">Đã kết thúc</Tag>}
-            {event.Status === "Cancelled" && <Tag color="red">Đã huỷ</Tag>}
+            {isPast && <Tag color="default">{t('eventDetail.ended')}</Tag>}
+            {event.Status === "Cancelled" && <Tag color="red">{t('eventDetail.cancelled')}</Tag>}
           </div>
           <Title
             level={1}
@@ -390,11 +392,11 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
             </span>
             <span>
               <EnvironmentOutlined style={{marginRight: 6}} />
-              {event.VenueName || "Chưa cập nhật"}
+              {event.VenueName || t('eventDetail.notUpdated')}
             </span>
             <span>
               <TeamOutlined style={{marginRight: 6}} />
-              {event.RegisteredCount || 0} đã đăng ký
+              {event.RegisteredCount || 0} {t('eventCard.registeredUsers')}
               {event.MaxParticipants ? ` / ${event.MaxParticipants}` : ""}
             </span>
           </div>
@@ -422,7 +424,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
               items={[
                 {
                   key: "about",
-                  label: "Giới thiệu",
+                  label: t('eventDetail.about'),
                   children: (
                     <div>
                       {event.Description ? (
@@ -458,7 +460,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                             whiteSpace: "pre-wrap",
                           }}
                         >
-                          Chưa có mô tả cho sự kiện này.
+                          {t('eventDetail.noDescription')}
                         </Paragraph>
                       )}
                     </div>
@@ -466,7 +468,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 },
                 {
                   key: "agenda",
-                  label: `Chương trình (${event.sessions?.length || 0})`,
+                  label: `${t('eventDetail.agenda')} (${event.sessions?.length || 0})`,
                   children:
                     event.sessions?.length > 0 ? (
                       <Timeline
@@ -474,6 +476,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                           color: "blue",
                           children: (
                             <div
+                              className="agenda-item-box"
                               style={{
                                 background: "white",
                                 border: "1px solid #e5e7eb",
@@ -535,14 +538,15 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                         }))}
                       />
                     ) : (
-                      <Empty description="Chưa có chương trình chi tiết" />
+                      <Empty description={t('eventDetail.noAgenda')} />
                     ),
                 },
                 {
                   key: "organizer",
-                  label: "Ban tổ chức",
+                  label: t('eventDetail.organizer'),
                   children: (
                     <div
+                      className="organizer-box"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -581,7 +585,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   ? [
                       {
                         key: "participants",
-                        label: "Quản lý Participant",
+                        label: t('eventDetail.participantManagement'),
                         children: (
                           <div style={{padding: "16px 0"}}>
                             <div
@@ -593,7 +597,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                               }}
                             >
                               <Text strong style={{fontSize: 16}}>
-                                Danh sách Người tham gia
+                                {t('eventDetail.participantList')}
                               </Text>
                             </div>
                             <Table
@@ -628,7 +632,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   : []),
                 {
                   key: "feedback",
-                  label: "Đánh giá & Phản hồi",
+                  label: t('eventDetail.reviews'),
                   children: (
                     <div style={{paddingTop: 8}}>
                       <FeedbackSection eventId={targetId} />
@@ -642,6 +646,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
           {/* Right: Sticky registration panel */}
           <div style={{position: "sticky", top: 80}}>
             <div
+              className="sticky-panel-box"
               style={{
                 background: "white",
                 borderRadius: 16,
@@ -668,12 +673,12 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   {event.Status !== "Published"
                     ? event.Status
                     : isPast
-                      ? "⚫ Đã kết thúc"
+                      ? t('eventDetail.badgeEnded')
                       : deadlinePassed
-                        ? "🔴 Hết hạn đăng ký"
+                        ? t('eventDetail.badgeClosed')
                         : isFull
-                          ? "🟡 Đã đầy chỗ"
-                          : "🟢 Đang mở đăng ký"}
+                          ? t('eventDetail.badgeFull')
+                          : t('eventDetail.badgeOpened')}
                 </Tag>
                 <div
                   style={{
@@ -694,7 +699,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                     <EnvironmentOutlined
                       style={{marginRight: 6, color: "#7c3aed"}}
                     />
-                    {event.VenueName || "Chưa cập nhật"}
+                    {event.VenueName || t('eventDetail.notUpdated')}
                   </span>
                   {event.MaxParticipants && (
                     <span>
@@ -711,7 +716,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                         }}
                       >
                         {event.MaxParticipants - (event.RegisteredCount || 0)}{" "}
-                        chỗ còn lại
+                        {t('eventDetail.spotsLeft')}
                       </span>{" "}
                       / {event.MaxParticipants}
                     </span>
@@ -719,7 +724,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 </div>
                 {event.IsInternalOnly && (
                   <Alert
-                    message="Sự kiện chỉ dành cho sinh viên trong trường."
+                    message={t('eventDetail.internalOnlyAlert')}
                     type="info"
                     showIcon
                     style={{
@@ -732,6 +737,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 )}
                 {isUpcoming && event.Status !== "Cancelled" && (
                   <div
+                    className="countdown-box"
                     style={{
                       background: "#f8fafc",
                       padding: "12px 16px",
@@ -742,6 +748,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                     }}
                   >
                     <Text
+                      className="countdown-text"
                       style={{
                         fontSize: 11,
                         color: "#64748b",
@@ -751,9 +758,9 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                         marginBottom: 4,
                       }}
                     >
-                      Thời gian đếm ngược
+                      {t('eventDetail.countdown')}
                     </Text>
-                    <Countdown targetDate={event.StartDate} />
+                    <Countdown targetDate={event.StartDate} t={t} />
                   </div>
                 )}
               </div>
@@ -762,26 +769,28 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
               {myRegistration ? (
                 <div>
                   <Alert
-                    message="Bạn đã đăng ký thành công!"
+                    message={t('eventDetail.registeredSuccess')}
                     type="success"
                     showIcon
                     style={{marginBottom: 12, borderRadius: 10}}
                   />
-                  <Button
-                    type="primary"
-                    block
-                    size="large"
-                    icon={<QrcodeOutlined />}
-                    onClick={() => setTicketModal(true)}
-                    style={{
-                      borderRadius: 10,
-                      height: 46,
-                      fontWeight: 700,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {event.isStaff ? "Quét QR Check-in" : "Xem Mã OTP"}
-                  </Button>
+                  {!isPast && (
+                    <Button
+                      type="primary"
+                      block
+                      size="large"
+                      icon={<QrcodeOutlined />}
+                      onClick={() => setTicketModal(true)}
+                      style={{
+                        borderRadius: 10,
+                        height: 46,
+                        fontWeight: 700,
+                        marginBottom: 10,
+                      }}
+                    >
+                      {event.isStaff ? t('eventDetail.scanQr') : t('eventDetail.viewOtp')}
+                    </Button>
+                  )}
                   {!event.isStaff && !deadlinePassed && !isPast && (
                     <Button
                       danger
@@ -790,7 +799,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       onClick={handleCancel}
                       style={{borderRadius: 10, height: 42, fontWeight: 600}}
                     >
-                      Huỷ đăng ký
+                      {t('eventDetail.cancelRegistration')}
                     </Button>
                   )}
                   {isPast && (
@@ -808,7 +817,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                         color: "#2563eb",
                       }}
                     >
-                      📝 Viết đánh giá
+                      {t('eventDetail.writeReview')}
                     </Button>
                   )}
                 </div>
@@ -816,21 +825,21 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 <>
                   {isPast ? (
                     <Alert
-                      message="Sự kiện đã kết thúc"
+                      message={t('eventDetail.eventEndedAlert')}
                       type="info"
                       showIcon
                       style={{borderRadius: 10, marginBottom: 12}}
                     />
                   ) : isFull ? (
                     <Alert
-                      message="Sự kiện đã đầy chỗ"
+                      message={t('eventDetail.eventFullAlert')}
                       type="warning"
                       showIcon
                       style={{borderRadius: 10, marginBottom: 12}}
                     />
                   ) : deadlinePassed ? (
                     <Alert
-                      message="Đã hết hạn đăng ký"
+                      message={t('eventDetail.eventClosedAlert')}
                       type="warning"
                       showIcon
                       style={{borderRadius: 10, marginBottom: 12}}
@@ -852,7 +861,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                         marginBottom: 10,
                       }}
                     >
-                      {registering ? "Đang đăng ký..." : "🎟️ Đăng ký tham dự"}
+                      {registering ? t('eventDetail.registering') : t('eventDetail.registerButton')}
                     </Button>
                   )}
                 </>
@@ -865,10 +874,10 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   icon={<ShareAltOutlined />}
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    message.success("Đã sao chép link!");
+                    message.success(t('eventDetail.copied'));
                   }}
                 >
-                  Chia sẻ
+                  {t('eventDetail.share')}
                 </Button>
                 <Button
                   type="text"
@@ -881,7 +890,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                     )
                   }
                 >
-                  {isFav ? "Đã yêu thích" : "Yêu thích"}
+                  {isFav ? t('eventDetail.favorited') : t('eventDetail.favorite')}
                 </Button>
               </Space>
 
@@ -894,24 +903,24 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   content: {fontWeight: 600, fontSize: 13, color: "#374151"},
                 }}
               >
-                <Descriptions.Item label="Bắt đầu">
+                <Descriptions.Item label={t('eventDetail.starts')}>
                   {dayjs(event.StartDate).format("DD/MM/YYYY HH:mm")}
                 </Descriptions.Item>
-                <Descriptions.Item label="Kết thúc">
+                <Descriptions.Item label={t('eventDetail.ends')}>
                   {dayjs(event.EndDate).format("DD/MM/YYYY HH:mm")}
                 </Descriptions.Item>
                 {event.RegistrationDeadline && (
-                  <Descriptions.Item label="Hạn đăng ký">
+                  <Descriptions.Item label={t('eventDetail.registrationDeadline')}>
                     {dayjs(event.RegistrationDeadline).format(
                       "DD/MM/YYYY HH:mm",
                     )}
                   </Descriptions.Item>
                 )}
-                <Descriptions.Item label="Ban tổ chức">
+                <Descriptions.Item label={t('eventDetail.organizer')}>
                   {event.OrganizationName || event.OrganizerName}
                 </Descriptions.Item>
                 {event.VenueName && (
-                  <Descriptions.Item label="Địa điểm">
+                  <Descriptions.Item label={t('eventDetail.location')}>
                     {event.VenueName}
                   </Descriptions.Item>
                 )}
@@ -930,7 +939,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
         centered
         title={
           <span style={{fontFamily: "'Inter', sans-serif", fontWeight: 700}}>
-            {event?.isStaff ? "🎟️ Quét để Check-in" : "🎟️ Vé của bạn"}
+            {event?.isStaff ? t('eventDetail.ticketScan') : t('eventDetail.ticketYour')}
           </span>
         }
       >
@@ -948,7 +957,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 }}
               >
                 <Text type="secondary" style={{fontSize: 13, marginBottom: 16}}>
-                  Đưa mã QR này cho người tham gia quét
+                  {t('eventDetail.ticketHelp1')}
                 </Text>
                 <QRCode
                   value={`${window.location.origin}/events/${event.EventID}/checkin?staffId=${user?.userId}`}
@@ -965,7 +974,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                 }}
               >
                 <Text type="secondary" style={{fontSize: 12}}>
-                  Mã OTP của bạn
+                  {t('eventDetail.ticketHelp2')}
                 </Text>
                 <div
                   style={{
@@ -980,7 +989,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   {myRegistration.OTPCode}
                 </div>
                 <Text type="secondary" style={{fontSize: 12}}>
-                  ⚠️ Giữ mã này bí mật. Dùng để check-in tại sự kiện.
+                  {t('eventDetail.ticketHelp3')}
                 </Text>
               </div>
             )}

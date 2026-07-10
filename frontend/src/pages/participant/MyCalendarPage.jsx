@@ -16,6 +16,7 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 import { getImageUrl } from '../../utils/imageHelpers';
+import { useTranslation } from '../../hooks/useTranslation';
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -23,22 +24,24 @@ dayjs.locale('vi');
 const { Title, Text } = Typography;
 
 /* ── Countdown component ────────────────────────────────────── */
-const Countdown = ({ targetDate, size = 'normal' }) => {
+const Countdown = ({ targetDate, size = 'normal', t }) => {
   const [timeLeft, setTimeLeft] = useState({ expired: false, text: '' });
 
   useEffect(() => {
     const tick = () => {
       const diff = dayjs(targetDate).diff(dayjs());
-      if (diff <= 0) { setTimeLeft({ expired: true, text: 'Đang diễn ra' }); return; }
+      if (diff <= 0) { setTimeLeft({ expired: true, text: t ? t('calendar.ongoing') : 'Đang diễn ra' }); return; }
       const d = dayjs.duration(diff);
       const days = Math.floor(d.asDays());
-      if (days > 1) setTimeLeft({ expired: false, text: `Còn ${days} ngày` });
+      const inDaysStr = t ? t('calendar.inDays') : 'Còn';
+      const daysStr = t ? t('calendar.days') : 'ngày';
+      if (days > 1) setTimeLeft({ expired: false, text: `${inDaysStr} ${days} ${daysStr}` });
       else setTimeLeft({ expired: false, text: `${d.hours()}g ${d.minutes()}p ${d.seconds()}s` });
     };
     tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, [targetDate]);
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate, t]);
 
   return (
     <span style={{
@@ -105,6 +108,7 @@ const TicketModal = ({ registration, onClose }) => {
 /* ── Event Registration Card ───────────────────────────────── */
 const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isPast = dayjs(reg.EndDate).isBefore(dayjs());
   const isOngoing = dayjs(reg.StartDate).isBefore(dayjs()) && !isPast;
   const isCancelled = reg.Status === 'Cancelled' || reg.EventStatus === 'Cancelled';
@@ -166,7 +170,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
               {!isPast && !isCancelled && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <ClockCircleOutlined style={{ color: '#f59e0b', fontSize: 12 }} />
-                  <Countdown targetDate={reg.StartDate} size="small" />
+                  <Countdown targetDate={reg.StartDate} size="small" t={t} />
                 </div>
               )}
             </div>
@@ -174,26 +178,26 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
 
           <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button size="small" onClick={() => navigate(`/events/${reg.EventID}`)} style={{ borderRadius: 7, fontSize: 13 }}>
-              Chi tiết <RightOutlined />
+              {t('calendar.detail')} <RightOutlined />
             </Button>
             {reg.Status === 'Registered' && !isPast && !isCancelled && (
               reg.isSpeakerForThisEvent ? null :
               reg.isStaffForThisEvent ? (
                 <Button size="small" type="primary" onClick={() => navigate(`/events/${reg.EventID}`)}
                   style={{ borderRadius: 7, fontSize: 13 }}>
-                  Quét QR Check-in
+                  {t('calendar.scanQr')}
                 </Button>
               ) : reg.OTPCode ? (
                 <Button size="small" type="primary" onClick={() => onViewTicket(reg)}
                   style={{ borderRadius: 7, fontSize: 13 }}>
-                  Xem Mã OTP
+                  {t('calendar.viewOtp')}
                 </Button>
               ) : null
             )}
             {reg.Status === 'Registered' && !isPast && !isCancelled && !reg.isStaffForThisEvent && !reg.isSpeakerForThisEvent && (
-              <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg)}
+              <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg, t)}
                 style={{ borderRadius: 7, fontSize: 13 }}>
-                Huỷ
+                {t('calendar.cancel')}
               </Button>
             )}
           </div>
@@ -210,6 +214,7 @@ const MyCalendarPage = () => {
   const [ticketReg, setTicketReg] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const { t } = useTranslation();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -222,11 +227,11 @@ const MyCalendarPage = () => {
     finally { setLoading(false); }
   };
 
-  const handleCancel = (reg) => {
+  const handleCancel = (reg, tFunction) => {
     Modal.confirm({
-      title: 'Huỷ đăng ký?',
-      content: `Bạn có chắc muốn huỷ đăng ký sự kiện "${reg.Title}"?`,
-      okText: 'Huỷ đăng ký', okButtonProps: { danger: true }, cancelText: 'Không',
+      title: tFunction('calendar.confirmCancelTitle'),
+      content: `${tFunction('calendar.confirmCancelBody')} "${reg.Title}"?`,
+      okText: tFunction('calendar.yesCancel'), okButtonProps: { danger: true }, cancelText: tFunction('calendar.no'),
       onOk: async () => {
         try {
           await registrationService.cancel(reg.RegistrationID);
@@ -278,10 +283,10 @@ const MyCalendarPage = () => {
       <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: '40px 24px 32px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <Title level={2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
-            📅 Lịch của tôi
+            📅 {t('calendar.title')}
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
-            {upcoming.length} sắp tới · {ongoing.length} đang diễn ra · {past.length} đã tham dự
+            {upcoming.length} {t('calendar.upcoming').toLowerCase()} · {ongoing.length} {t('calendar.ongoing').toLowerCase()} · {past.length} {t('calendar.attended').toLowerCase()}
           </Text>
         </div>
       </div>
@@ -297,28 +302,28 @@ const MyCalendarPage = () => {
               items={[
                 {
                   key: 'upcoming',
-                  label: <Badge count={upcoming.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>Sắp tới</span></Badge>,
-                  children: renderList(upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Bạn chưa đăng ký sự kiện nào sắp tới'),
+                  label: <Badge count={upcoming.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>{t('calendar.upcoming')}</span></Badge>,
+                  children: renderList(upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), t('calendar.emptyUpcoming')),
                 },
                 {
                   key: 'ongoing',
-                  label: <Badge count={ongoing.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>Đang diễn ra</span></Badge>,
-                  children: renderList(ongoing.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Không có sự kiện nào đang diễn ra'),
+                  label: <Badge count={ongoing.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>{t('calendar.ongoing')}</span></Badge>,
+                  children: renderList(ongoing.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), t('calendar.emptyOngoing')),
                 },
                 {
                   key: 'past',
-                  label: `Đã qua (${past.length})`,
-                  children: renderList(past.sort((a, b) => dayjs(b.StartDate).diff(dayjs(a.StartDate))), 'Chưa có sự kiện đã qua'),
+                  label: `${t('calendar.past')} (${past.length})`,
+                  children: renderList(past.sort((a, b) => dayjs(b.StartDate).diff(dayjs(a.StartDate))), t('calendar.emptyPast')),
                 },
                 {
                   key: 'cancelled_by_user',
-                  label: `Đã huỷ (${cancelledByUser.length})`,
-                  children: renderList(cancelledByUser, 'Bạn chưa huỷ đăng ký sự kiện nào'),
+                  label: `${t('calendar.cancelled')} (${cancelledByUser.length})`,
+                  children: renderList(cancelledByUser, t('calendar.emptyCancelled')),
                 },
                 {
                   key: 'cancelled_event',
-                  label: `Sự kiện bị huỷ (${cancelledEvent.length})`,
-                  children: renderList(cancelledEvent, 'Không có sự kiện nào bị huỷ'),
+                  label: `${t('calendar.eventCancelled')} (${cancelledEvent.length})`,
+                  children: renderList(cancelledEvent, t('calendar.emptyEventCancelled')),
                 },
               ]}
             />

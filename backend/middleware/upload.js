@@ -8,6 +8,7 @@ ensureDir('uploads/organizer-docs');
 ensureDir('uploads/avatars');
 ensureDir('uploads/events');
 ensureDir('uploads/feedbacks');
+ensureDir('uploads/blogs');
 
 // ─── XỬ LÝ CHUNG CHO PROFILE (Cả Tài liệu & Avatar) ────────────────────────
 const profileStorage = multer.diskStorage({
@@ -83,4 +84,24 @@ const uploadFeedback = multer({
   }
 });
 
-module.exports = { uploadOrgDocs, uploadEvent, uploadFeedback };
+// ─── XỬ LÝ CHO BLOG ────────────────────────
+const blogStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/blogs'),
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    cb(null, `blog_${Date.now()}_${safe}`);
+  },
+});
+
+const uploadBlog = multer({
+  storage: blogStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB / file
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Chỉ chấp nhận file ảnh cho bài viết'), false);
+  }
+});
+
+module.exports = { uploadOrgDocs, uploadEvent, uploadFeedback, uploadBlog };

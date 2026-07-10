@@ -4,10 +4,6 @@ const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: { 
-    'Content-Type': 'application/json'
-    // ĐÃ XÓA: 'bypass-tunnel-reminder': 'true' - Xóa dòng này để diệt tận gốc lỗi CORS
-  },
   timeout: 10000,
 });
 

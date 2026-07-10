@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Card, Calendar, Badge, Typography, List, Tag, Modal, Input, Button, message } from 'antd';
 import { CalendarOutlined, TagsOutlined, HistoryOutlined, ScanOutlined } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
-import api from '../../services/api';
+import api from '../../utils/axiosConfig';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 

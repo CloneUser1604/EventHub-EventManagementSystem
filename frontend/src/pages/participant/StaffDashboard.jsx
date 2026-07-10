@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Typography, message, Table, Tag, Avatar } from 'antd';
 import { QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { QRCodeSVG } from 'qrcode.react';
-import api from '../../services/api';
+import api from '../../utils/axiosConfig';
 
 const { Title, Text } = Typography;
 

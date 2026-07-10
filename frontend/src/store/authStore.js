@@ -30,6 +30,12 @@ const useAuthStore = create(
             role: user.Role || user.role,
             avatarURL: user.AvatarURL || user.avatarURL,
             phone: user.Phone || user.phone,
+            // Giữ lại các key viết hoa cũ cho các file component khác đỡ bị lỗi
+            UserID: user.UserID || user.userId,
+            FullName: user.FullName || user.fullName,
+            Role: user.Role || user.role,
+            Email: user.Email || user.email,
+            AvatarURL: user.AvatarURL || user.avatarURL
           };
 
           localStorage.setItem('accessToken', accessToken);

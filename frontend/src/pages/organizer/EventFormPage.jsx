@@ -261,7 +261,7 @@ const EventFormPage = () => {
               <Input placeholder="VD: Hội thảo AI trong giáo dục 2025" maxLength={300} showCount />
             </Form.Item>
 
-            <Form.Item name="description" label="Mô tả sự kiện (hỗ trợ Rich Text)">
+            <Form.Item name="description" label="Mô tả sự kiện ">
               <ReactQuill theme="snow" style={{ height: 200, marginBottom: 40 }} />
             </Form.Item>
 

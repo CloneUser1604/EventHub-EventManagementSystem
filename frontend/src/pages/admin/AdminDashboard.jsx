@@ -338,6 +338,15 @@ const AdminDashboard = () => {
     },
     { title: 'Địa điểm', dataIndex: 'VenueName', render: v => <Text style={{ fontSize: 13 }}>{v || '—'}</Text> },
     {
+      title: 'Trạng thái', width: 130,
+      render: (_, r) => {
+        const s = (r.Status === 'Published' && r.EndDate && dayjs(r.EndDate).isBefore(dayjs())) ? 'Completed' : r.Status;
+        const cfg = { Published: 'green', PendingApproval: 'orange', Draft: 'default', Rejected: 'red', Cancelled: 'red', Completed: 'blue' };
+        const label = { Published: 'Công bố', PendingApproval: 'Chờ duyệt', Draft: 'Nháp', Rejected: 'Từ chối', Cancelled: 'Đã huỷ', Completed: 'Kết thúc' };
+        return <Tag color={cfg[s] || 'default'}>{label[s] || s}</Tag>;
+      }
+    },
+    {
       title: 'Hành động', width: 260,
       render: (_, r) => {
         const isApprovedNoChanges = (r.ApprovalStatus === 'Approved' || r.Status === 'Published' || r.Status === 'Completed') && !r.ProposedChanges;
@@ -675,7 +684,7 @@ const AdminDashboard = () => {
                   { title: 'Ngày', dataIndex: 'StartDate', width: 120, render: d => dayjs(d).format('DD/MM/YYYY') },
                   { title: 'Trạng thái', width: 130,
                     render: (_, r) => {
-                      const s = (r.Status === 'Published' && dayjs(r.EndDate).isBefore(dayjs())) ? 'Completed' : r.Status;
+                      const s = (r.Status === 'Published' && r.EndDate && dayjs(r.EndDate).isBefore(dayjs())) ? 'Completed' : r.Status;
                       const cfg = { Published: 'green', PendingApproval: 'orange', Draft: 'default', Rejected: 'red', Cancelled: 'red', Completed: 'blue' };
                       const label = { Published: 'Công bố', PendingApproval: 'Chờ duyệt', Draft: 'Nháp', Rejected: 'Từ chối', Cancelled: 'Đã huỷ', Completed: 'Kết thúc' };
                       return <Tag color={cfg[s] || 'default'}>{label[s] || s}</Tag>;

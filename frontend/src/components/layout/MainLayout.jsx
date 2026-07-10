@@ -29,33 +29,39 @@ const roleNav = {
     { key: '/', label: 'Home' },
     { key: '/events', label: 'Events' },
     { key: '/my-calendar', label: 'My Calendar' },
+    { key: '/blogs', label: 'Blog' },
   ],
   Organizer: [
     { key: '/', label: 'Home' },
     { key: '/events', label: 'Events' },
     { key: '/organizer/events', label: 'My Events' },
     { key: '/organizer/events/create', label: 'Create Event' },
+    { key: '/blogs', label: 'Blog' },
   ],
   Admin: [
     { key: '/admin', label: 'Dashboard' },
     { key: '/admin/organizers', label: 'Organizers' },
     { key: '/admin/events', label: 'Approve Events' },
     { key: '/events', label: 'Events' },
+    { key: '/blogs', label: 'Blog' },
   ],
   Staff: [
     { key: '/', label: 'Home' },
     { key: '/events', label: 'Events' },
     { key: '/my-calendar', label: 'My Calendar' },
+    { key: '/blogs', label: 'Blog' },
   ],
   Speaker: [
     { key: '/', label: 'Home' },
     { key: '/my-calendar', label: 'My Calendar' },
+    { key: '/blogs', label: 'Blog' },
   ],
 };
 
 const publicNav = [
   { key: '/', label: 'Home' },
   { key: '/events', label: 'Events' },
+  { key: '/blogs', label: 'Blog' },
 ];
 
 const MainLayout = ({ children }) => {

@@ -16,6 +16,7 @@ import { adminService } from '../../services/admin.service';
 import { eventService } from '../../services/event.service';
 import { venueService } from '../../services/venue.service';
 import { feedbackService } from '../../services/feedback.service';
+import { blogService } from '../../services/blog.service';
 import EventDetailPage from '../events/EventDetailPage';
 import dayjs from 'dayjs';
 
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeMenu = searchParams.get('tab') || 'overview';
   const selectedEventId = searchParams.get('eventId');
+  const [eventDetailTab, setEventDetailTab] = useState("about");
 
   const setActiveMenu = (menu) => {
     setSearchParams(prev => {
@@ -75,6 +77,9 @@ const AdminDashboard = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [allVenues, setAllVenues] = useState([]);
   const [reportedFeedbacks, setReportedFeedbacks] = useState([]);
+  const [reportedBlogs, setReportedBlogs] = useState([]);
+  const [reportedComments, setReportedComments] = useState([]);
+  const [viewReportModal, setViewReportModal] = useState({ open: false, type: '', data: null });
   const [loading, setLoading] = useState(true);
   
   const [rejectModal, setRejectModal] = useState({ open: false, type: '', id: null, title: '' });
@@ -123,7 +128,7 @@ const AdminDashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [orgsRes, allOrgsRes, eventsRes, speakersRes, allSpeakersRes, usersRes, allEventsRes, staffRes, venuesRes, reportedRes] = await Promise.all([
+      const results = await Promise.all([
         adminService.getPendingOrganizers(),
         adminService.getAllOrganizers(),
         eventService.getEvents({ approvalStatus: 'Pending', limit: 100 }),
@@ -133,21 +138,25 @@ const AdminDashboard = () => {
         eventService.getEvents({ limit: 200 }),
         fetch(API_BASE + '/staff/available', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()),
         venueService.getAllVenues(),
-        feedbackService.getReportedFeedbacks().catch(() => ({ data: [] }))
+        feedbackService.getReportedFeedbacks().catch(() => ({ data: [] })),
+        blogService.getReportedBlogs().catch(() => ({ data: { data: [] } })),
+        blogService.getReportedComments().catch(() => ({ data: { data: [] } }))
       ]);
 
-      setPendingOrgs(orgsRes.data?.data || []);
-      setAllOrganizers(allOrgsRes.data?.data || []);
-      setPendingEvents(eventsRes.data?.data?.events || []);
-      setAllEvents(allEventsRes.data?.data?.events || []);
-      setPendingSpeakers(speakersRes.data?.data || []);
-      setAllSpeakers(allSpeakersRes.data?.data || []);
+      setPendingOrgs(results[0]?.data?.data || []);
+      setAllOrganizers(results[1]?.data?.data || []);
+      setPendingEvents(results[2]?.data?.data?.events || []);
+      setAllEvents(results[6]?.data?.data?.events || []);
+      setPendingSpeakers(results[3]?.data?.data || []);
+      setAllSpeakers(results[4]?.data?.data || []);
       
-      const usersData = usersRes.data?.data || usersRes.data || [];
+      const usersData = results[5]?.data?.data || results[5]?.data || [];
       setAllUsers(usersData);
-      setAvailableStaffs(staffRes.data || []);
-      setAllVenues(venuesRes.data?.data || []);
-      setReportedFeedbacks(reportedRes.data || []);
+      setAvailableStaffs(results[7]?.data || []);
+      setAllVenues(results[8]?.data?.data || []);
+      setReportedFeedbacks(results[9]?.data || []);
+      setReportedBlogs(results[10]?.data?.data || results[10]?.data || []);
+      setReportedComments(results[11]?.data?.data || results[11]?.data || []);
     } catch (e) { 
       message.error('Tải dữ liệu thất bại toàn hệ thống'); 
     } finally { 
@@ -321,6 +330,26 @@ const AdminDashboard = () => {
       loadAll();
     } catch (e) {
       message.error(e.message || 'Lỗi xử lý báo cáo');
+    }
+  };
+
+  const handleResolveBlogReport = async (blogId, action) => {
+    try {
+      await blogService.resolveReportedBlog(blogId, action);
+      message.success(action === 'delete' ? 'Đã xoá bài viết vi phạm' : 'Đã bỏ qua báo cáo');
+      loadAll();
+    } catch (e) {
+      message.error(e.message || 'Lỗi xử lý báo cáo bài viết');
+    }
+  };
+
+  const handleResolveCommentReport = async (commentId, action) => {
+    try {
+      await blogService.resolveReportedComment(commentId, action);
+      message.success(action === 'delete' ? 'Đã xoá bình luận vi phạm' : 'Đã bỏ qua báo cáo');
+      loadAll();
+    } catch (e) {
+      message.error(e.message || 'Lỗi xử lý báo cáo bình luận');
     }
   };
 
@@ -539,8 +568,45 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 200,
       render: (_, r) => (
         <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => { setEventDetailTab('feedback'); handleViewEvent(r.EventID); }}>Xem</Button>
           <Button size="small" danger onClick={() => confirm({ title: 'Xoá đánh giá vi phạm này?', content: 'Đánh giá sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveReport(r.FeedbackID, 'delete') })}>Xoá đánh giá</Button>
           <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Đánh giá vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveReport(r.FeedbackID, 'dismiss') })}>Bỏ qua</Button>
+        </Space>
+      )
+    }
+  ];
+
+  const reportedBlogCols = [
+    { title: 'Tác giả', dataIndex: 'AuthorName', width: 200, render: t => <Text style={{ color: '#2563eb', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Nội dung bài viết', dataIndex: 'Content', width: 300, render: t => <Text style={{ color: '#334155' }}>{t?.length > 100 ? t.substring(0, 100) + '...' : (t || '(Không có nội dung)')}</Text> },
+    { title: 'Người báo cáo', dataIndex: 'ReporterName', width: 200, render: t => <Text style={{ color: '#059669', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 250, render: t => <Text style={{ color: '#dc2626', fontWeight: 500 }}>{t}</Text> },
+    { title: 'Ngày báo cáo', dataIndex: 'ReportedAt', width: 150, render: d => dayjs(d).format('DD/MM/YYYY HH:mm') },
+    {
+      title: 'Hành động', width: 200,
+      render: (_, r) => (
+        <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/blogs/${r.BlogID}`)}>Xem</Button>
+          <Button size="small" danger onClick={() => confirm({ title: 'Xoá bài viết vi phạm này?', content: 'Bài viết sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveBlogReport(r.BlogID, 'delete') })}>Xoá bài viết</Button>
+          <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Bài viết vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveBlogReport(r.BlogID, 'dismiss') })}>Bỏ qua</Button>
+        </Space>
+      )
+    }
+  ];
+
+  const reportedCommentCols = [
+    { title: 'Người bình luận', dataIndex: 'AuthorName', width: 200, render: t => <Text style={{ color: '#2563eb', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Nội dung bình luận', dataIndex: 'Content', width: 300, render: t => <Text style={{ color: '#334155' }}>{t?.length > 100 ? t.substring(0, 100) + '...' : (t || '(Không có nội dung)')}</Text> },
+    { title: 'Người báo cáo', dataIndex: 'ReporterName', width: 200, render: t => <Text style={{ color: '#059669', fontWeight: 600 }}>{t}</Text> },
+    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 250, render: t => <Text style={{ color: '#dc2626', fontWeight: 500 }}>{t}</Text> },
+    { title: 'Ngày báo cáo', dataIndex: 'ReportedAt', width: 150, render: d => dayjs(d).format('DD/MM/YYYY HH:mm') },
+    {
+      title: 'Hành động', width: 200,
+      render: (_, r) => (
+        <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/blogs/${r.BlogID}#comment-${r.CommentID}`)}>Xem</Button>
+          <Button size="small" danger onClick={() => confirm({ title: 'Xoá bình luận vi phạm này?', content: 'Bình luận sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveCommentReport(r.CommentID, 'delete') })}>Xoá</Button>
+          <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Bình luận vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveCommentReport(r.CommentID, 'dismiss') })}>Bỏ qua</Button>
         </Space>
       )
     }
@@ -558,8 +624,10 @@ const AdminDashboard = () => {
     { key: 'staffs', icon: <TeamOutlined />, label: 'Tình nguyện viên' },
     { key: 'venues', icon: <EnvironmentOutlined />, label: 'Quản lý Địa điểm' },
     { key: 'users', icon: <UserOutlined />, label: 'Người dùng' },
-    { key: 'reported_feedbacks', icon: <ExclamationCircleOutlined />, label: 'Phản hồi vi phạm',
+    { key: 'reported_feedbacks', icon: <ExclamationCircleOutlined />, label: 'Đánh giá vi phạm',
       extra: reportedFeedbacks.length > 0 ? <Badge count={reportedFeedbacks.length} /> : null },
+    { key: 'reported_content', icon: <ExclamationCircleOutlined />, label: 'Nội dung vi phạm',
+      extra: (reportedBlogs.length + reportedComments.length) > 0 ? <Badge count={reportedBlogs.length + reportedComments.length} /> : null },
   ];
 
   if (loading && !stats) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
@@ -784,8 +852,61 @@ const AdminDashboard = () => {
 
           {activeMenu === 'reported_feedbacks' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Phản hồi vi phạm</Title>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Đánh giá vi phạm</Title>
               <Table columns={reportedFeedbackCols} dataSource={reportedFeedbacks} rowKey="FeedbackID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có báo cáo vi phạm nào' }} />
+            </div>
+          )}
+
+          {activeMenu === 'reported_content' && (
+            <div>
+              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Nội dung vi phạm</Title>
+              <Tabs
+                defaultActiveKey="blogs"
+                items={[
+                  {
+                    key: 'blogs',
+                    label: (
+                      <span>
+                        Bài viết vi phạm
+                        {reportedBlogs.length > 0 && (
+                          <Badge count={reportedBlogs.length} style={{ marginLeft: 8 }} />
+                        )}
+                      </span>
+                    ),
+                    children: (
+                      <Table
+                        columns={reportedBlogCols}
+                        dataSource={reportedBlogs}
+                        rowKey={(r) => `${r.BlogID}_${r.ReporterID}`}
+                        pagination={{ pageSize: 10 }}
+                        scroll={{ x: 800 }}
+                        locale={{ emptyText: 'Không có bài viết vi phạm nào' }}
+                      />
+                    )
+                  },
+                  {
+                    key: 'comments',
+                    label: (
+                      <span>
+                        Bình luận vi phạm
+                        {reportedComments.length > 0 && (
+                          <Badge count={reportedComments.length} style={{ marginLeft: 8 }} />
+                        )}
+                      </span>
+                    ),
+                    children: (
+                      <Table
+                        columns={reportedCommentCols}
+                        dataSource={reportedComments}
+                        rowKey={(r) => `${r.CommentID}_${r.ReporterID}`}
+                        pagination={{ pageSize: 10 }}
+                        scroll={{ x: 800 }}
+                        locale={{ emptyText: 'Không có bình luận vi phạm nào' }}
+                      />
+                    )
+                  }
+                ]}
+              />
             </div>
           )}
 
@@ -794,7 +915,7 @@ const AdminDashboard = () => {
               <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => setActiveMenu('events')} style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, background: 'rgba(255,255,255,0.2)', color: 'white' }}>
                 Quay lại
               </Button>
-              <EventDetailPage adminEventId={selectedEventId} noLayout={true} />
+              <EventDetailPage adminEventId={selectedEventId} noLayout={true} defaultTab={eventDetailTab} />
             </div>
           )}
         </Content>
@@ -861,6 +982,53 @@ const AdminDashboard = () => {
             </div>
             <Text type="secondary">Nội dung chi tiết thay đổi sẽ được cập nhật khi bạn nhấn Duyệt ở cột Hành động.</Text>
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        title={viewReportModal.type === 'feedback' ? 'Chi tiết Đánh giá vi phạm' : (viewReportModal.type === 'blog' ? 'Chi tiết Bài viết vi phạm' : 'Chi tiết Bình luận vi phạm')}
+        open={viewReportModal.open}
+        footer={[<Button key="close" onClick={() => setViewReportModal({ open: false, type: '', data: null })}>Đóng</Button>]}
+        onCancel={() => setViewReportModal({ open: false, type: '', data: null })}
+        width={600}
+      >
+        {viewReportModal.data && viewReportModal.type === 'feedback' && (
+          <Descriptions column={1} bordered size="small" labelStyle={{ width: '150px', fontWeight: 600 }}>
+            <Descriptions.Item label="Sự kiện">{viewReportModal.data.EventTitle}</Descriptions.Item>
+            <Descriptions.Item label="Người đánh giá"><Text style={{ color: '#2563eb' }}>{viewReportModal.data.ParticipantName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Nội dung đánh giá">{viewReportModal.data.Comment || '(Chỉ có số sao)'}</Descriptions.Item>
+            <Descriptions.Item label="Người báo cáo"><Text style={{ color: '#059669' }}>{viewReportModal.data.ReporterName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Lý do Báo cáo"><Text type="danger">{viewReportModal.data.ReportReason}</Text></Descriptions.Item>
+            <Descriptions.Item label="Ngày báo cáo">{dayjs(viewReportModal.data.ReportedAt).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+          </Descriptions>
+        )}
+        {viewReportModal.data && viewReportModal.type === 'blog' && (
+          <Descriptions column={1} bordered size="small" labelStyle={{ width: '150px', fontWeight: 600 }}>
+            <Descriptions.Item label="Sự kiện">{viewReportModal.data.EventTitle}</Descriptions.Item>
+            <Descriptions.Item label="Tác giả bài viết"><Text style={{ color: '#2563eb' }}>{viewReportModal.data.AuthorName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Nội dung bài viết">
+              <div style={{ maxHeight: 200, overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                {viewReportModal.data.Content || '(Không có nội dung)'}
+              </div>
+            </Descriptions.Item>
+            <Descriptions.Item label="Người báo cáo"><Text style={{ color: '#059669' }}>{viewReportModal.data.ReporterName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Lý do Báo cáo"><Text type="danger">{viewReportModal.data.ReportReason}</Text></Descriptions.Item>
+            <Descriptions.Item label="Ngày báo cáo">{dayjs(viewReportModal.data.ReportedAt).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+          </Descriptions>
+        )}
+        {viewReportModal.data && viewReportModal.type === 'comment' && (
+          <Descriptions column={1} bordered size="small" labelStyle={{ width: '150px', fontWeight: 600 }}>
+            <Descriptions.Item label="Sự kiện">{viewReportModal.data.EventTitle}</Descriptions.Item>
+            <Descriptions.Item label="Người bình luận"><Text style={{ color: '#2563eb' }}>{viewReportModal.data.AuthorName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Nội dung bình luận">
+              <div style={{ maxHeight: 200, overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                {viewReportModal.data.Content || '(Không có nội dung)'}
+              </div>
+            </Descriptions.Item>
+            <Descriptions.Item label="Người báo cáo"><Text style={{ color: '#059669' }}>{viewReportModal.data.ReporterName}</Text></Descriptions.Item>
+            <Descriptions.Item label="Lý do Báo cáo"><Text type="danger">{viewReportModal.data.ReportReason}</Text></Descriptions.Item>
+            <Descriptions.Item label="Ngày báo cáo">{dayjs(viewReportModal.data.ReportedAt).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+          </Descriptions>
         )}
       </Modal>
 

@@ -22,6 +22,9 @@ import EventDetailPage from "./pages/events/EventDetailPage";
 import ParticipantCheckinPage from "./pages/events/ParticipantCheckinPage";
 import AllFeedbacksPage from "./pages/events/AllFeedbacksPage";
 
+// Blog
+import BlogPage from "./pages/blogs/BlogPage";
+
 // Profile
 import UserProfile from './pages/UserProfile';
 import EditProfile from './pages/EditProfile';
@@ -106,6 +109,8 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/events" element={<EventListPage />} />
             <Route path="/events/:id" element={<EventDetailPage />} />
+            <Route path="/blogs" element={<BlogPage />} />
+            <Route path="/blogs/:id" element={<BlogPage />} />
             <Route
               path="/events/:id/feedbacks"
               element={<AllFeedbacksPage />}

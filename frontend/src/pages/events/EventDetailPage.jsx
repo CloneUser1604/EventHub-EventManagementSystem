@@ -269,9 +269,6 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
       event.Description.includes("&lt;!DOCTYPE") ||
       event.Description.includes("&lt;section"));
 
-  // ĐÃ THÊM: Biến kiểm tra điều kiện chặn Đăng ký
-  const notFptStudent = isAuthenticated && event.IsInternalOnly && user?.university !== 'Đại học FPT';
-
   const unescapeHTML = (htmlStr) => {
     if (!htmlStr) return "";
     if (isPastedHTML) {
@@ -838,13 +835,6 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       showIcon
                       style={{borderRadius: 10, marginBottom: 12}}
                     />
-                  ) : notFptStudent ? (
-                    <Alert
-                      message="Sự kiện nội bộ chỉ dành cho sinh viên trường Đại học FPT"
-                      type="error"
-                      showIcon
-                      style={{borderRadius: 10, marginBottom: 12}}
-                    />
                   ) : null}
                   {!(isPast || deadlinePassed) && (
                     <Button
@@ -853,7 +843,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       size="large"
                       onClick={handleRegister}
                       loading={registering}
-                      disabled={isFull || event.Status !== "Published" || notFptStudent}
+                      disabled={isFull || event.Status !== "Published"}
                       style={{
                         borderRadius: 10,
                         height: 50,

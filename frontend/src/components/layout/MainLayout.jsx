@@ -8,10 +8,12 @@ import {
   HomeOutlined, CalendarOutlined, BellOutlined, UserOutlined,
   LogoutOutlined, SettingOutlined, MenuOutlined, PlusOutlined,
   DashboardOutlined, CheckCircleOutlined, TeamOutlined,
-  SearchOutlined
+  SearchOutlined, SafetyCertificateOutlined
 } from '@ant-design/icons';
-import useAuthStore from '../../store/authStore';
-import useNotificationStore from '../../store/notificationStore';
+import useAuthStore from "../../store/authStore";
+import useNotificationStore from "../../store/notificationStore";
+import useSettingStore from "../../store/settingStore";
+import { useTranslation } from "../../hooks/useTranslation";
 // ĐÃ THÊM: Import công cụ xử lý ảnh
 import { getImageUrl } from '../../utils/imageHelpers';
 import dayjs from 'dayjs';
@@ -24,56 +26,57 @@ dayjs.locale('vi');
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
 
-const roleNav = {
+// Public Navigation (Khách)
+const getPublicNav = (t) => [
+  { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
+  { key: '/events', icon: <CalendarOutlined />, label: t('nav.events') },
+];
+
+// Role-based Navigation
+const getRoleNav = (t) => ({
   Participant: [
-    { key: '/', label: 'Home' },
-    { key: '/events', label: 'Events' },
-    { key: '/my-calendar', label: 'My Calendar' },
-    { key: '/blogs', label: 'Blog' },
+    { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
+    { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
+    { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
   ],
   Organizer: [
-    { key: '/', label: 'Home' },
-    { key: '/events', label: 'Events' },
-    { key: '/organizer/events', label: 'My Events' },
-    { key: '/organizer/events/create', label: 'Create Event' },
-    { key: '/blogs', label: 'Blog' },
+    { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
+    { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
+    { key: '/organizer/events', icon: <CalendarOutlined />, label: t('nav.myEvents') },
+    { key: '/organizer/events/create', icon: <PlusOutlined />, label: t('nav.createEvent') },
+    { key: '/blogs', icon: <TeamOutlined />, label: t('nav.blog') },
   ],
   Admin: [
-    { key: '/admin', label: 'Dashboard' },
-    { key: '/admin/organizers', label: 'Organizers' },
-    { key: '/admin/events', label: 'Approve Events' },
-    { key: '/events', label: 'Events' },
-    { key: '/blogs', label: 'Blog' },
+    { key: '/admin', icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    { key: '/admin/organizers', icon: <TeamOutlined />, label: t('nav.organizers') },
+    { key: '/admin/events', icon: <CheckCircleOutlined />, label: t('nav.approveEvents') },
+    { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
   ],
   Staff: [
-    { key: '/', label: 'Home' },
-    { key: '/events', label: 'Events' },
-    { key: '/my-calendar', label: 'My Calendar' },
-    { key: '/blogs', label: 'Blog' },
+    { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
+    { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
+    { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
   ],
   Speaker: [
-    { key: '/', label: 'Home' },
-    { key: '/my-calendar', label: 'My Calendar' },
-    { key: '/blogs', label: 'Blog' },
+    { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
+    { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
   ],
-};
-
-const publicNav = [
-  { key: '/', label: 'Home' },
-  { key: '/events', label: 'Events' },
-  { key: '/blogs', label: 'Blog' },
-];
+});
 
 const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { notifications, unreadCount, fetchNotifications, markRead } = useNotificationStore();
+  const { theme } = useSettingStore();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [staffModal, setStaffModal] = useState({ open: false, notification: null });
   const [speakerModal, setSpeakerModal] = useState({ open: false, notification: null });
 
+  const publicNav = getPublicNav(t);
+  const roleNav = getRoleNav(t);
   const navItems = isAuthenticated ? (roleNav[user?.role] || publicNav) : publicNav;
   const activeKey = navItems.reduce((longest, current) => {
     if (location.pathname.startsWith(current.key) && current.key !== '/') {
@@ -93,15 +96,15 @@ const MainLayout = ({ children }) => {
 
   const userMenu = (
     <div style={{ width: 200 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme === 'dark' ? '#333' : '#f0f0f0'}` }}>
         <Text strong style={{ display: 'block' }}>{user?.fullName}</Text>
         <Text type="secondary" style={{ fontSize: 12 }}>{user?.email}</Text>
       </div>
-      <Menu style={{ border: 'none' }} items={[
-        { key: 'profile', icon: <UserOutlined />, label: 'Hồ sơ cá nhân', onClick: () => navigate('/profile') },
-        { key: 'edit', icon: <SettingOutlined />, label: 'Cài đặt', onClick: () => navigate('/settings') },
+      <Menu style={{ border: 'none', boxShadow: 'none', background: 'transparent' }} items={[
+        { key: 'profile', icon: <UserOutlined />, label: t('nav.profile'), onClick: () => navigate('/profile') },
+        { key: 'edit', icon: <SettingOutlined />, label: t('nav.settings'), onClick: () => navigate('/settings') },
         { type: 'divider' },
-        { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', danger: true, onClick: handleLogout },
+        { key: 'logout', icon: <LogoutOutlined />, label: t('nav.logout'), danger: true, onClick: handleLogout },
       ]} />
     </div>
   );
@@ -158,19 +161,23 @@ const MainLayout = ({ children }) => {
   };
 
   const notifContent = (
-    <div style={{ width: 360 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text strong>Thông báo</Text>
-        {unreadCount > 0 && <Button type="link" size="small" onClick={() => notifications.forEach(n => !n.IsRead && markRead(n.NotificationID))}>Đọc tất cả</Button>}
+    <div style={{ width: 360, background: theme === 'dark' ? '#141414' : '#fff' }}>
+      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme === 'dark' ? '#333' : '#f0f0f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text strong style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+          {t('nav.notifications')}
+        </Text>
+        {unreadCount > 0 && <Button type="link" size="small" onClick={() => notifications.forEach(n => !n.IsRead && markRead(n.NotificationID))}>
+          {t('nav.markAllRead')}
+        </Button>}
       </div>
       {notifications.length === 0
-        ? <Empty description="Không có thông báo" style={{ padding: 24 }} />
+        ? <Empty description={t('nav.noNotif')} style={{ padding: 24 }} />
         : <List
             dataSource={notifications.slice(0, 8)}
             renderItem={n => (
               <List.Item
                 onClick={() => handleNotificationClick(n)}
-                style={{ padding: '10px 16px', cursor: 'pointer', background: n.IsRead ? 'white' : '#f0f5ff', borderBottom: '1px solid #f5f5f5' }}
+                style={{ padding: '10px 16px', cursor: 'pointer', background: n.IsRead ? 'transparent' : (theme === 'dark' ? '#1f1f1f' : '#f0f5ff'), borderBottom: `1px solid ${theme === 'dark' ? '#333' : '#f5f5f5'}` }}
               >
                 <List.Item.Meta
                   title={<Text style={{ fontSize: 13, fontWeight: n.IsRead ? 400 : 600 }}>{n.Title}</Text>}
@@ -260,7 +267,7 @@ const MainLayout = ({ children }) => {
               </Popover>
               <Dropdown
                 popupRender={() => (
-                  <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
+                  <div style={{ background: theme === 'dark' ? '#141414' : 'white', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
                     {userMenu}
                   </div>
                 )}

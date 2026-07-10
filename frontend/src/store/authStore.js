@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/auth.service';
+import useSettingStore from './settingStore';
 
 const useAuthStore = create(
   persist(
@@ -32,6 +33,13 @@ const useAuthStore = create(
             phone: user.Phone || user.phone,
             // ĐÃ SỬA: Nhớ hứng trường University lúc login
             university: user.University || user.university, 
+            // Giữ lại các key viết hoa cũ cho các file component khác đỡ bị lỗi
+            UserID: user.UserID || user.userId,
+            FullName: user.FullName || user.fullName,
+            Role: user.Role || user.role,
+            Email: user.Email || user.email,
+            AvatarURL: user.AvatarURL || user.avatarURL,
+            University: user.University || user.university
           };
 
           localStorage.setItem('accessToken', accessToken);
@@ -62,6 +70,11 @@ const useAuthStore = create(
         try { await authService.logout(); } catch {}
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        
+        // Đặt lại mặc định giao diện Sáng và Tiếng Việt khi đăng xuất
+        useSettingStore.getState().setTheme('light');
+        useSettingStore.getState().setLanguage('vi');
+
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
 

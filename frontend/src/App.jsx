@@ -1,8 +1,10 @@
 import React, {useEffect} from "react";
 import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
-import {ConfigProvider, App as AntdApp} from "antd";
+import {ConfigProvider, App as AntdApp, theme} from "antd";
 import viVN from "antd/locale/vi_VN";
+import enUS from "antd/locale/en_US";
 import useAuthStore from "./store/authStore";
+import useSettingStore from "./store/settingStore";
 import "./styles/global.css";
 
 // Auth
@@ -28,6 +30,7 @@ import BlogPage from "./pages/blogs/BlogPage";
 // Profile
 import UserProfile from './pages/UserProfile';
 import EditProfile from './pages/EditProfile';
+import SettingsPage from './pages/SettingsPage';
 
 // Participant
 import MyCalendarPage from "./pages/participant/MyCalendarPage";
@@ -47,10 +50,10 @@ import ProtectedRoute from "./components/ui/ProtectedRoute";
 
 const antdTheme = {
   token: {
-    colorPrimary: "#2563eb",
-    colorLink: "#2563eb",
+    colorPrimary: "#27272A",
+    colorLink: "#27272A",
     borderRadius: 8,
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Geist', sans-serif",
     fontSize: 15,
   },
   components: {
@@ -69,12 +72,12 @@ const Unauthorized = () => (
     style={{
       textAlign: "center",
       padding: "120px 24px",
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "'Geist', sans-serif",
     }}
   >
     <div style={{fontSize: 64, marginBottom: 16}}>🚫</div>
-    <h2 style={{fontFamily: "'Inter', sans-serif"}}>Không có quyền truy cập</h2>
-    <p style={{color: "#6b7280"}}>Bạn không có quyền truy cập trang này.</p>
+    <h2 style={{fontFamily: "'Geist', sans-serif"}}>Không có quyền truy cập</h2>
+    <p style={{color: "#71717a"}}>Bạn không có quyền truy cập trang này.</p>
   </div>
 );
 
@@ -83,23 +86,31 @@ const NotFound = () => (
     style={{
       textAlign: "center",
       padding: "120px 24px",
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "'Geist', sans-serif",
     }}
   >
     <div style={{fontSize: 64, marginBottom: 16}}>🔍</div>
-    <h2 style={{fontFamily: "'Inter', sans-serif"}}>404 — Không tìm thấy trang</h2>
+    <h2 style={{fontFamily: "'Geist', sans-serif"}}>404 — Không tìm thấy trang</h2>
   </div>
 );
 
 function App() {
   const {isAuthenticated, fetchMe, accessToken, user} = useAuthStore();
+  const { theme: appTheme, language } = useSettingStore();
 
   useEffect(() => {
     if (accessToken) fetchMe();
   }, []);
 
+  const getAntdTheme = () => {
+    return {
+      ...antdTheme,
+      algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    };
+  };
+
   return (
-    <ConfigProvider locale={viVN} theme={antdTheme}>
+    <ConfigProvider locale={language === 'en' ? enUS : viVN} theme={getAntdTheme()}>
       <AntdApp>
         <BrowserRouter
           future={{v7_startTransition: true, v7_relativeSplatPath: true}}
@@ -134,6 +145,7 @@ function App() {
             {/* ── Profile ── */}
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/profile/edit" element={<EditProfile />} />
+            <Route path="/settings" element={<SettingsPage />} />
 
             {/* ── Participant & Staff ── */}
             <Route

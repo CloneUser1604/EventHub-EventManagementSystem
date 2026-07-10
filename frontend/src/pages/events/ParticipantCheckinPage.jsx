@@ -5,6 +5,8 @@ import { SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons'
 import MainLayout from '../../components/layout/MainLayout';
 import useAuthStore from '../../store/authStore';
 import { staffService } from '../../services/staff.service';
+import { eventService } from '../../services/event.service';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -18,6 +20,25 @@ const ParticipantCheckinPage = () => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [event, setEvent] = useState(null);
+  const [fetchingEvent, setFetchingEvent] = useState(true);
+
+  React.useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const res = await eventService.getEventById(id);
+        setEvent(res.data.data);
+      } catch (error) {
+        message.error('Không thể lấy thông tin sự kiện');
+      } finally {
+        setFetchingEvent(false);
+      }
+    };
+    fetchEvent();
+  }, [id]);
+
+  const isPast = event && dayjs(event.EndDate).isBefore(dayjs());
+  const isFuture = event && dayjs(event.StartDate).isAfter(dayjs());
 
   const handleCheckin = async () => {
     if (!isAuthenticated) {
@@ -75,24 +96,40 @@ const ParticipantCheckinPage = () => {
               Nhập mã OTP gồm 6 ký tự để xác nhận tham gia sự kiện.
             </Text>
 
-            <Input.OTP 
-              size="large" 
-              length={6} 
-              value={otp} 
-              onChange={setOtp}
-              style={{ justifyContent: 'center', marginBottom: 32 }}
-            />
+            {isPast ? (
+              <div style={{ marginBottom: 24, padding: 16, background: '#fee2e2', borderRadius: 8, color: '#dc2626' }}>
+                <strong>Sự kiện đã kết thúc</strong>
+                <p style={{ margin: 0 }}>Không thể check-in lúc này.</p>
+              </div>
+            ) : isFuture ? (
+              <div style={{ marginBottom: 24, padding: 16, background: '#fef3c7', borderRadius: 8, color: '#d97706' }}>
+                <strong>Sự kiện chưa bắt đầu</strong>
+                <p style={{ margin: 0 }}>Vui lòng quay lại vào lúc {dayjs(event.StartDate).format('HH:mm DD/MM/YYYY')}.</p>
+              </div>
+            ) : (
+              <>
+                <Input.OTP 
+                  size="large" 
+                  length={6} 
+                  value={otp} 
+                  onChange={setOtp}
+                  style={{ justifyContent: 'center', marginBottom: 32 }}
+                  disabled={isPast || isFuture || fetchingEvent}
+                />
 
-            <Button 
-              type="primary" 
-              size="large" 
-              block 
-              loading={loading}
-              onClick={handleCheckin}
-              style={{ height: 48, borderRadius: 8, fontWeight: 600 }}
-            >
-              Xác Nhận Check-in
-            </Button>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  block 
+                  loading={loading || fetchingEvent}
+                  onClick={handleCheckin}
+                  disabled={isPast || isFuture || fetchingEvent}
+                  style={{ height: 48, borderRadius: 8, fontWeight: 600 }}
+                >
+                  Xác Nhận Check-in
+                </Button>
+              </>
+            )}
           </Card>
         )}
       </div>

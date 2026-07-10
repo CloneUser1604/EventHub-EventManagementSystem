@@ -729,11 +729,77 @@ const getAllOrganizers = async (req, res) => {
   }
 };
 
-// ĐÃ SỬA: Xuất (Export) thêm hàm updateMe ở cuối file
+// ─── SETTINGS (Update Email Notifications) ──────────────────
+const updateSettings = async (req, res) => {
+  try {
+    const userId = req.user.UserID;
+    const { emailNotifs } = req.body;
+
+    const pool = getPool();
+    await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('EmailNotifs', sql.Bit, emailNotifs === true ? 1 : 0)
+      .query(`
+        UPDATE Users 
+        SET EmailNotifs = @EmailNotifs
+        WHERE UserID = @UserID
+      `);
+
+    return successResponse(res, null, 'Cập nhật cài đặt thành công');
+  } catch (error) {
+    console.error('Update settings error:', error);
+    return errorResponse(res, 'Lỗi máy chủ');
+  }
+};
+
+// ─── DELETE ACCOUNT (Soft Delete) ───────────────────────────
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.UserID;
+    const pool = getPool();
+
+    // Soft delete: Disable active flag, rename email to free it up
+    const deletedEmail = `deleted_${userId}_${Date.now()}@ems.edu.vn`;
+    const deletedName = `Người dùng đã xóa`;
+
+    await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('Email', sql.VarChar(255), deletedEmail)
+      .input('FullName', sql.NVarChar(150), deletedName)
+      .query(`
+        UPDATE Users 
+        SET IsActive = 0, 
+            Email = @Email, 
+            FullName = @FullName
+        WHERE UserID = @UserID
+      `);
+
+    return successResponse(res, null, 'Tài khoản đã được xóa thành công');
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return errorResponse(res, 'Lỗi máy chủ');
+  }
+};
+
 module.exports = {
-  register, verifyEmail, resendVerification,
-  login, refreshToken, logout, getMe, updateMe,
-  forgotPassword, resetPassword, changePassword,
-  createSpeaker, approveSpeaker,
-  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
+  register,
+  verifyEmail,
+  resendVerification,
+  login,
+  refreshToken,
+  logout,
+  getMe,
+  updateMe,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  createSpeaker,
+  approveSpeaker,
+  approveOrganizer,
+  getPendingOrganizers,
+  getAllOrganizers,
+  getPendingSpeakers,
+  getAllSpeakers,
+  updateSettings,
+  deleteAccount,
 };

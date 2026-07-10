@@ -37,15 +37,15 @@ const OrganizerEventsPage = () => {
   };
 
   useEffect(() => { 
-    if (user?.UserID) {
+    if (user?.UserID || user?.userId) {
       fetchMyEvents(); 
     }
-  }, [user?.UserID]);
+  }, [user?.UserID, user?.userId]);
 
   const fetchMyEvents = async () => {
     setLoading(true);
     try {
-      const res = await eventService.getEvents({ organizerId: user.UserID, limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
+      const res = await eventService.getEvents({ organizerId: user?.UserID || user?.userId, limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
       setEvents(res.data.data.events);
     } catch { message.error('Lấy danh sách thất bại'); }
     finally { setLoading(false); }

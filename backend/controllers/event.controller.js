@@ -92,7 +92,7 @@ const getEvents = async (req, res) => {
         SELECT
           e.EventID, e.Title, e.Description, e.CoverImageURL,
           e.StartDate, e.EndDate, e.RegistrationDeadline,
-          e.MaxParticipants, e.Status, e.ApprovalStatus,
+          e.MaxParticipants, e.IsInternalOnly, e.Status, e.ApprovalStatus,
           e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
           u.UserID AS OrganizerID, u.FullName AS OrganizerName,
           op.OrganizationName,

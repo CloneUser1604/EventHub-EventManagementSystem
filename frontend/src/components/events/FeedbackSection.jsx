@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Rate, Avatar, message} from "antd";
+import {Rate, Button, Empty, message, Select, Avatar} from "antd";
 import {
   MessageOutlined,
   ArrowRightOutlined,
@@ -7,6 +7,7 @@ import {
 } from "@ant-design/icons";
 import {useNavigate} from "react-router-dom";
 import FeedbackModal from "./FeedbackModal";
+import FeedbackCard from "./FeedbackCard";
 import {feedbackService} from "../../services/feedback.service";
 import dayjs from "dayjs";
 import useAuthStore from "../../store/authStore";
@@ -57,7 +58,18 @@ export default function FeedbackSection({eventId}) {
     }
   };
 
-  const previewList = feedbacks.slice(0, 3); // Lấy tối đa 3 cái mới nhất để hiển thị nhanh ngoài trang chi tiết
+  const [sortType, setSortType] = useState('latest');
+
+  let displayFeedbacks = [...feedbacks];
+  if (sortType === 'mine' && user) {
+    const mineIdx = displayFeedbacks.findIndex(f => f.ParticipantID == user.userId);
+    if (mineIdx > -1) {
+      const mineItem = displayFeedbacks.splice(mineIdx, 1)[0];
+      displayFeedbacks.unshift(mineItem);
+    }
+  }
+
+  const previewList = displayFeedbacks.slice(0, 3); // Lấy tối đa 3 cái mới nhất để hiển thị nhanh ngoài trang chi tiết
 
   return (
     <div
@@ -108,6 +120,18 @@ export default function FeedbackSection({eventId}) {
             </div>
           )}
         </div>
+        
+        {feedbacks.length > 0 && (
+          <Select 
+            value={sortType} 
+            onChange={setSortType}
+            style={{ width: 180 }}
+            options={[
+              { value: 'latest', label: 'Mới nhất' },
+              ...(feedbacks.some(f => f.ParticipantID == user?.userId) ? [{ value: 'mine', label: 'Bình luận của bạn' }] : [])
+            ]}
+          />
+        )}
       </div>
 
       {feedbacks.length === 0 ? (
@@ -158,89 +182,14 @@ export default function FeedbackSection({eventId}) {
           {/* Danh sách các card review ngắn gọn */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              display: "flex",
+              flexDirection: "column",
               gap: 20,
               marginBottom: 24,
             }}
           >
             {previewList.map((item) => (
-              <div
-                key={item.FeedbackID}
-                style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 16,
-                  padding: 20,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 12,
-                  }}
-                >
-                  <div style={{display: "flex", gap: 12, alignItems: "center"}}>
-                    <Avatar
-                      src={item.AvatarURL}
-                      icon={!item.AvatarURL && <UserOutlined />}
-                      style={{backgroundColor: "#2563eb"}}
-                    />
-                    <div>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          color: "#0f172a",
-                          fontSize: 15,
-                        }}
-                      >
-                        {item.UserName}
-                      </div>
-                      <div style={{fontSize: 12, color: "#64748b"}}>
-                        {dayjs(item.CreatedAt).format("DD/MM/YYYY")}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                    {user?.userId == item.ParticipantID && (
-                      <Button
-                        type="text"
-                        size="small"
-                        style={{color: "#2563eb", fontSize: 13, fontWeight: 500}}
-                        onClick={() => {
-                          setEditData(item);
-                          setModalOpen(true);
-                        }}
-                      >
-                        Sửa
-                      </Button>
-                    )}
-                    <Rate
-                      disabled
-                      value={item.Rating}
-                      style={{fontSize: 14, color: "#facc15"}}
-                    />
-                  </div>
-                </div>
-                {item.Comment && (
-                  <p
-                    style={{
-                      color: "#334155",
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      margin: 0,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {item.Comment}
-                  </p>
-                )}
-              </div>
+              <FeedbackCard key={item.FeedbackID} item={item} onEdit={(data) => { setEditData(data); setModalOpen(true); }} onSuccess={loadData} />
             ))}
           </div>
 

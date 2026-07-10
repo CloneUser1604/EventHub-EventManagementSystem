@@ -47,6 +47,8 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
     // 1. Nhận dữ liệu chữ
     const finalName = req.body.fullName || req.body.FullName || '';
     const finalPhone = req.body.phone || req.body.Phone || '';
+    // ĐÃ SỬA: Lấy thêm trường University từ form
+    const finalUniversity = req.body.university || req.body.University || '';
     
     // 2. Xử lý Ảnh đại diện (Ưu tiên lấy file thật, nếu không có lấy URL)
     let finalAvatar = req.body.avatarURL || req.body.AvatarURL || '';
@@ -64,8 +66,11 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
       .input('UserID', sql.Int, userId)
       .input('FullName', sql.NVarChar(255), finalName)
       .input('Phone', sql.VarChar(50), finalPhone)
+      // ĐÃ SỬA: Bổ sung input University
+      .input('University', sql.NVarChar(150), finalUniversity)
       .input('AvatarURL', sql.NVarChar(sql.MAX), finalAvatar)
-      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, AvatarURL = @AvatarURL WHERE UserID = @UserID');
+      // ĐÃ SỬA: Thêm cột University=@University vào câu lệnh UPDATE
+      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, University = @University, AvatarURL = @AvatarURL WHERE UserID = @UserID');
 
     // 4. Cập nhật tài liệu Organizer (Nếu có)
     if (req.files && req.files['documents'] && req.files['documents'].length > 0) {

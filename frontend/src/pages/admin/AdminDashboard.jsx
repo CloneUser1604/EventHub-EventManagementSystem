@@ -82,6 +82,14 @@ const AdminDashboard = () => {
   const [viewReportModal, setViewReportModal] = useState({ open: false, type: '', data: null });
   const [loading, setLoading] = useState(true);
   
+  // Search states
+  const [searchEvent, setSearchEvent] = useState('');
+  const [searchOrg, setSearchOrg] = useState('');
+  const [searchSpeaker, setSearchSpeaker] = useState('');
+  const [searchStaff, setSearchStaff] = useState('');
+  const [searchVenue, setSearchVenue] = useState('');
+  const [searchUser, setSearchUser] = useState('');
+
   const [rejectModal, setRejectModal] = useState({ open: false, type: '', id: null, title: '' });
   const [rejectReason, setRejectReason] = useState('');
   const [editReasonModal, setEditReasonModal] = useState({ open: false, data: null });
@@ -766,8 +774,9 @@ const AdminDashboard = () => {
                 columns={[
                   { title: 'Sự kiện', dataIndex: 'Title', render: (t, r) => <><Text strong>{t}</Text><br /><Text type="secondary" style={{ fontSize: 12 }}>{r.OrganizerName}</Text></> },
                   { title: 'Ngày', dataIndex: 'StartDate', width: 120, render: d => dayjs(d).format('DD/MM/YYYY') },
-                  { title: 'Trạng thái', dataIndex: 'Status', width: 130,
-                    render: s => {
+                  { title: 'Trạng thái', width: 130,
+                    render: (_, r) => {
+                      const s = (r.Status === 'Published' && dayjs(r.EndDate).isBefore(dayjs())) ? 'Completed' : r.Status;
                       const cfg = { Published: 'green', PendingApproval: 'orange', Draft: 'default', Rejected: 'red', Cancelled: 'red', Completed: 'blue' };
                       const label = { Published: 'Công bố', PendingApproval: 'Chờ duyệt', Draft: 'Nháp', Rejected: 'Từ chối', Cancelled: 'Đã huỷ', Completed: 'Kết thúc' };
                       return <Tag color={cfg[s] || 'default'}>{label[s] || s}</Tag>;
@@ -780,22 +789,25 @@ const AdminDashboard = () => {
 
           {activeMenu === 'events' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Sự kiện</Title>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Sự kiện</Title>
+                <Input.Search placeholder="Tìm kiếm sự kiện..." value={searchEvent} onChange={e => setSearchEvent(e.target.value)} style={{ width: 250 }} allowClear />
+              </div>
               <Tabs defaultActiveKey="pending" items={[
                 {
                   key: 'pending',
                   label: `Sự kiện chờ duyệt (${pendingEvents.filter(e => !e.ProposedChanges).length})`,
-                  children: <Table columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
+                  children: <Table columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
                 },
                 {
                   key: 'edit_requests',
                   label: `Yêu cầu chỉnh sửa (${allEvents.filter(e => e.ProposedChanges).length})`,
-                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
+                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
                 },
                 {
                   key: 'approved',
                   label: 'Sự kiện đã duyệt/công bố',
-                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges)} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
                 }
               ]} />
             </div>
@@ -803,17 +815,23 @@ const AdminDashboard = () => {
 
           {activeMenu === 'organizers' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Ban tổ chức</Title>
-              <Table columns={orgCols} dataSource={allOrganizers} rowKey="OrganizerProfileID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} rowClassName={r => r.ApprovalStatus === 'Pending' ? 'row-pending' : ''} locale={{ emptyText: 'Chưa có dữ liệu' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Ban tổ chức</Title>
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchOrg} onChange={e => setSearchOrg(e.target.value)} style={{ width: 250 }} allowClear />
+              </div>
+              <Table columns={orgCols} dataSource={allOrganizers.filter(o => !searchOrg || o.OrganizationName?.toLowerCase().includes(searchOrg.toLowerCase()) || o.Email?.toLowerCase().includes(searchOrg.toLowerCase()) || o.FullName?.toLowerCase().includes(searchOrg.toLowerCase()))} rowKey="OrganizerProfileID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} rowClassName={r => r.ApprovalStatus === 'Pending' ? 'row-pending' : ''} locale={{ emptyText: 'Chưa có dữ liệu' }} />
             </div>
           )}
 
           {activeMenu === 'speakers' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Diễn giả</Title>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Diễn giả</Title>
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchSpeaker} onChange={e => setSearchSpeaker(e.target.value)} style={{ width: 250 }} allowClear />
+              </div>
               <Table 
                 columns={speakerCols} 
-                dataSource={allSpeakers} 
+                dataSource={allSpeakers.filter(s => !searchSpeaker || s.FullName?.toLowerCase().includes(searchSpeaker.toLowerCase()) || s.Email?.toLowerCase().includes(searchSpeaker.toLowerCase()))} 
                 rowKey="UserID" 
                 pagination={{ pageSize: 10 }} 
                 scroll={{ x: 800 }} 
@@ -827,9 +845,12 @@ const AdminDashboard = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Tình nguyện viên (Staff)</Title>
-                <Button type="primary" onClick={() => openStaffModal()}>+ Thêm Staff mới</Button>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <Input.Search placeholder="Tìm kiếm tên, email..." value={searchStaff} onChange={e => setSearchStaff(e.target.value)} style={{ width: 250 }} allowClear />
+                  <Button type="primary" onClick={() => openStaffModal()}>+ Thêm Staff mới</Button>
+                </div>
               </div>
-              <Table columns={staffTableCols} dataSource={availableStaffs} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Staff nào' }} />
+              <Table columns={staffTableCols} dataSource={availableStaffs.filter(s => !searchStaff || s.FullName?.toLowerCase().includes(searchStaff.toLowerCase()) || s.Email?.toLowerCase().includes(searchStaff.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Staff nào' }} />
             </div>
           )}
 
@@ -837,16 +858,22 @@ const AdminDashboard = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Địa điểm</Title>
-                <Button type="primary" onClick={() => openVenueModal()}>+ Thêm Địa điểm</Button>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <Input.Search placeholder="Tìm kiếm địa điểm..." value={searchVenue} onChange={e => setSearchVenue(e.target.value)} style={{ width: 250 }} allowClear />
+                  <Button type="primary" onClick={() => openVenueModal()}>+ Thêm Địa điểm</Button>
+                </div>
               </div>
-              <Table columns={venueCols} dataSource={allVenues} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
+              <Table columns={venueCols} dataSource={allVenues.filter(v => !searchVenue || v.Name?.toLowerCase().includes(searchVenue.toLowerCase()) || v.Address?.toLowerCase().includes(searchVenue.toLowerCase()))} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
             </div>
           )}
 
           {activeMenu === 'users' && (
             <div>
-              <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Quản lý Người dùng</Title>
-              <Table columns={userCols} dataSource={allUsers} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Người dùng</Title>
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchUser} onChange={e => setSearchUser(e.target.value)} style={{ width: 250 }} allowClear />
+              </div>
+              <Table columns={userCols} dataSource={allUsers.filter(u => !searchUser || u.FullName?.toLowerCase().includes(searchUser.toLowerCase()) || u.Email?.toLowerCase().includes(searchUser.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
             </div>
           )}
 

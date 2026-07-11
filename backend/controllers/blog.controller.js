@@ -454,9 +454,9 @@ const addComment = async (req, res) => {
     
     let imageUrl = null;
     if (req.files && req.files.length > 0) {
-      imageUrl = JSON.stringify(req.files.map(f => f.path));
+      imageUrl = JSON.stringify(req.files.map(f => `${req.protocol}://${req.get('host')}/uploads/blogs/${f.filename}`));
     } else if (req.file) {
-      imageUrl = JSON.stringify([req.file.path]);
+      imageUrl = JSON.stringify([`${req.protocol}://${req.get('host')}/uploads/blogs/${req.file.filename}`]);
     }
     
     if ((!content || !content.trim()) && !imageUrl) {
@@ -816,6 +816,13 @@ const resolveReportedComment = async (req, res) => {
     const pool = getPool();
     
     if (action === 'delete') {
+      // Delete likes of replies
+      await pool.request().input('ParentID', sql.Int, id).query(`DELETE FROM BlogCommentLikes WHERE CommentID IN (SELECT CommentID FROM BlogComments WHERE ParentCommentID = @ParentID)`);
+      // Delete likes of the parent comment
+      await pool.request().input('id', sql.Int, id).query(`DELETE FROM BlogCommentLikes WHERE CommentID = @id`);
+      // Delete replies
+      await pool.request().input('ParentID', sql.Int, id).query(`DELETE FROM BlogComments WHERE ParentCommentID = @ParentID`);
+      // Delete the comment itself
       await pool.request().input('id', sql.Int, id).query('DELETE FROM BlogComments WHERE CommentID = @id');
     } else {
       await pool.request().input('id', sql.Int, id).query(`UPDATE BlogComments SET IsReported = 0, ReportReason = NULL, ReportedAt = NULL, ReportedBy = NULL WHERE CommentID = @id`);

@@ -1592,8 +1592,7 @@ const BlogPage = () => {
                 />
               </div>
               
-              <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#9ca3af', fontSize: 15 }}>Lựa chọn về bài viết</span>
+              <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <Button 
                     shape="round"

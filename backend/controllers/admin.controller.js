@@ -63,13 +63,14 @@ const approveEvent = async (req, res) => {
       request.input('P_MaxParticipants', sql.Int, proposedChangesObj.maxParticipants || null);
       request.input('P_CategoryID', sql.Int, proposedChangesObj.categoryId || null);
       request.input('P_VenueID', sql.Int, proposedChangesObj.venueId || null);
+      request.input('P_IsInternalOnly', sql.Bit, proposedChangesObj.isInternalOnly);
 
       updateQuery = `
           UPDATE Events 
           SET ApprovalStatus = 'Approved', Status = 'Published', ApprovedBy = @AdminID, ApprovedAt = GETDATE(), UpdatedAt = GETDATE(),
               Title = @P_Title, Description = @P_Description, CoverImageURL = @P_CoverImageURL, 
               StartDate = @P_StartDate, EndDate = @P_EndDate, RegistrationDeadline = @P_RegistrationDeadline,
-              MaxParticipants = @P_MaxParticipants, CategoryID = @P_CategoryID, VenueID = @P_VenueID,
+              MaxParticipants = @P_MaxParticipants, CategoryID = @P_CategoryID, VenueID = @P_VenueID, IsInternalOnly = @P_IsInternalOnly,
               ProposedChanges = NULL, EditReason = NULL
           OUTPUT INSERTED.Title, INSERTED.OrganizerID
           WHERE EventID = @EventID

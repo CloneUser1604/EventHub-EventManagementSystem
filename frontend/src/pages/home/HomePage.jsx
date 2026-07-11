@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Input, Button, Row, Col, Tag, Spin, Select, Empty, Typography } from 'antd';
-import { 
-  SearchOutlined, ArrowRightOutlined, CalendarOutlined, TeamOutlined, TrophyOutlined,
-  CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined, HeartOutlined, NotificationOutlined, AppstoreOutlined
-} from '@ant-design/icons';
-import MainLayout from '../../components/layout/MainLayout';
-import EventCard from '../../components/events/EventCard';
-import useEventStore from '../../store/eventStore';
-import dayjs from 'dayjs';
-=======
 import React, {useEffect, useState, useRef} from "react";
 import {useNavigate} from "react-router-dom";
 import {
@@ -37,6 +24,12 @@ import {
   FireOutlined,
   SafetyCertificateOutlined,
   RocketOutlined,
+  CodeOutlined, 
+  BookOutlined, 
+  SmileOutlined, 
+  HeartOutlined, 
+  NotificationOutlined, 
+  AppstoreOutlined
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
@@ -45,7 +38,6 @@ import useSettingStore from "../../store/settingStore";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useScrollAnimation } from "../../hooks/useScrollAnimation";
 import dayjs from "dayjs";
->>>>>>> e327bcf86549f211b22360e539b7612b019cdeca
 
 const {Title, Text} = Typography;
 const {Option} = Select;

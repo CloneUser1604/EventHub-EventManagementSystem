@@ -7,7 +7,9 @@ const {
   rejectEvent,
   cancelEvent,
   getAllUsers,
-  updateUserStatus
+  updateUserStatus,
+  broadcastNotification,
+  getOrganizerStats
 } = require('../controllers/admin.controller');
 
 // Admin: Quản lý sự kiện
@@ -19,5 +21,9 @@ router.post('/events/:eventId/cancel', authenticate, authorize('Admin'), cancelE
 // Admin: Quản lý người dùng
 router.get('/users', authenticate, authorize('Admin'), getAllUsers);
 router.patch('/users/:userId/status', authenticate, authorize('Admin'), updateUserStatus);
+
+// Admin: Tính năng nâng cao
+router.post('/broadcast', authenticate, authorize('Admin'), broadcastNotification);
+router.get('/organizers-stats', authenticate, authorize('Admin'), getOrganizerStats);
 
 module.exports = router;

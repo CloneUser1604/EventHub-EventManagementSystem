@@ -52,9 +52,11 @@ export default function FeedbackSection({eventId}) {
       if (res.success) {
         setEditData(null);
         setModalOpen(true);
+      } else {
+        message.error(res.message || "Bạn chưa đủ điều kiện để đánh giá sự kiện này.");
       }
     } catch (error) {
-      message.error(error.message || "Bạn chưa đủ điều kiện để đánh giá sự kiện này.");
+      message.error(error.message || "Lỗi kiểm tra điều kiện đánh giá.");
     }
   };
 

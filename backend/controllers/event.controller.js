@@ -92,7 +92,7 @@ const getEvents = async (req, res) => {
         SELECT
           e.EventID, e.Title, e.Description, e.CoverImageURL,
           e.StartDate, e.EndDate, e.RegistrationDeadline,
-          e.MaxParticipants, e.Status, e.ApprovalStatus,
+          e.MaxParticipants, e.IsInternalOnly, e.Status, e.ApprovalStatus,
           e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
           u.UserID AS OrganizerID, u.FullName AS OrganizerName,
           op.OrganizationName,
@@ -346,7 +346,7 @@ const createEvent = async (req, res) => {
     return createdResponse(res, { eventId: newEvent.EventID }, 'Tạo sự kiện thành công');
   } catch (error) {
     console.error('createEvent error:', error.message);
-    return errorResponse(res, 'Tạo sự kiện thất bại');
+    return res.status(500).json({ success: false, message: 'Tạo sự kiện thất bại: ' + error.message, stack: error.stack });
   }
 };
 
@@ -560,7 +560,7 @@ const updateEvent = async (req, res) => {
     return successResponse(res, null, 'Cập nhật sự kiện thành công');
   } catch (error) {
     console.error('updateEvent error:', error.message);
-    return errorResponse(res, 'Cập nhật sự kiện thất bại');
+    return res.status(500).json({ success: false, message: 'Cập nhật sự kiện thất bại: ' + error.message, stack: error.stack });
   }
 };
 
@@ -746,23 +746,26 @@ const getVenues = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const { timeRange = 'month' } = req.query; 
-    const formatStr = timeRange === 'day' ? 'yyyy-MM-dd' : 'yyyy-MM';
-    const dateLimit = timeRange === 'day' ? 'DATEADD(day, -30, GETDATE())' : 'DATEADD(month, -6, GETDATE())';
+    const formatStr = (timeRange === 'day' || timeRange === 'week') ? 'yyyy-MM-dd' : 'yyyy-MM';
+    let dateLimit = 'DATEADD(month, -6, GETDATE())';
+    if (timeRange === 'day') dateLimit = 'DATEADD(day, -30, GETDATE())';
+    if (timeRange === 'week') dateLimit = 'DATEADD(day, -7, GETDATE())';
 
     const pool = getPool();
     const stats = await pool.request().query(`
       SELECT
         (SELECT COUNT(*) FROM Events) AS TotalEvents,
-        (SELECT COUNT(*) FROM Events WHERE Status='Published') AS PublishedEvents,
+        (SELECT COUNT(*) FROM Events WHERE Status='Published' AND EndDate >= GETDATE()) AS PublishedEvents,
         (SELECT COUNT(*) FROM Events WHERE ApprovalStatus='Pending') AS PendingApproval,
-        (SELECT COUNT(*) FROM Events WHERE Status='Completed') AS CompletedEvents,
+        (SELECT COUNT(*) FROM Events WHERE Status='Completed' OR (Status='Published' AND EndDate < GETDATE())) AS CompletedEvents,
         (SELECT COUNT(*) FROM Users WHERE Role='Participant') AS TotalParticipants,
         (SELECT COUNT(*) FROM Users WHERE Role='Organizer') AS TotalOrganizers,
+        (SELECT COUNT(*) FROM Users WHERE Role='Speaker') AS TotalSpeakers,
         (SELECT COUNT(*) FROM Registrations WHERE Status='Registered') AS TotalRegistrations,
         (SELECT COUNT(*) FROM Events WHERE StartDate>=GETDATE() AND Status='Published') AS UpcomingEvents
     `);
     const recentEvents = await pool.request().query(`
-      SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, u.FullName AS OrganizerName
+      SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, e.EndDate, u.FullName AS OrganizerName
       FROM Events e JOIN Users u ON e.OrganizerID=u.UserID ORDER BY e.CreatedAt DESC
     `);
 

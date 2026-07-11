@@ -19,6 +19,7 @@ import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-d
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
+import { useTranslation } from "../../hooks/useTranslation";
 import dayjs from "dayjs";
 
 const {Title, Text} = Typography;
@@ -51,6 +52,7 @@ const EventListPage = () => {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showFavs, setShowFavs] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchMeta();
@@ -91,14 +93,15 @@ const EventListPage = () => {
             marginBottom: 8,
             fontSize: 13,
             fontFamily: "'Inter', sans-serif",
+            color: "inherit"
           }}
         >
-          Lĩnh vực
+          {t('browse.category')}
         </Text>
         <Select
           value={filters.categoryId || undefined}
           onChange={(v) => updateFilter("categoryId", v || "")}
-          placeholder="Tất cả lĩnh vực"
+          placeholder={t('browse.allCategories')}
           style={{width: "100%"}}
           dropdownStyle={{fontFamily: "'Inter', sans-serif"}}
           className="category-filter"
@@ -106,19 +109,19 @@ const EventListPage = () => {
         >
           {categories.map((c) => (
             <Option key={c.CategoryID} value={String(c.CategoryID)}>
-              {c.Name}
+              {t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name}
             </Option>
           ))}
         </Select>
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Địa điểm
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.venue')}
         </Text>
         <Select
           value={filters.venueId || undefined}
           onChange={(v) => updateFilter("venueId", v || "")}
-          placeholder="Tất cả địa điểm"
+          placeholder={t('browse.allVenues')}
           style={{width: "100%"}}
           allowClear
         >
@@ -130,8 +133,8 @@ const EventListPage = () => {
         </Select>
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Thời gian
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.time')}
         </Text>
         <RangePicker
           style={{width: "100%"}}
@@ -147,8 +150,8 @@ const EventListPage = () => {
         />
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Sắp xếp
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.sortBy')}
         </Text>
         <Select
           value={`${filters.sortBy}_${filters.sortOrder}`}
@@ -158,22 +161,22 @@ const EventListPage = () => {
           }}
           style={{width: "100%"}}
         >
-          <Option value="StartDate_ASC">Ngày bắt đầu (sớm nhất)</Option>
-          <Option value="StartDate_DESC">Ngày bắt đầu (muộn nhất)</Option>
-          <Option value="CreatedAt_DESC">Mới nhất</Option>
-          <Option value="Rating_DESC">Đánh giá (Cao đến thấp)</Option>
-          <Option value="Title_ASC">Tên A-Z</Option>
+          <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
+          <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
+          <Option value="CreatedAt_DESC">{t('browse.sortNewest')}</Option>
+          <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
+          <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
         </Select>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fff1f2', borderRadius: 8, border: '1px solid #ffe4e6' }}>
-        <Text strong style={{ fontSize: 13, color: '#be123c', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <HeartFilled /> Sự kiện yêu thích
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#be123c', borderRadius: 8, border: '1px solid #9f1239', boxShadow: '0 4px 12px rgba(190,18,60,0.15)' }}>
+        <Text strong style={{ fontSize: 13, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <HeartFilled style={{ color: '#fecdd3' }} /> {t('browse.favorites')}
         </Text>
-        <Switch checked={showFavs} onChange={setShowFavs} style={{ background: showFavs ? '#e11d48' : '#cbd5e1' }} />
+        <Switch checked={showFavs} onChange={setShowFavs} style={{ background: showFavs ? '#fb7185' : 'rgba(255,255,255,0.3)' }} />
       </div>
       {hasFilters && (
         <Button onClick={clearFilters} icon={<CloseOutlined />} block>
-          Xoá bộ lọc
+          {t('browse.clearFilters')}
         </Button>
       )}
     </div>
@@ -199,11 +202,11 @@ const EventListPage = () => {
               margin: "0 0 20px",
             }}
           >
-            🔍 Khám phá sự kiện
+            🔍 {t('browse.title')}
           </Title>
           <div style={{display: "flex", gap: 12, maxWidth: 400}}>
             <Input.Search
-              placeholder="Tìm kiếm sự kiện..."
+              placeholder={t('browse.search')}
               value={filters.search}
               onChange={(e) =>
                 setFilters((f) => ({...f, search: e.target.value}))
@@ -225,11 +228,10 @@ const EventListPage = () => {
                   onClose={() => updateFilter("categoryId", "")}
                   color="blue"
                 >
-                  {
-                    categories.find(
-                      (c) => String(c.CategoryID) === filters.categoryId,
-                    )?.Name
-                  }
+                  {(() => {
+                    const c = categories.find((c) => String(c.CategoryID) === filters.categoryId);
+                    return c ? (t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name) : "";
+                  })()}
                 </Tag>
               )}
               {filters.venueId && (
@@ -259,7 +261,7 @@ const EventListPage = () => {
                 >
                   {filters.startDate && filters.endDate 
                     ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
-                    : "Theo ngày"}
+                    : t('browse.byDate')}
                 </Tag>
               )}
             </div>
@@ -291,6 +293,7 @@ const EventListPage = () => {
           {/* Sidebar filter — desktop */}
           <Col xs={0} lg={6}>
             <div
+              className="sticky-panel-box"
               style={{
                 background: "white",
                 borderRadius: 14,
@@ -304,7 +307,7 @@ const EventListPage = () => {
                 strong
                 style={{fontSize: 15, fontFamily: "'Inter', sans-serif"}}
               >
-                Bộ lọc
+                {t('browse.filterTitle')}
               </Text>
               <div style={{marginTop: 16}}>
                 <FilterPanel />
@@ -324,7 +327,7 @@ const EventListPage = () => {
             >
               {filters.search && (
                 <Text type="secondary">
-                  {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
+                  {isLoading ? "..." : `${total} ${t('browse.eventsFound')}`}
                 </Text>
               )}
             </div>
@@ -335,7 +338,7 @@ const EventListPage = () => {
               </div>
             ) : displayedEvents.length === 0 ? (
               <Empty
-                description="Không tìm thấy sự kiện nào"
+                description={t('browse.noEvents')}
                 style={{padding: 60}}
               />
             ) : (
@@ -364,14 +367,14 @@ const EventListPage = () => {
 
       {/* Mobile filter drawer */}
       <Drawer
-        title="Bộ lọc"
+        title={t('browse.filterTitle')}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="right"
         width={300}
         footer={
           <Button type="primary" block onClick={() => setDrawerOpen(false)}>
-            Áp dụng
+            {t('browse.apply')}
           </Button>
         }
       >

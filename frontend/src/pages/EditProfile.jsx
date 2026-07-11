@@ -193,7 +193,7 @@ const EditProfile = () => {
 
             <div className="profile-photo-section">
               <img 
-                src={avatarPreview || getImageUrl(formData.avatarURL) || 'https://ui-avatars.com/api/?name=User&background=4a25e1&color=fff'} 
+                src={avatarPreview || getImageUrl(formData.avatarURL) || 'https://ui-avatars.com/api/?name=User&background=27272a&color=fff'} 
                 alt="Avatar" 
                 className="avatar-preview" 
                 style={{ objectFit: 'cover' }}
@@ -202,7 +202,7 @@ const EditProfile = () => {
                 <p className="photo-hint">Ảnh đại diện <br/><span>Nên dùng ảnh vuông, định dạng JPG/PNG.</span></p>
                 <div className="btn-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <label style={{
-                    background: '#4f46e5', color: 'white', padding: '8px 12px', borderRadius: '6px', 
+                    background: '#27272A', color: 'white', padding: '8px 12px', borderRadius: '6px', 
                     cursor: 'pointer', fontSize: '13px', fontWeight: 500, display: 'inline-block', margin: 0
                   }}>
                     <i className="fa-solid fa-cloud-arrow-up" style={{marginRight: 6}}></i> Tải ảnh lên

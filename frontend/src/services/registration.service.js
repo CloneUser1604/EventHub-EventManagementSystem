@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../utils/axiosConfig';
 
 export const registrationService = {
   register: (eventId) => api.post('/registrations', { eventId }),

@@ -499,12 +499,13 @@ const toggleSaveBlog = async (req, res) => {
     const checkResult = await pool.request()
       .input('BlogID', sql.Int, id)
       .input('UserID', sql.Int, userId)
-      .query('SELECT SavedID FROM SavedBlogs WHERE BlogID = @BlogID AND UserID = @UserID');
+      .query('SELECT 1 FROM SavedBlogs WHERE BlogID = @BlogID AND UserID = @UserID');
       
     if (checkResult.recordset.length > 0) {
       await pool.request()
-        .input('SavedID', sql.Int, checkResult.recordset[0].SavedID)
-        .query('DELETE FROM SavedBlogs WHERE SavedID = @SavedID');
+        .input('BlogID', sql.Int, id)
+        .input('UserID', sql.Int, userId)
+        .query('DELETE FROM SavedBlogs WHERE BlogID = @BlogID AND UserID = @UserID');
       return successResponse(res, { saved: false }, 'Đã bỏ lưu bài viết');
     } else {
       await pool.request()
@@ -695,6 +696,13 @@ const getNotifications = async (req, res) => {
       FROM BlogCommentLikes cl JOIN BlogComments c ON cl.CommentID = c.CommentID JOIN Blogs b ON c.BlogID = b.BlogID JOIN Users u ON cl.UserID = u.UserID
       WHERE c.UserID = @Me AND cl.UserID != @Me
       
+      UNION ALL
+      
+      -- System / Admin Notifications
+      SELECT 'system_alert' as Type, NotificationID as ID, N'Hệ thống' as ActorName, NULL as ActorAvatar, 'Admin' as ActorRole, Title as TargetTitle, RelatedID as TargetID, CreatedAt, NULL as CommentImageURL, Message as CommentContent
+      FROM Notifications
+      WHERE UserID = @Me AND Type = 'General' AND RelatedType IN ('Blog', 'System')
+      
       ORDER BY CreatedAt DESC
     `;
     const result = await pool.request().input('Me', sql.Int, userId).query(query);
@@ -751,12 +759,33 @@ const getReportedBlogs = async (req, res) => {
 const resolveReportedBlog = async (req, res) => {
   try {
     const { id } = req.params;
+    const { action, reason } = req.body;
     const pool = getPool();
     
-    // Clear report flag
-    await pool.request()
-      .input('id', sql.Int, id)
-      .query(`UPDATE Blogs SET IsReported = 0, ReportReason = NULL, ReportedAt = NULL, ReportedBy = NULL WHERE BlogID = @id`);
+    if (action === 'delete') {
+      const blogData = await pool.request().input('id', sql.Int, id).query('SELECT AuthorID, Title, Content FROM Blogs WHERE BlogID = @id');
+      if (blogData.recordset.length > 0) {
+        const blog = blogData.recordset[0];
+        await pool.request().input('id', sql.Int, id).query('DELETE FROM Blogs WHERE BlogID = @id');
+        
+        const previewContent = blog.Content ? (blog.Content.length > 50 ? blog.Content.substring(0, 50) + '...' : blog.Content) : 'Không có nội dung';
+        const msg = `Bài viết "${blog.Title || previewContent}" của bạn đã bị quản trị viên xoá do vi phạm tiêu chuẩn cộng đồng. ${reason ? `Lý do: ${reason}` : ''}`;
+        
+        await pool.request()
+          .input('UserID', sql.Int, blog.AuthorID)
+          .input('Title', sql.NVarChar(300), 'Bài viết bị xoá')
+          .input('Message', sql.NVarChar(sql.MAX), msg)
+          .input('Type', sql.VarChar(30), 'General')
+          .input('RelatedID', sql.Int, id)
+          .input('RelatedType', sql.VarChar(50), 'Blog')
+          .query(`INSERT INTO Notifications (UserID, Title, Message, Type, RelatedID, RelatedType) VALUES (@UserID, @Title, @Message, @Type, @RelatedID, @RelatedType)`);
+      }
+    } else {
+      // Clear report flag
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query(`UPDATE Blogs SET IsReported = 0, ReportReason = NULL, ReportedAt = NULL, ReportedBy = NULL WHERE BlogID = @id`);
+    }
       
     return successResponse(res, { success: true, message: 'Đã giải quyết báo cáo' });
   } catch (error) {

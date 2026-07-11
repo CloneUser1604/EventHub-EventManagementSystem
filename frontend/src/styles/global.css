@@ -241,4 +241,61 @@ a{color:inherit;text-decoration:none;}
 .animate-soft-pulse {
   animation: softPulse 2s infinite;
 }
-
+/* ─── SCROLL ANIMATIONS FOR LANDING PAGE ─── */
+
+.motion-fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-fade-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.motion-fade-in {
+  opacity: 0;
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-fade-in.is-visible {
+  opacity: 1;
+}
+
+.motion-slide-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-slide-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.motion-slide-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-slide-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.motion-delay-100 { transition-delay: 100ms; }
+.motion-delay-200 { transition-delay: 200ms; }
+.motion-delay-300 { transition-delay: 300ms; }
+.motion-delay-400 { transition-delay: 400ms; }
+.motion-delay-500 { transition-delay: 500ms; }
+
+/* Dành cho section events - custom hover scale */
+.landing-event-card {
+  transition: all 0.3s ease;
+}
+.landing-event-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}

@@ -7,7 +7,7 @@ exports.getEventFeedbacks = async (req, res) => {
 
         const result = await pool.request().input("eventId", sql.Int, eventId)
       .query(`
-                SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, f.UpdatedAt, f.MediaURLs, f.Reply, f.RepliedAt, f.ReplyUpdatedAt,
+                SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, f.UpdatedAt, f.MediaURLs, f.Reply, f.RepliedAt,
                        u.FullName as UserName, u.AvatarURL
                 FROM Feedbacks f
                 INNER JOIN Users u ON f.ParticipantID = u.UserID
@@ -212,21 +212,21 @@ exports.checkEligibility = async (req, res) => {
 
     // 1. Kiểm tra xem sự kiện đã kết thúc chưa
     if (new Date(eventInfo.EndDate) > new Date())
-      return res.status(403).json({
+      return res.status(200).json({
         success: false,
         message: "Sự kiện chưa kết thúc, chưa thể đánh giá.",
       });
 
     // 2. Kiểm tra xem user ĐÃ ĐĂNG KÝ (Registered) chưa
     if (eventInfo.RegistrationStatus !== "Registered")
-      return res.status(403).json({
+      return res.status(200).json({
         success: false,
         message: "Bạn phải đăng ký tham gia sự kiện mới được quyền đánh giá.",
       });
 
     // 3. Kiểm tra xem user đã CHECK-IN chưa
     if (!eventInfo.AttendanceID)
-      return res.status(403).json({
+      return res.status(200).json({
         success: false,
         message: "Bạn phải check-in tham gia sự kiện thành công thì mới được quyền đánh giá.",
       });
@@ -240,7 +240,7 @@ exports.checkEligibility = async (req, res) => {
       .query(checkFeedbackQuery);
 
     if (feedbackResult.recordset.length > 0) {
-      return res.status(403).json({
+      return res.status(200).json({
         success: false,
         message: "Bạn đã đánh giá sự kiện này rồi.",
       });

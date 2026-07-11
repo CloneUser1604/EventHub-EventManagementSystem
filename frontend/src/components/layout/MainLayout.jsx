@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Layout, Menu, Avatar, Dropdown, Badge, Button, Drawer,
-  Space, Typography, Popover, List, Empty, Modal, message
+  Space, Typography, Popover, List, Empty, Modal, message, Tag
 } from 'antd';
 import {
   HomeOutlined, CalendarOutlined, BellOutlined, UserOutlined,
@@ -38,6 +38,7 @@ const getRoleNav = (t) => ({
     { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
     { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
     { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
+    { key: '/blogs', icon: <TeamOutlined />, label: t('nav.blog') },
   ],
   Organizer: [
     { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
@@ -56,10 +57,12 @@ const getRoleNav = (t) => ({
     { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
     { key: '/events', icon: <SearchOutlined />, label: t('nav.events') },
     { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
+    { key: '/blogs', icon: <TeamOutlined />, label: t('nav.blog') },
   ],
   Speaker: [
     { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
     { key: '/my-calendar', icon: <CalendarOutlined />, label: t('nav.myCalendar') },
+    { key: '/blogs', icon: <TeamOutlined />, label: t('nav.blog') },
   ],
 });
 
@@ -72,8 +75,16 @@ const MainLayout = ({ children }) => {
   const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [staffModal, setStaffModal] = useState({ open: false, notification: null });
   const [speakerModal, setSpeakerModal] = useState({ open: false, notification: null });
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const [expandedNotifs, setExpandedNotifs] = useState(new Set());
 
   const publicNav = getPublicNav(t);
   const roleNav = getRoleNav(t);
@@ -161,7 +172,7 @@ const MainLayout = ({ children }) => {
   };
 
   const notifContent = (
-    <div style={{ width: 360, background: theme === 'dark' ? '#141414' : '#fff' }}>
+    <div style={{ width: isMobile ? '280px' : 360, maxWidth: '100vw', background: theme === 'dark' ? '#141414' : '#fff' }}>
       <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme === 'dark' ? '#333' : '#f0f0f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text strong style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
           {t('nav.notifications')}
@@ -174,23 +185,58 @@ const MainLayout = ({ children }) => {
         ? <Empty description={t('nav.noNotif')} style={{ padding: 24 }} />
         : <List
             dataSource={notifications.slice(0, 8)}
-            renderItem={n => (
+            renderItem={n => {
+              const isExpanded = expandedNotifs.has(n.NotificationID);
+              const toggleExpand = (e) => {
+                e.stopPropagation();
+                setExpandedNotifs(prev => {
+                  const next = new Set(prev);
+                  if (next.has(n.NotificationID)) next.delete(n.NotificationID);
+                  else next.add(n.NotificationID);
+                  return next;
+                });
+              };
+              return (
               <List.Item
                 onClick={() => handleNotificationClick(n)}
                 style={{ padding: '10px 16px', cursor: 'pointer', background: n.IsRead ? 'transparent' : (theme === 'dark' ? '#1f1f1f' : '#f0f5ff'), borderBottom: `1px solid ${theme === 'dark' ? '#333' : '#f5f5f5'}` }}
               >
                 <List.Item.Meta
-                  title={<Text style={{ fontSize: 13, fontWeight: n.IsRead ? 400 : 600 }}>{n.Title}</Text>}
+                  title={
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {n.Type === 'General' && n.RelatedType === 'System' && (
+                        <div>
+                          <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag>
+                        </div>
+                      )}
+                      <Text style={{ fontSize: 14, fontWeight: n.IsRead ? 400 : 600, color: theme === 'dark' ? '#fff' : '#000' }}>
+                        {n.Title}
+                      </Text>
+                    </div>
+                  }
                   description={
                     <div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>{n.Message?.substring(0, 80)}...</Text>
-                      <br />
+                      <div style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : 'rgba(0, 0, 0, 0.45)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', marginBottom: 4 }}>
+                        {isExpanded ? (
+                          <>
+                            {n.Message}
+                            <span onClick={toggleExpand} style={{ color: '#3b82f6', cursor: 'pointer', marginLeft: 8, fontWeight: 500 }}>Thu gọn</span>
+                          </>
+                        ) : (
+                          <>
+                            {n.Message && n.Message.length > 80 ? n.Message.substring(0, 80) + '...' : n.Message}
+                            {n.Message && n.Message.length > 80 && (
+                              <span onClick={toggleExpand} style={{ color: '#3b82f6', cursor: 'pointer', marginLeft: 8, fontWeight: 500 }}>Xem thêm</span>
+                            )}
+                          </>
+                        )}
+                      </div>
                       <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(n.CreatedAt).fromNow()}</Text>
                     </div>
                   }
                 />
               </List.Item>
-            )}
+            )}}
           />
       }
     </div>

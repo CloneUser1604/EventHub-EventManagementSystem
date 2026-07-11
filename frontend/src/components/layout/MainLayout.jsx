@@ -30,6 +30,7 @@ const { Text } = Typography;
 const getPublicNav = (t) => [
   { key: '/', icon: <HomeOutlined />, label: t('nav.home') },
   { key: '/events', icon: <CalendarOutlined />, label: t('nav.events') },
+  { key: '/blogs', icon: <TeamOutlined />, label: t('nav.blog') },
 ];
 
 // Role-based Navigation

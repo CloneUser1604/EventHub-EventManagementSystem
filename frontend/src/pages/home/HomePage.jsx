@@ -382,14 +382,23 @@ const HomePage = () => {
                 {t('home.featuredSubtitle')}
               </Text>
             </div>
-            
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button shape="circle" icon={<LeftOutlined />} onClick={handleScrollLeft} style={{ border: '1px solid var(--whisper-border)' }} />
-              <Button shape="circle" icon={<RightOutlined />} onClick={handleScrollRight} style={{ border: '1px solid var(--whisper-border)' }} />
-            </div>
           </div>
 
-          <div className={`motion-fade-up motion-delay-200 ${featuredEventsVisible ? 'is-visible' : ''}`} style={{ margin: "0 -12px" }}>
+          <div style={{ position: 'relative', margin: "0 -12px", transition: 'opacity 0.5s' }} className={featuredEventsVisible ? 'is-visible' : ''}>
+            <Button 
+              shape="circle" 
+              size="large"
+              icon={<LeftOutlined />} 
+              onClick={handleScrollLeft} 
+              style={{ position: 'absolute', top: '50%', left: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+            />
+            <Button 
+              shape="circle" 
+              size="large"
+              icon={<RightOutlined />} 
+              onClick={handleScrollRight} 
+              style={{ position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+            />
             <Carousel
               ref={carouselRef} autoplay autoplaySpeed={4000} slidesToShow={3} infinite={true} dots={false}
               responsive={[

@@ -70,12 +70,12 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
             {event.CategoryName && (
-              <Tag color={getCategoryStyle(event.CategoryName).color} style={{ margin: 0, borderRadius: 6, border: 'none', background: 'var(--tag-bg)' }}>
+              <Tag style={{ margin: 0, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', color: 'white', fontWeight: 500, padding: '2px 8px' }}>
                 {getCategoryStyle(event.CategoryName).icon} <span style={{ marginLeft: 4 }}>{t(`categories.${event.CategoryName}`) !== `categories.${event.CategoryName}` ? t(`categories.${event.CategoryName}`) : event.CategoryName}</span>
               </Tag>
             )}
             {showStatus && status.label !== 'Đã kết thúc' && (
-              <Tag color={status.color} style={{ margin: 0, borderRadius: 6, border: 'none' }}>
+              <Tag color={status.color} style={{ margin: 0, borderRadius: 6, border: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                 {status.label}
               </Tag>
             )}
@@ -105,7 +105,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           </div>
         </div>
       }
-      bodyStyle={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}
+      styles={{ body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 } }}
     >
       <div
         className="event-card-title"

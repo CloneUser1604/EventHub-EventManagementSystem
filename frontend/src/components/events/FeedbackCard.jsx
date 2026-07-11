@@ -103,7 +103,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
           />
           <div>
             <div style={{fontWeight: 800, color: "#0f172a", fontSize: "16px", marginBottom: "2px"}}>
-              {item.UserName}
+              {item.UserName || "Người dùng ẩn danh"}
             </div>
             <div style={{fontSize: "13px", color: "#94a3b8", fontWeight: 500}}>
               {dayjs(item.CreatedAt).format("DD/MM/YYYY · HH:mm")}

@@ -41,6 +41,13 @@ const EventFormPage = () => {
   const [editReasonModal, setEditReasonModal] = useState({ open: false, submitAfter: false, values: null });
   const [editReason, setEditReason] = useState('');
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     fetchMeta();
     if (id) {
@@ -458,14 +465,14 @@ const EventFormPage = () => {
           </Card>
 
           {/* ── Action buttons ── */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-            <Button size="large" onClick={() => navigate('/organizer/events')} style={{ borderRadius: 10 }}>{t('createEvent.cancel')}</Button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexDirection: isMobile ? 'column' : 'row' }}>
+            <Button size="large" onClick={() => navigate('/organizer/events')} style={{ borderRadius: 10, width: isMobile ? '100%' : 'auto' }}>{t('createEvent.cancel')}</Button>
             <Button size="large" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={loading}
-              style={{ borderRadius: 10, border: '2px solid #2563eb', color: '#2563eb', fontWeight: 600 }}>
+              style={{ borderRadius: 10, border: '2px solid #2563eb', color: '#2563eb', fontWeight: 600, width: isMobile ? '100%' : 'auto' }}>
               {t('createEvent.saveDraft')}
             </Button>
             <Button type="primary" size="large" icon={<SendOutlined />} onClick={() => handleSave(true)} loading={loading}
-              style={{ borderRadius: 10, height: 46, fontWeight: 700, paddingInline: 24 }}>
+              style={{ borderRadius: 10, height: 46, fontWeight: 700, paddingInline: 24, width: isMobile ? '100%' : 'auto' }}>
               {t('createEvent.saveSubmit')}
             </Button>
           </div>

@@ -112,16 +112,24 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const isPast = dayjs(reg.EndDate).isBefore(dayjs());
   const isOngoing = dayjs(reg.StartDate).isBefore(dayjs()) && !isPast;
   const isCancelled = reg.Status === 'Cancelled' || reg.EventStatus === 'Cancelled';
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <Card
       style={{ borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', opacity: isCancelled ? 0.65 : 1 }}
       styles={{ body: { padding: 0 } }}
     >
-      <div style={{ display: 'flex', gap: 0 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 0 }}>
         {/* Color bar */}
         <div style={{
-          width: 6, flexShrink: 0,
+          width: isMobile ? '100%' : 6, 
+          height: isMobile ? 6 : 'auto', 
+          flexShrink: 0,
           background: isCancelled ? '#e5e7eb'
             : isOngoing ? 'linear-gradient(180deg,#10b981,#059669)'
             : isPast ? '#9ca3af'
@@ -129,10 +137,10 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
         }} />
 
         {/* Cover */}
-        <div style={{ width: 120, height: 'auto', minHeight: 100, background: '#1a2744', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: isMobile ? '100%' : 120, height: isMobile ? 120 : 'auto', minHeight: isMobile ? 120 : 100, background: '#1a2744', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           {reg.CoverImageURL
-            ? <img src={getImageUrl(reg.CoverImageURL)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 100 }} />
-            : <div style={{ width: '100%', height: '100%', minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎓</div>}
+            ? <img src={getImageUrl(reg.CoverImageURL)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: isMobile ? 120 : 100 }} />
+            : <div style={{ width: '100%', height: '100%', minHeight: isMobile ? 120 : 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎓</div>}
           {isOngoing && (
             <div style={{ position: 'absolute', top: 6, left: 6, background: '#10b981', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>
               LIVE
@@ -215,6 +223,13 @@ const MyCalendarPage = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const { t } = useTranslation();
+  
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -280,9 +295,9 @@ const MyCalendarPage = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: '40px 24px 32px' }}>
+      <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: isMobile ? '24px 16px 20px' : '40px 24px 32px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <Title level={2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
+          <Title level={isMobile ? 3 : 2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
             📅 {t('calendar.title')}
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
@@ -291,11 +306,11 @@ const MyCalendarPage = () => {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 28, alignItems: 'start' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '16px 12px 60px' : '32px 24px 80px', width: '100%', overflowX: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 24 : 28, alignItems: 'start', width: '100%' }}>
 
           {/* Left: List */}
-          <div>
+          <div style={{ minWidth: 0, width: '100%' }}>
             <Tabs
               activeKey={activeTab}
               onChange={setActiveTab}
@@ -329,67 +344,67 @@ const MyCalendarPage = () => {
             />
           </div>
 
-          {/* Right: Mini calendar + next event */}
-          <div style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Right: Mini calendar + next event */}
+            <div style={{ position: 'sticky', top: isMobile ? 0 : 80, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* Mini calendar */}
-            <Card style={{ borderRadius: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
-                <Text strong style={{ fontFamily: "'Inter', sans-serif", fontSize: 15 }}>
-                  {currentMonth.format('MM/YYYY')}
-                </Text>
-                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, textAlign: 'center' }}>
-                {['CN','T2','T3','T4','T5','T6','T7'].map(d => (
-                  <div key={d} style={{ fontSize: 11, color: '#9ca3af', padding: '4px 0', fontWeight: 600 }}>{d}</div>
-                ))}
-                {calendarDays.map((day, i) => {
-                  const isToday = day === now.date() && currentMonth.month() === now.month() && currentMonth.year() === now.year();
-                  const hasEvent = day && eventDays.has(day);
-                  return (
-                    <div key={i} style={{
-                      padding: '5px 0', borderRadius: 6, fontSize: 12, fontWeight: hasEvent ? 700 : 400,
-                      background: isToday ? 'linear-gradient(135deg,#2563eb,#4f46e5)' : hasEvent ? '#eff6ff' : 'transparent',
-                      color: isToday ? 'white' : hasEvent ? '#2563eb' : day ? '#374151' : 'transparent',
-                      position: 'relative',
-                    }}>
-                      {day || ''}
-                      {hasEvent && !isToday && (
-                        <div style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#2563eb' }} />
-                      )}
+              {/* Mini calendar */}
+              <Card style={{ borderRadius: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
+                  <Text strong style={{ fontFamily: "'Inter', sans-serif", fontSize: 15 }}>
+                    {currentMonth.format('MM/YYYY')}
+                  </Text>
+                  <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, textAlign: 'center' }}>
+                  {['CN','T2','T3','T4','T5','T6','T7'].map(d => (
+                    <div key={d} style={{ fontSize: 11, color: '#9ca3af', padding: '4px 0', fontWeight: 600 }}>{d}</div>
+                  ))}
+                  {calendarDays.map((day, i) => {
+                    const isToday = day === now.date() && currentMonth.month() === now.month() && currentMonth.year() === now.year();
+                    const hasEvent = day && eventDays.has(day);
+                    return (
+                      <div key={i} style={{
+                        padding: '5px 0', borderRadius: 6, fontSize: 12, fontWeight: hasEvent ? 700 : 400,
+                        background: isToday ? 'linear-gradient(135deg,#2563eb,#4f46e5)' : hasEvent ? '#eff6ff' : 'transparent',
+                        color: isToday ? 'white' : hasEvent ? '#2563eb' : day ? '#374151' : 'transparent',
+                        position: 'relative',
+                      }}>
+                        {day || ''}
+                        {hasEvent && !isToday && (
+                          <div style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#2563eb' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Next event */}
+              {upcoming.length > 0 && (() => {
+                const next = upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate)))[0];
+                return (
+                  <Card style={{ borderRadius: 14, background: 'linear-gradient(135deg,#0f1629,#1a2744)', border: 'none' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Sự kiện tiếp theo</Text>
+                    <Text strong style={{ color: 'white', fontSize: 14, display: 'block', marginBottom: 8 }}>{next.Title}</Text>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
+                      {dayjs(next.StartDate).format('DD/MM · HH:mm')}
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Next event */}
-            {upcoming.length > 0 && (() => {
-              const next = upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate)))[0];
-              return (
-                <Card style={{ borderRadius: 14, background: 'linear-gradient(135deg,#0f1629,#1a2744)', border: 'none' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Sự kiện tiếp theo</Text>
-                  <Text strong style={{ color: 'white', fontSize: 14, display: 'block', marginBottom: 8 }}>{next.Title}</Text>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
-                    {dayjs(next.StartDate).format('DD/MM · HH:mm')}
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Đếm ngược</Text>
-                    <div style={{ marginTop: 2 }}><Countdown targetDate={next.StartDate} /></div>
-                  </div>
-                  {next.OTPCode && (
-                    <Button type="primary" block size="small" onClick={() => setTicketReg(next)}
-                      style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}>
-                      Xem Mã OTP
-                    </Button>
-                  )}
-                </Card>
-              );
-            })()}
+                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Đếm ngược</Text>
+                      <div style={{ marginTop: 2 }}><Countdown targetDate={next.StartDate} /></div>
+                    </div>
+                    {next.OTPCode && (
+                      <Button type="primary" block size="small" onClick={() => setTicketReg(next)}
+                        style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}>
+                        Xem Mã OTP
+                      </Button>
+                    )}
+                  </Card>
+                );
+              })()}
+            </div>
           </div>
-        </div>
       </div>
 
       <TicketModal registration={ticketReg} onClose={() => setTicketReg(null)} />

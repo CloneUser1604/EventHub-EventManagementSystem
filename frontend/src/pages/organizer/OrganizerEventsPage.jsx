@@ -31,6 +31,13 @@ const OrganizerEventsPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [reasonModal, setReasonModal] = useState({ open: false, reason: '', title: '' });
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const getDerivedStatus = (e) => {
     if (e.Status === 'Published' && dayjs(e.EndDate).isBefore(dayjs())) {
       return 'Completed';
@@ -209,15 +216,15 @@ const OrganizerEventsPage = () => {
 
   return (
     <MainLayout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '24px 12px 60px' : '32px 24px 80px' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 0, justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', marginBottom: 28 }}>
           <div>
-            <Title level={2} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>🗂️ {t('myEvents.title')}</Title>
+            <Title level={isMobile ? 3 : 2} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>🗂️ {t('myEvents.title')}</Title>
             <Text type="secondary">{t('myEvents.subtitle')}</Text>
           </div>
           <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate('/organizer/events/create')}
-            style={{ borderRadius: 10, height: 44, fontWeight: 700 }}>
+            style={{ borderRadius: 10, height: 44, fontWeight: 700, width: isMobile ? '100%' : 'auto' }}>
             {t('myEvents.createNew')}
           </Button>
         </div>
@@ -240,10 +247,10 @@ const OrganizerEventsPage = () => {
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: 20 }}>
           <Input.Search placeholder={t('myEvents.search')} value={search} onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 340 }} allowClear />
-          <Select value={statusFilter || undefined} onChange={v => setStatusFilter(v || '')} placeholder={t('myEvents.allStatus')} allowClear style={{ width: 180 }}>
+            style={{ width: isMobile ? '100%' : 340 }} allowClear />
+          <Select value={statusFilter || undefined} onChange={v => setStatusFilter(v || '')} placeholder={t('myEvents.allStatus')} allowClear style={{ width: isMobile ? '100%' : 180 }}>
             {Object.entries(getStatusConfig(t)).map(([v, c]) => <Select.Option key={v} value={v}>{c.label}</Select.Option>)}
           </Select>
         </div>
@@ -256,6 +263,8 @@ const OrganizerEventsPage = () => {
           pagination={{ pageSize: 10, showTotal: t => `${t} sự kiện` }}
           locale={{ emptyText: <Empty description="Bạn chưa có sự kiện nào" extra={<Button type="primary" onClick={() => navigate('/organizer/events/create')}>Tạo ngay</Button>} /> }}
           style={{ background: 'white', borderRadius: 14 }}
+          size={isMobile ? "small" : "middle"}
+          scroll={{ x: 800 }}
         />
 
         {/* Rejection Reason Modal */}

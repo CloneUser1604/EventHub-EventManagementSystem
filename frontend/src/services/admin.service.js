@@ -11,4 +11,6 @@ export const adminService = {
     api.post(`/auth/admin/speakers/${speakerId}/review`, { action, rejectionReason }),
   getAllUsers: () => api.get('/admin/users'),
   updateUserStatus: (userId, isActive) => api.patch(`/admin/users/${userId}/status`, { isActive }),
+  broadcastNotification: (data) => api.post('/admin/broadcast', data),
+  getOrganizerStats: () => api.get('/admin/organizers-stats'),
 };

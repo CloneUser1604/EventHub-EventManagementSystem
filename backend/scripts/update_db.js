@@ -55,6 +55,29 @@ async function runUpdate() {
       }
     }
 
+    // 5. Add IsInternalOnly and Edit fields to Events
+    const newEventCols = [
+      { name: 'IsInternalOnly', def: 'BIT DEFAULT 1' },
+      { name: 'EditReason', def: 'NVARCHAR(MAX) NULL' },
+      { name: 'ProposedChanges', def: 'NVARCHAR(MAX) NULL' },
+      { name: 'EditLockedAt', def: 'DATETIME NULL' },
+      { name: 'AdminEditUnlock', def: 'BIT DEFAULT 0' },
+      { name: 'RejectionReason', def: 'NVARCHAR(MAX) NULL' },
+    ];
+
+    for (let col of newEventCols) {
+      try {
+        await pool.request().query(`ALTER TABLE Events ADD ${col.name} ${col.def}`);
+        console.log(`[+] Added ${col.name} to Events`);
+      } catch (e) {
+        if (e.message.includes('already has an object named') || e.message.includes('column names in each table must be unique')) {
+          console.log(`[-] ${col.name} column already exists`);
+        } else {
+          console.warn(`[!] Error adding ${col.name}:`, e.message);
+        }
+      }
+    }
+
     console.log('DB Update complete!');
     process.exit(0);
   } catch (error) {

@@ -25,26 +25,44 @@ export const vi = {
     "noNotif": "Không có thông báo"
   },
   "home": {
-    "badge": "Nền tảng sự kiện đại học #1",
-    "heroTitle1": "Khám phá & tham gia",
-    "heroTitle2": "sự kiện đại học",
-    "heroSubtitle": "Hàng ngàn sự kiện từ các trường đại học, CLB và tổ chức dành cho sinh viên.",
-    "searchPlaceholder": "Tìm kiếm sự kiện, workshop, hội thảo...",
+    "badge": "Cộng đồng sinh viên FPT University",
+    "heroTitle1": "Khám Phá Các Sự Kiện Bùng Nổ Tại",
+    "heroTitle2": "FPT University",
+    "heroSubtitle": "Nền tảng quản lý sự kiện lớn nhất dành cho sinh viên FPTU. Kết nối, học hỏi, trải nghiệm và phát triển bản thân qua các câu lạc bộ và hoạt động ngoại khóa.",
+    "searchPlaceholder": "Tìm kiếm sự kiện, CLB...",
     "categoryPlaceholder": "Lĩnh vực",
-    "searchBtn": "Tìm kiếm",
-    "upcoming": "Sự Kiện Sắp Diễn Ra",
-    "upcomingSubtitle": "Đừng bỏ lỡ những sự kiện thú vị sắp tới",
-    "allEvents": "Tất cả sự kiện",
+    "searchBtn": "Khám Phá Ngay",
+    "upcoming": "Sắp Diễn Ra",
+    "upcomingSubtitle": "Đừng bỏ lỡ các sự kiện mới nhất",
+    "allEvents": "Xem tất cả",
     "viewAll": "Xem tất cả sự kiện",
-    "ctaTitle": "Bạn là ban tổ chức?",
-    "ctaSubtitle": "Tạo và quản lý sự kiện của bạn dễ dàng hơn bao giờ hết.",
-    "ctaBtn": "Bắt đầu miễn phí →",
+    "ctaTitle": "Sẵn sàng hòa mình vào cộng đồng?",
+    "ctaSubtitle": "Tạo tài khoản ngay hôm nay để không bỏ lỡ bất kỳ hoạt động thú vị nào tại Đại học FPT.",
+    "ctaBtn": "Đăng Ký Tham Gia",
     "registered": "ĐĂNG KÝ",
     "featured": "Sự Kiện Nổi Bật",
+    "featuredSubtitle": "Những sự kiện lớn nhất và được quan tâm nhất tại FPTU",
     "stats": {
-      "events": "Sự kiện",
-      "users": "Người dùng",
-      "organizers": "Ban tổ chức"
+      "events": "Sự Kiện Hàng Năm",
+      "users": "Sinh Viên Tham Gia",
+      "organizers": "Câu Lạc Bộ"
+    },
+    "about": {
+      "tag": "MÔ HÌNH SỰ KIỆN FPTU",
+      "title": "Trải nghiệm 3.5 năm đại học không hề nhàm chán",
+      "p1": "Đại học FPT không chỉ có những dòng code hay bài tập chuyên ngành. Tại đây, mô hình Câu lạc bộ (CLB) và Sự kiện được đầu tư mạnh mẽ, tạo nên một hệ sinh thái sôi động giúp sinh viên phát triển toàn diện.",
+      "p2": "Từ các cuộc thi học thuật, hội thảo chuyên ngành, đến các sự kiện giải trí âm nhạc hoành tráng - mọi thứ đều do chính sinh viên tổ chức và trải nghiệm!",
+      "btn": "Tham Gia Sự Kiện Ngay"
+    },
+    "features": {
+      "tag": "GIÁ TRỊ MANG LẠI",
+      "title": "Tại sao nên tham gia sự kiện?",
+      "f1Title": "Mở Rộng Mối Quan Hệ",
+      "f1Desc": "Gặp gỡ, giao lưu với những người bạn cùng sở thích, các anh chị cựu sinh viên và những chuyên gia trong ngành.",
+      "f2Title": "Tích Luỹ Điểm PDP",
+      "f2Desc": "Tham gia sự kiện để nhận Giấy chứng nhận và tích lũy điểm phát triển cá nhân (PDP) bắt buộc tại Đại học FPT.",
+      "f3Title": "Phát Triển Kỹ Năng",
+      "f3Desc": "Học hỏi thêm các kỹ năng mềm quan trọng như làm việc nhóm, giao tiếp, lãnh đạo và quản lý thời gian."
     }
   },
   "categories": {

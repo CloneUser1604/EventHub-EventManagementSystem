@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Layout, Menu, Card, Statistic, Table, Tag, Button, Space,
-  Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form
+  Modal, Input, App as AntdApp, Avatar, Typography, Spin, Badge, Tooltip, Dropdown, Row, Col, Tabs, Descriptions, Select, Form, Divider
 } from 'antd';
 import {
   CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
@@ -20,6 +20,8 @@ import { blogService } from '../../services/blog.service';
 import EventDetailPage from '../events/EventDetailPage';
 import dayjs from 'dayjs';
 
+const BlogPage = React.lazy(() => import('../blogs/BlogPage'));
+
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -35,6 +37,7 @@ const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeMenu = searchParams.get('tab') || 'overview';
   const selectedEventId = searchParams.get('eventId');
+  const selectedBlogId = searchParams.get('blogId');
   const [eventDetailTab, setEventDetailTab] = useState("about");
 
   const setActiveMenu = (menu) => {
@@ -42,6 +45,7 @@ const AdminDashboard = () => {
       const newParams = new URLSearchParams(prev);
       newParams.set('tab', menu);
       if (menu !== 'event_detail') newParams.delete('eventId');
+      if (menu !== 'blog_detail') newParams.delete('blogId');
       return newParams;
     });
   };
@@ -82,8 +86,16 @@ const AdminDashboard = () => {
   const [viewReportModal, setViewReportModal] = useState({ open: false, type: '', data: null });
   const [loading, setLoading] = useState(true);
   
+  // New features
+  const [organizerStats, setOrganizerStats] = useState({ topOrganizers: [], riskOrganizers: [] });
+  const [broadcastForm] = Form.useForm();
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  
   // Search states
   const [searchEvent, setSearchEvent] = useState('');
+  const [activeEventTab, setActiveEventTab] = useState('pending');
+  const [activeReportTab, setActiveReportTab] = useState('blogs');
   const [searchOrg, setSearchOrg] = useState('');
   const [searchSpeaker, setSearchSpeaker] = useState('');
   const [searchStaff, setSearchStaff] = useState('');
@@ -133,6 +145,14 @@ const AdminDashboard = () => {
     return Object.values(map).sort((a, b) => a.label.localeCompare(b.label));
   }, [chartsData]);
 
+  const ratioData = React.useMemo(() => [
+    { name: 'Sự kiện', value: stats?.TotalEvents || 0 },
+    { name: 'Ban tổ chức', value: stats?.TotalOrganizers || 0 },
+    { name: 'Diễn giả', value: stats?.TotalSpeakers || 0 },
+    { name: 'Người tham dự', value: stats?.TotalParticipants || 0 },
+  ], [stats]);
+  const RATIO_COLORS = ['#3b82f6', '#f59e0b', '#ec4899', '#10b981'];
+
   const loadAll = async () => {
     setLoading(true);
     try {
@@ -148,7 +168,8 @@ const AdminDashboard = () => {
         venueService.getAllVenues(),
         feedbackService.getReportedFeedbacks().catch(() => ({ data: [] })),
         blogService.getReportedBlogs().catch(() => ({ data: { data: [] } })),
-        blogService.getReportedComments().catch(() => ({ data: { data: [] } }))
+        blogService.getReportedComments().catch(() => ({ data: { data: [] } })),
+        adminService.getOrganizerStats().catch(() => ({ data: { data: { topOrganizers: [], riskOrganizers: [] } } }))
       ]);
 
       setPendingOrgs(results[0]?.data?.data || []);
@@ -165,6 +186,7 @@ const AdminDashboard = () => {
       setReportedFeedbacks(results[9]?.data || []);
       setReportedBlogs(results[10]?.data?.data || results[10]?.data || []);
       setReportedComments(results[11]?.data?.data || results[11]?.data || []);
+      setOrganizerStats(results[12]?.data?.data || { topOrganizers: [], riskOrganizers: [] });
     } catch (e) { 
       message.error('Tải dữ liệu thất bại toàn hệ thống'); 
     } finally { 
@@ -328,6 +350,7 @@ const AdminDashboard = () => {
     if (type === 'event') await handleEventAction(id, 'reject', rejectReason);
     if (type === 'cancel_event') await handleEventAction(id, 'cancel', rejectReason);
     if (type === 'speaker') await handleSpeakerAction(id, 'reject', rejectReason);
+    if (type === 'blog') await handleResolveBlogReport(id, 'delete', rejectReason);
     setRejectModal({ open: false });
   };
 
@@ -341,9 +364,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleResolveBlogReport = async (blogId, action) => {
+  const handleResolveBlogReport = async (blogId, action, reason = '') => {
     try {
-      await blogService.resolveReportedBlog(blogId, action);
+      await blogService.resolveReportedBlog(blogId, action, reason);
       message.success(action === 'delete' ? 'Đã xoá bài viết vi phạm' : 'Đã bỏ qua báo cáo');
       loadAll();
     } catch (e) {
@@ -603,8 +626,14 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 200,
       render: (_, r) => (
         <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/blogs/${r.BlogID}`)}>Xem</Button>
-          <Button size="small" danger onClick={() => confirm({ title: 'Xoá bài viết vi phạm này?', content: 'Bài viết sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveBlogReport(r.BlogID, 'delete') })}>Xoá bài viết</Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => {
+            setSearchParams(prev => {
+              const p = new URLSearchParams(prev);
+              p.set('blogId', r.BlogID);
+              return p;
+            });
+          }}>Xem</Button>
+          <Button size="small" danger onClick={() => openReject('blog', r.BlogID, 'Xoá bài viết vi phạm này')}>Xoá bài viết</Button>
           <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Bài viết vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveBlogReport(r.BlogID, 'dismiss') })}>Bỏ qua</Button>
         </Space>
       )
@@ -621,13 +650,37 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 200,
       render: (_, r) => (
         <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/blogs/${r.BlogID}#comment-${r.CommentID}`)}>Xem</Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => {
+            setSearchParams(prev => {
+              const p = new URLSearchParams(prev);
+              p.set('blogId', r.BlogID);
+              return p;
+            });
+          }}>Xem</Button>
           <Button size="small" danger onClick={() => confirm({ title: 'Xoá bình luận vi phạm này?', content: 'Bình luận sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveCommentReport(r.CommentID, 'delete') })}>Xoá</Button>
           <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Bình luận vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveCommentReport(r.CommentID, 'dismiss') })}>Bỏ qua</Button>
         </Space>
       )
     }
   ];
+
+  const handleBroadcast = async (values) => {
+    try {
+      setBroadcastLoading(true);
+      const res = await adminService.broadcastNotification(values);
+      if (res.data?.success) {
+        message.success(res.data.message);
+        broadcastForm.resetFields();
+        setBroadcastModalOpen(false);
+      } else {
+        message.error(res.data?.message || 'Có lỗi xảy ra');
+      }
+    } catch (e) {
+      message.error(e.response?.data?.message || 'Lỗi kết nối');
+    } finally {
+      setBroadcastLoading(false);
+    }
+  };
 
   /* ── Sidebar Menu ── */
   const menuItems = [
@@ -694,26 +747,30 @@ const AdminDashboard = () => {
       </Sider>
       
       <Layout>
-        <Header style={{ padding: '0 24px', background: '#fff', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} style={{ fontSize: '16px', width: 64, height: 64 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <Header style={{ padding: isMobile ? '0 16px' : '0 24px', background: '#fff', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} style={{ fontSize: '16px', width: 64, height: 64, marginLeft: isMobile ? -16 : 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
+            <Button type="primary" icon={<TeamOutlined />} onClick={() => setBroadcastModalOpen(true)} style={{ background: '#2563eb' }}>
+              {!isMobile && 'Gửi thông báo'}
+            </Button>
             <Dropdown menu={{ items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', onClick: handleLogout }] }} placement="bottomRight">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                 <Avatar style={{ backgroundColor: '#2563eb' }}>{user?.FullName?.[0] || 'A'}</Avatar>
-                <Text strong>{user?.FullName || 'Admin'}</Text>
+                {!isMobile && <Text strong>{user?.FullName || 'Admin'}</Text>}
               </div>
             </Dropdown>
           </div>
         </Header>
         
-        <Content style={{ margin: '24px', background: '#fff', padding: activeMenu === 'event_detail' ? 0 : 24, borderRadius: 12, minHeight: 280, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <Content style={{ margin: isMobile ? '12px' : '24px', background: '#fff', padding: activeMenu === 'event_detail' ? 0 : (isMobile ? 12 : 24), borderRadius: 12, minHeight: 280, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           {activeMenu === 'overview' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Tổng quan hệ thống</Title>
-                <Select value={timeRange} onChange={setTimeRange} style={{ width: 180 }}>
+                <Select value={timeRange} onChange={setTimeRange} style={{ width: isMobile ? '100%' : 180 }}>
                   <Select.Option value="month">6 Tháng gần nhất</Select.Option>
                   <Select.Option value="day">30 Ngày gần nhất</Select.Option>
+                  <Select.Option value="week">7 Ngày gần nhất</Select.Option>
                 </Select>
               </div>
               <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
@@ -721,6 +778,7 @@ const AdminDashboard = () => {
                   { title: 'Tổng sự kiện', value: stats?.TotalEvents, icon: <CalendarOutlined />, color: '#2563eb' },
                   { title: 'Sự kiện Đang diễn ra', value: stats?.PublishedEvents, icon: <CheckCircleOutlined />, color: '#10b981' },
                   { title: 'Ban tổ chức', value: stats?.TotalOrganizers, icon: <UserOutlined />, color: '#0ea5e9' },
+                  { title: 'Diễn giả', value: stats?.TotalSpeakers, icon: <UserOutlined />, color: '#ec4899' },
                   { title: 'Người tham dự', value: stats?.TotalParticipants, icon: <TeamOutlined />, color: '#7c3aed' },
                   { title: 'Lượt đăng ký', value: stats?.TotalRegistrations, icon: <TrophyOutlined />, color: '#f59e0b' },
                 ].map((s, i) => (
@@ -740,7 +798,7 @@ const AdminDashboard = () => {
 
               {chartsData && (
                 <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
-                  <Col xs={24} lg={12}>
+                  <Col xs={24} lg={8}>
                     <Card title="Sự kiện mới tạo" bordered={false} style={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                       <div style={{ height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -755,7 +813,7 @@ const AdminDashboard = () => {
                       </div>
                     </Card>
                   </Col>
-                  <Col xs={24} lg={12}>
+                  <Col xs={24} lg={8}>
                     <Card title="Người dùng tham gia" bordered={false} style={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                       <div style={{ height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -772,8 +830,67 @@ const AdminDashboard = () => {
                       </div>
                     </Card>
                   </Col>
+                  <Col xs={24} lg={8}>
+                    <Card title="Tỷ lệ Hệ thống" bordered={false} style={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <div style={{ height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={ratioData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {ratioData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={RATIO_COLORS[index % RATIO_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                            <Legend verticalAlign="bottom" height={36} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </Col>
                 </Row>
               )}
+
+              <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Bảng Xếp Hạng & Cảnh Báo Ban Tổ Chức</Title>
+              <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+                <Col xs={24} lg={12}>
+                  <Card title={<><TrophyOutlined style={{ color: '#f59e0b', marginRight: 8 }} /> Top BTC Nổi Bật</>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <Table 
+                      dataSource={organizerStats?.topOrganizers || []} 
+                      rowKey="UserID" 
+                      pagination={false}
+                      columns={[
+                        { title: 'Tên Tổ chức', dataIndex: 'OrganizationName', render: (t, r) => <Text strong>{t || r.FullName}</Text> },
+                        { title: 'Sự kiện Thành công', dataIndex: 'PublishedEvents', align: 'center', render: t => <Tag color="blue">{t}</Tag> },
+                        { title: 'Lượt Đăng ký', dataIndex: 'TotalParticipants', align: 'center', render: t => <Tag color="green">{t}</Tag> },
+                      ]}
+                    />
+                  </Card>
+                </Col>
+                
+                <Col xs={24} lg={12}>
+                  <Card title={<><ExclamationCircleOutlined style={{ color: '#dc2626', marginRight: 8 }} /> BTC Cần Lưu Ý (Rủi ro)</>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <Table 
+                      dataSource={organizerStats?.riskOrganizers || []} 
+                      rowKey="UserID" 
+                      pagination={false}
+                      columns={[
+                        { title: 'Tên Tổ chức', dataIndex: 'OrganizationName', render: (t, r) => <Text strong>{t || r.FullName}</Text> },
+                        { title: 'Bị Từ chối', dataIndex: 'RejectedEvents', align: 'center', render: t => t > 0 ? <Tag color="orange">{t}</Tag> : '-' },
+                        { title: 'Bị Report', dataIndex: 'ReportedBlogsCount', align: 'center', render: t => t > 0 ? <Tag color="red">{t}</Tag> : '-' },
+                      ]}
+                      locale={{ emptyText: 'Không có Ban tổ chức nào có rủi ro' }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
 
               <Title level={5} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Hoạt động sự kiện gần đây</Title>
               <Table
@@ -798,47 +915,73 @@ const AdminDashboard = () => {
 
           {activeMenu === 'events' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Sự kiện</Title>
-                <Input.Search placeholder="Tìm kiếm sự kiện..." value={searchEvent} onChange={e => setSearchEvent(e.target.value)} style={{ width: 250 }} allowClear />
+                <Input.Search placeholder="Tìm kiếm sự kiện..." value={searchEvent} onChange={e => setSearchEvent(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
               </div>
-              <Tabs defaultActiveKey="pending" items={[
-                {
-                  key: 'pending',
-                  label: `Sự kiện chờ duyệt (${pendingEvents.filter(e => !e.ProposedChanges).length})`,
-                  children: <Table columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
-                },
-                {
-                  key: 'edit_requests',
-                  label: `Yêu cầu chỉnh sửa (${allEvents.filter(e => e.ProposedChanges).length})`,
-                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
-                },
-                {
-                  key: 'approved',
-                  label: 'Sự kiện đã duyệt/công bố',
-                  children: <Table columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
-                }
-              ]} />
+              {isMobile ? (
+                <div style={{ marginBottom: 16 }}>
+                  <Select 
+                    value={activeEventTab} 
+                    onChange={setActiveEventTab} 
+                    style={{ width: '100%', marginBottom: 16 }}
+                    size="large"
+                  >
+                    <Select.Option value="pending">Sự kiện chờ duyệt ({pendingEvents.filter(e => !e.ProposedChanges).length})</Select.Option>
+                    <Select.Option value="edit_requests">Yêu cầu chỉnh sửa ({allEvents.filter(e => e.ProposedChanges).length})</Select.Option>
+                    <Select.Option value="approved">Sự kiện đã duyệt/công bố</Select.Option>
+                  </Select>
+                  
+                  {activeEventTab === 'pending' && (
+                    <Table size="small" columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
+                  )}
+                  {activeEventTab === 'edit_requests' && (
+                    <Table size="small" columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
+                  )}
+                  {activeEventTab === 'approved' && (
+                    <Table size="small" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                  )}
+                </div>
+              ) : (
+                <Tabs activeKey={activeEventTab} onChange={setActiveEventTab} items={[
+                  {
+                    key: 'pending',
+                    label: `Sự kiện chờ duyệt (${pendingEvents.filter(e => !e.ProposedChanges).length})`,
+                    children: <Table size="middle" columns={eventCols} dataSource={pendingEvents.filter(e => !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào chờ duyệt' }} />
+                  },
+                  {
+                    key: 'edit_requests',
+                    label: `Yêu cầu chỉnh sửa (${allEvents.filter(e => e.ProposedChanges).length})`,
+                    children: <Table size="middle" columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
+                  },
+                  {
+                    key: 'approved',
+                    label: 'Sự kiện đã duyệt/công bố',
+                    children: <Table size="middle" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                  }
+                ]} />
+              )}
             </div>
           )}
 
           {activeMenu === 'organizers' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Ban tổ chức</Title>
-                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchOrg} onChange={e => setSearchOrg(e.target.value)} style={{ width: 250 }} allowClear />
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchOrg} onChange={e => setSearchOrg(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
               </div>
-              <Table columns={orgCols} dataSource={allOrganizers.filter(o => !searchOrg || o.OrganizationName?.toLowerCase().includes(searchOrg.toLowerCase()) || o.Email?.toLowerCase().includes(searchOrg.toLowerCase()) || o.FullName?.toLowerCase().includes(searchOrg.toLowerCase()))} rowKey="OrganizerProfileID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} rowClassName={r => r.ApprovalStatus === 'Pending' ? 'row-pending' : ''} locale={{ emptyText: 'Chưa có dữ liệu' }} />
+              <Table size={isMobile ? "small" : "middle"} columns={orgCols} dataSource={allOrganizers.filter(o => !searchOrg || o.OrganizationName?.toLowerCase().includes(searchOrg.toLowerCase()) || o.Email?.toLowerCase().includes(searchOrg.toLowerCase()) || o.FullName?.toLowerCase().includes(searchOrg.toLowerCase()))} rowKey="OrganizerProfileID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} rowClassName={r => r.ApprovalStatus === 'Pending' ? 'row-pending' : ''} locale={{ emptyText: 'Chưa có dữ liệu' }} />
             </div>
           )}
 
           {activeMenu === 'speakers' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Diễn giả</Title>
-                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchSpeaker} onChange={e => setSearchSpeaker(e.target.value)} style={{ width: 250 }} allowClear />
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchSpeaker} onChange={e => setSearchSpeaker(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
               </div>
               <Table 
+                size={isMobile ? "small" : "middle"}
                 columns={speakerCols} 
                 dataSource={allSpeakers.filter(s => !searchSpeaker || s.FullName?.toLowerCase().includes(searchSpeaker.toLowerCase()) || s.Email?.toLowerCase().includes(searchSpeaker.toLowerCase()))} 
                 rowKey="UserID" 
@@ -852,97 +995,141 @@ const AdminDashboard = () => {
 
           {activeMenu === 'staffs' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Tình nguyện viên (Staff)</Title>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <Input.Search placeholder="Tìm kiếm tên, email..." value={searchStaff} onChange={e => setSearchStaff(e.target.value)} style={{ width: 250 }} allowClear />
-                  <Button type="primary" onClick={() => openStaffModal()}>+ Thêm Staff mới</Button>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16 }}>
+                  <Input.Search placeholder="Tìm kiếm tên, email..." value={searchStaff} onChange={e => setSearchStaff(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
+                  <Button type="primary" onClick={() => openStaffModal()} style={{ width: isMobile ? '100%' : 'auto' }}>+ Thêm Staff mới</Button>
                 </div>
               </div>
-              <Table columns={staffTableCols} dataSource={availableStaffs.filter(s => !searchStaff || s.FullName?.toLowerCase().includes(searchStaff.toLowerCase()) || s.Email?.toLowerCase().includes(searchStaff.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Staff nào' }} />
+              <Table size={isMobile ? "small" : "middle"} columns={staffTableCols} dataSource={availableStaffs.filter(s => !searchStaff || s.FullName?.toLowerCase().includes(searchStaff.toLowerCase()) || s.Email?.toLowerCase().includes(searchStaff.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Staff nào' }} />
             </div>
           )}
 
           {activeMenu === 'venues' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Địa điểm</Title>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <Input.Search placeholder="Tìm kiếm địa điểm..." value={searchVenue} onChange={e => setSearchVenue(e.target.value)} style={{ width: 250 }} allowClear />
-                  <Button type="primary" onClick={() => openVenueModal()}>+ Thêm Địa điểm</Button>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16 }}>
+                  <Input.Search placeholder="Tìm kiếm địa điểm..." value={searchVenue} onChange={e => setSearchVenue(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
+                  <Button type="primary" onClick={() => openVenueModal()} style={{ width: isMobile ? '100%' : 'auto' }}>+ Thêm Địa điểm</Button>
                 </div>
               </div>
-              <Table columns={venueCols} dataSource={allVenues.filter(v => !searchVenue || v.Name?.toLowerCase().includes(searchVenue.toLowerCase()) || v.Address?.toLowerCase().includes(searchVenue.toLowerCase()))} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
+              <Table size={isMobile ? "small" : "middle"} columns={venueCols} dataSource={allVenues.filter(v => !searchVenue || v.Name?.toLowerCase().includes(searchVenue.toLowerCase()) || v.Address?.toLowerCase().includes(searchVenue.toLowerCase()))} rowKey="VenueID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Chưa có Địa điểm nào' }} />
             </div>
           )}
 
           {activeMenu === 'users' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Người dùng</Title>
-                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchUser} onChange={e => setSearchUser(e.target.value)} style={{ width: 250 }} allowClear />
+                <Input.Search placeholder="Tìm kiếm tên, email..." value={searchUser} onChange={e => setSearchUser(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
               </div>
-              <Table columns={userCols} dataSource={allUsers.filter(u => !searchUser || u.FullName?.toLowerCase().includes(searchUser.toLowerCase()) || u.Email?.toLowerCase().includes(searchUser.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
+              <Table size={isMobile ? "small" : "middle"} columns={userCols} dataSource={allUsers.filter(u => !searchUser || u.FullName?.toLowerCase().includes(searchUser.toLowerCase()) || u.Email?.toLowerCase().includes(searchUser.toLowerCase()))} rowKey="UserID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có người dùng nào' }} />
             </div>
           )}
 
           {activeMenu === 'reported_feedbacks' && (
             <div>
               <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Đánh giá vi phạm</Title>
-              <Table columns={reportedFeedbackCols} dataSource={reportedFeedbacks} rowKey="FeedbackID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có báo cáo vi phạm nào' }} />
+              <Table size={isMobile ? "small" : "middle"} columns={reportedFeedbackCols} dataSource={reportedFeedbacks} rowKey="FeedbackID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có báo cáo vi phạm nào' }} />
             </div>
           )}
 
           {activeMenu === 'reported_content' && (
             <div>
               <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>Nội dung vi phạm</Title>
-              <Tabs
-                defaultActiveKey="blogs"
-                items={[
-                  {
-                    key: 'blogs',
-                    label: (
-                      <span>
-                        Bài viết vi phạm
-                        {reportedBlogs.length > 0 && (
-                          <Badge count={reportedBlogs.length} style={{ marginLeft: 8 }} />
-                        )}
-                      </span>
-                    ),
-                    children: (
-                      <Table
-                        columns={reportedBlogCols}
-                        dataSource={reportedBlogs}
-                        rowKey={(r) => `${r.BlogID}_${r.ReporterID}`}
-                        pagination={{ pageSize: 10 }}
-                        scroll={{ x: 800 }}
-                        locale={{ emptyText: 'Không có bài viết vi phạm nào' }}
-                      />
-                    )
-                  },
-                  {
-                    key: 'comments',
-                    label: (
-                      <span>
-                        Bình luận vi phạm
-                        {reportedComments.length > 0 && (
-                          <Badge count={reportedComments.length} style={{ marginLeft: 8 }} />
-                        )}
-                      </span>
-                    ),
-                    children: (
-                      <Table
-                        columns={reportedCommentCols}
-                        dataSource={reportedComments}
-                        rowKey={(r) => `${r.CommentID}_${r.ReporterID}`}
-                        pagination={{ pageSize: 10 }}
-                        scroll={{ x: 800 }}
-                        locale={{ emptyText: 'Không có bình luận vi phạm nào' }}
-                      />
-                    )
-                  }
-                ]}
-              />
+              {isMobile ? (
+                <div style={{ marginBottom: 16 }}>
+                  <Select 
+                    value={activeReportTab} 
+                    onChange={setActiveReportTab} 
+                    style={{ width: '100%', marginBottom: 16 }}
+                    size="large"
+                  >
+                    <Select.Option value="blogs">
+                      Bài viết vi phạm {reportedBlogs.length > 0 ? `(${reportedBlogs.length})` : ''}
+                    </Select.Option>
+                    <Select.Option value="comments">
+                      Bình luận vi phạm {reportedComments.length > 0 ? `(${reportedComments.length})` : ''}
+                    </Select.Option>
+                  </Select>
+                  
+                  {activeReportTab === 'blogs' && (
+                    <Table
+                      size="small"
+                      columns={reportedBlogCols}
+                      dataSource={reportedBlogs}
+                      rowKey={(r) => `${r.BlogID}_${r.ReporterID}`}
+                      pagination={{ pageSize: 10 }}
+                      scroll={{ x: 800 }}
+                      locale={{ emptyText: 'Không có bài viết vi phạm nào' }}
+                    />
+                  )}
+                  {activeReportTab === 'comments' && (
+                    <Table
+                      size="small"
+                      columns={reportedCommentCols}
+                      dataSource={reportedComments}
+                      rowKey={(r) => `${r.CommentID}_${r.ReporterID}`}
+                      pagination={{ pageSize: 10 }}
+                      scroll={{ x: 800 }}
+                      locale={{ emptyText: 'Không có bình luận vi phạm nào' }}
+                    />
+                  )}
+                </div>
+              ) : (
+                <Tabs
+                  activeKey={activeReportTab}
+                  onChange={setActiveReportTab}
+                  items={[
+                    {
+                      key: 'blogs',
+                      label: (
+                        <span>
+                          Bài viết vi phạm
+                          {reportedBlogs.length > 0 && (
+                            <Badge count={reportedBlogs.length} style={{ marginLeft: 8 }} />
+                          )}
+                        </span>
+                      ),
+                      children: (
+                        <Table
+                          size="middle"
+                          columns={reportedBlogCols}
+                          dataSource={reportedBlogs}
+                          rowKey={(r) => `${r.BlogID}_${r.ReporterID}`}
+                          pagination={{ pageSize: 10 }}
+                          scroll={{ x: 800 }}
+                          locale={{ emptyText: 'Không có bài viết vi phạm nào' }}
+                        />
+                      )
+                    },
+                    {
+                      key: 'comments',
+                      label: (
+                        <span>
+                          Bình luận vi phạm
+                          {reportedComments.length > 0 && (
+                            <Badge count={reportedComments.length} style={{ marginLeft: 8 }} />
+                          )}
+                        </span>
+                      ),
+                      children: (
+                        <Table
+                          size="middle"
+                          columns={reportedCommentCols}
+                          dataSource={reportedComments}
+                          rowKey={(r) => `${r.CommentID}_${r.ReporterID}`}
+                          pagination={{ pageSize: 10 }}
+                          scroll={{ x: 800 }}
+                          locale={{ emptyText: 'Không có bình luận vi phạm nào' }}
+                        />
+                      )
+                    }
+                  ]}
+                />
+              )}
             </div>
           )}
 
@@ -957,22 +1144,73 @@ const AdminDashboard = () => {
         </Content>
       </Layout>
 
+      {/* Blog Page Modal Popup Layer */}
+      {selectedBlogId && (
+        <React.Suspense fallback={null}>
+          <BlogPage 
+            adminBlogId={selectedBlogId} 
+            noLayout={true} 
+            popupOnly={true} 
+            onClosePopup={() => {
+              setSearchParams(prev => {
+                const p = new URLSearchParams(prev);
+                p.delete('blogId');
+                return p;
+              });
+            }} 
+          />
+        </React.Suspense>
+      )}
+
+      {/* Broadcast Modal */}
+      <Modal
+        title="Gửi Thông Báo Toàn Hệ Thống"
+        width={isMobile ? '95%' : 520}
+        open={broadcastModalOpen}
+        onCancel={() => setBroadcastModalOpen(false)}
+        footer={null}
+      >
+        <Form form={broadcastForm} layout="vertical" onFinish={handleBroadcast}>
+          <Form.Item name="title" label="Tiêu đề thông báo" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}>
+            <Input placeholder="Ví dụ: Lịch bảo trì hệ thống" size="large" />
+          </Form.Item>
+          <Form.Item name="message" label="Nội dung" rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}>
+            <Input.TextArea rows={4} placeholder="Nhập nội dung chi tiết..." />
+          </Form.Item>
+          <Form.Item name="audience" label="Đối tượng nhận" initialValue="All">
+            <Select size="large">
+              <Select.Option value="All">Tất cả người dùng</Select.Option>
+              <Select.Option value="Participant">Chỉ Người tham dự</Select.Option>
+              <Select.Option value="Organizer">Chỉ Ban tổ chức</Select.Option>
+              <Select.Option value="Speaker">Chỉ Diễn giả</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Button type="primary" htmlType="submit" size="large" block icon={<TeamOutlined />} loading={broadcastLoading} style={{ background: '#2563eb' }}>
+              Gửi Thông Báo
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* Reject Modal */}
       <Modal
-        title={rejectModal.type === 'cancel_event' ? 'Lý do khóa sự kiện' : 'Lý do từ chối'} 
+        title={rejectModal.type === 'cancel_event' ? 'Lý do khóa sự kiện' : (rejectModal.type === 'blog' ? 'Lý do xoá bài viết' : 'Lý do từ chối')} 
+        width={isMobile ? '95%' : 520}
         open={rejectModal.open} 
         onOk={confirmReject} 
         onCancel={() => setRejectModal({ open: false })} 
-        okText={rejectModal.type === 'cancel_event' ? 'Xác nhận khóa' : 'Xác nhận từ chối'} 
+        okText={rejectModal.type === 'cancel_event' ? 'Xác nhận khóa' : (rejectModal.type === 'blog' ? 'Xác nhận xoá' : 'Xác nhận từ chối')} 
         cancelText="Huỷ" 
         okButtonProps={{ danger: true }}
       >
-        <Input.TextArea rows={4} placeholder={rejectModal.type === 'cancel_event' ? 'Nhập lý do khóa sự kiện...' : 'Nhập lý do từ chối (sẽ gửi qua email)...'} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
+        <Input.TextArea rows={4} placeholder={rejectModal.type === 'cancel_event' ? 'Nhập lý do khóa sự kiện...' : (rejectModal.type === 'blog' ? 'Nhập lý do xoá bài viết để thông báo cho người dùng...' : 'Nhập lý do từ chối (sẽ gửi qua email)...')} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
       </Modal>
 
       {/* Approve Event with Staff Assignment Modal */}
       <Modal
         title="Duyệt Sự kiện & Phân công Staff"
+        width={isMobile ? '95%' : 520}
         open={approveEventModal.open}
         onOk={handleApproveEventWithStaff}
         onCancel={() => {
@@ -1004,6 +1242,7 @@ const AdminDashboard = () => {
 
       <Modal 
         title="Nội dung yêu cầu thay đổi" 
+        width={isMobile ? '95%' : 520}
         open={editReasonModal.open} 
         onCancel={() => setEditReasonModal({ open: false, data: null })}
         footer={[
@@ -1026,7 +1265,7 @@ const AdminDashboard = () => {
         open={viewReportModal.open}
         footer={[<Button key="close" onClick={() => setViewReportModal({ open: false, type: '', data: null })}>Đóng</Button>]}
         onCancel={() => setViewReportModal({ open: false, type: '', data: null })}
-        width={600}
+        width={isMobile ? '95%' : 600}
       >
         {viewReportModal.data && viewReportModal.type === 'feedback' && (
           <Descriptions column={1} bordered size="small" labelStyle={{ width: '150px', fontWeight: 600 }}>
@@ -1074,7 +1313,7 @@ const AdminDashboard = () => {
         open={viewOrgModal.open} 
         onCancel={() => setViewOrgModal({ open: false, org: null })}
         footer={<Button onClick={() => setViewOrgModal({ open: false, org: null })}>Đóng</Button>}
-        width={600}
+        width={isMobile ? '95%' : 600}
       >
         {viewOrgModal.org && (
           <Descriptions column={1} bordered size="small">
@@ -1106,6 +1345,7 @@ const AdminDashboard = () => {
       {/* Staff CRUD Modal */}
       <Modal
         title={staffModal.data ? "Cập nhật Tình nguyện viên" : "Thêm mới Tình nguyện viên"}
+        width={isMobile ? '95%' : 520}
         open={staffModal.open}
         onCancel={() => setStaffModal({ open: false, data: null })}
         onOk={() => staffForm.submit()}
@@ -1143,6 +1383,7 @@ const AdminDashboard = () => {
       {/* Venue CRUD Modal */}
       <Modal
         title={venueModal.data ? "Cập nhật Địa điểm" : "Thêm mới Địa điểm"}
+        width={isMobile ? '95%' : 520}
         open={venueModal.open}
         onCancel={() => setVenueModal({ open: false, data: null })}
         onOk={() => venueForm.submit()}

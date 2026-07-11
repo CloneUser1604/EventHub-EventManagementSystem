@@ -25,26 +25,44 @@ export const en = {
     "noNotif": "No notifications"
   },
   "home": {
-    "badge": "University Event Platform #1",
-    "heroTitle1": "Discover & join",
-    "heroTitle2": "university events",
-    "heroSubtitle": "Thousands of events from universities, clubs, and organizations for students.",
-    "searchPlaceholder": "Search for events, workshops, seminars...",
+    "badge": "FPT University Student Community",
+    "heroTitle1": "Discover Exciting Events At",
+    "heroTitle2": "FPT University",
+    "heroSubtitle": "The largest event management platform for FPTU students. Connect, learn, experience, and grow through clubs and extracurricular activities.",
+    "searchPlaceholder": "Search for events, clubs...",
     "categoryPlaceholder": "All categories",
-    "searchBtn": "Search",
+    "searchBtn": "Discover Now",
     "upcoming": "Upcoming Events",
-    "upcomingSubtitle": "Don't miss these exciting events",
-    "allEvents": "All Events",
+    "upcomingSubtitle": "Don't miss the latest events",
+    "allEvents": "View All",
     "viewAll": "View all events",
-    "ctaTitle": "Are you an organizer?",
-    "ctaSubtitle": "Create and manage your events easier than ever.",
-    "ctaBtn": "Start for free →",
+    "ctaTitle": "Ready to join the community?",
+    "ctaSubtitle": "Create an account today to never miss any exciting activities at FPT University.",
+    "ctaBtn": "Register to Join",
     "registered": "REGISTERED",
     "featured": "Featured Events",
+    "featuredSubtitle": "The biggest and most anticipated events at FPTU",
     "stats": {
-      "events": "Events",
-      "users": "Active Users",
-      "organizers": "Organizers"
+      "events": "Annual Events",
+      "users": "Active Students",
+      "organizers": "Student Clubs"
+    },
+    "about": {
+      "tag": "FPTU EVENT MODEL",
+      "title": "3.5 years of university is never boring",
+      "p1": "FPT University isn't just about lines of code or major assignments. Here, the Club and Event model is heavily invested, creating a dynamic ecosystem that helps students develop comprehensively.",
+      "p2": "From academic competitions, professional seminars, to grand musical entertainment events - everything is organized and experienced by the students themselves!",
+      "btn": "Join Events Now"
+    },
+    "features": {
+      "tag": "CORE VALUES",
+      "title": "Why should you participate in events?",
+      "f1Title": "Expand Your Network",
+      "f1Desc": "Meet and interact with friends sharing similar interests, alumni, and industry experts.",
+      "f2Title": "Earn PDP Points",
+      "f2Desc": "Join events to receive Certificates and accumulate Personal Development Program (PDP) points mandatory at FPT University.",
+      "f3Title": "Develop Soft Skills",
+      "f3Desc": "Learn essential soft skills such as teamwork, communication, leadership, and time management."
     }
   },
   "categories": {

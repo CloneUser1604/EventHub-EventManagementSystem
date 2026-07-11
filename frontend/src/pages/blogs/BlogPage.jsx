@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown } from 'antd';
-import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined } from '@ant-design/icons';
+import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag } from 'antd';
+import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
 import { eventService } from '../../services/event.service';
 import useAuthStore from '../../store/authStore';
+import useSettingStore from '../../store/settingStore';
 import MainLayout from '../../components/layout/MainLayout';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -111,9 +112,11 @@ const ImageGrid = ({ imageUrl, maxVisible = 3 }) => {
   );
 };
 
-const BlogPage = () => {
+const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onClosePopup = null }) => {
   const { t } = useTranslation();
-  const { id } = useParams();
+  const { theme } = useSettingStore();
+  const params = useParams();
+  const id = adminBlogId || params.id;
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const [blogs, setBlogs] = useState([]);
@@ -151,6 +154,7 @@ const BlogPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('all');
+  const [expandedNotifs, setExpandedNotifs] = useState(new Set());
   const [readNotificationIds, setReadNotificationIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('readNotifs') || '[]')); } catch { return new Set(); }
   });
@@ -171,6 +175,13 @@ const BlogPage = () => {
   
   const [reportCommentModalVisible, setReportCommentModalVisible] = useState(false);
   const [reportCommentId, setReportCommentId] = useState(null);
+  
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const reportReasons = [
     'Spam hoặc quảng cáo rác',
@@ -845,8 +856,8 @@ const BlogPage = () => {
   };
 
 
-  return (
-    <MainLayout>
+  const pageContent = (
+    <>
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -856,113 +867,155 @@ const BlogPage = () => {
           scrollbar-width: none;
         }
       `}</style>
-      <div style={{ maxWidth: 1000, margin: '40px auto', padding: '0 24px', display: 'flex', gap: 40 }}>
       
-      {/* Left Sidebar (Threads Vibe) */}
-      <div style={{ width: 220, display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 100, height: 'max-content' }}>
-        <Button            icon={<HomeOutlined style={{ fontSize: 20, color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : '#374151' }} />} 
-            onClick={() => {
-              setCurrentEventFilter(null);
-              setActiveView('feed');
-              fetchBlogs(blogsSort, null);
-            }} 
-            style={{ 
-              width: '100%', justifyContent: 'flex-start', border: 'none', 
-              backgroundColor: activeView === 'feed' && !currentEventFilter ? '#eef2ff' : 'transparent', 
-              fontWeight: activeView === 'feed' && !currentEventFilter ? 700 : 500, 
-              fontSize: 16, height: 48, borderRadius: 12,
-              color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : '#374151',
-              borderLeft: activeView === 'feed' && !currentEventFilter ? '3px solid #4f46e5' : '3px solid transparent',
+      {!popupOnly && (
+      <div style={{ maxWidth: 1000, margin: isMobile ? '20px auto' : '40px auto', padding: isMobile ? '0 12px' : '0 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 40 }}>
+      
+      {/* Navigation (Sidebar on Desktop, Select on Mobile) */}
+      {isMobile ? (
+        <div style={{ position: 'sticky', top: 60, zIndex: 10, background: theme === 'dark' ? '#09090b' : '#f9fafb', padding: '10px 0', marginBottom: 12 }}>
+          <Select
+            value={activeView}
+            onChange={(val) => {
+              if (val === 'search') {
+                setActiveView('search');
+                setSearchQuery('');
+              } else if (val === 'feed') {
+                setCurrentEventFilter(null);
+                setActiveView('feed');
+                fetchBlogs(blogsSort, null);
+              } else {
+                setActiveView(val);
+              }
             }}
-        >{t('blog.forYou')}</Button>
-        <Button 
-          type="primary" 
-          shape="round" 
-          icon={<PlusOutlined />} 
-          size="large" 
-          style={{ width: '100%', marginTop: 24, height: 48, fontSize: 16, fontWeight: 600, backgroundColor: '#000000' }}
-          onClick={() => {
-            if (!canPost) return message.warning('Vui lòng đăng nhập');
-            setIsModalVisible(true);
-          }}
-        >
-          {t('blog.newBlogs')}
-        </Button>
-        <Button 
-          type="text" 
-          onClick={() => {
-            setActiveView('search');
-            setSearchQuery('');
-          }}
-          style={{ 
-            textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, 
-            fontWeight: activeView === 'search' ? 700 : 500, 
-            display: 'flex', alignItems: 'center', gap: 12, 
-            backgroundColor: activeView === 'search' ? '#eef2ff' : 'transparent',
-            color: activeView === 'search' ? '#4f46e5' : '#374151',
-            borderLeft: activeView === 'search' ? '3px solid #4f46e5' : '3px solid transparent',
-            width: '100%',
-          }} 
-          icon={<SearchOutlined style={{ fontSize: 22, color: activeView === 'search' ? '#4f46e5' : '#374151' }} />}
-        >{t('blog.search')}</Button>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Button 
-            type="text" 
-            onClick={() => setActiveView('activity')} 
-            style={{ 
-              textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, 
-              fontWeight: activeView === 'activity' ? 700 : 500, 
-              display: 'flex', alignItems: 'center', gap: 12, 
-              backgroundColor: activeView === 'activity' ? '#eef2ff' : 'transparent',
-              color: activeView === 'activity' ? '#4f46e5' : '#374151',
-              borderLeft: activeView === 'activity' ? '3px solid #4f46e5' : '3px solid transparent',
-              width: '100%',
-            }} 
-            icon={<HeartOutlined style={{ fontSize: 22, color: activeView === 'activity' ? '#4f46e5' : '#374151' }} />}
+            style={{ width: '100%', fontWeight: 600 }}
+            size="large"
           >
-            {t('blog.notifications')}
-            {notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length > 0 && (
-              <Badge count={notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length} />
-            )}
-          </Button>
-          <Button 
-            type="text" 
-            onClick={() => setActiveView('drafts')} 
-            style={{ 
-              textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, 
-              fontWeight: activeView === 'drafts' ? 700 : 500, 
-              display: 'flex', alignItems: 'center', gap: 12, 
-              backgroundColor: activeView === 'drafts' ? '#eef2ff' : 'transparent',
-              color: activeView === 'drafts' ? '#4f46e5' : '#374151',
-              borderLeft: activeView === 'drafts' ? '3px solid #4f46e5' : '3px solid transparent',
-              width: '100%',
-            }} 
-            icon={<FormOutlined style={{ fontSize: 22, color: activeView === 'drafts' ? '#4f46e5' : '#374151' }} />}
-          >{t('blog.drafts')}</Button>
-          <Button 
-            type="text" 
-            onClick={() => setActiveView('saved')} 
-            style={{ 
-              textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, 
-              fontWeight: activeView === 'saved' ? 700 : 500, 
-              display: 'flex', alignItems: 'center', gap: 12, 
-              backgroundColor: activeView === 'saved' ? '#eef2ff' : 'transparent',
-              color: activeView === 'saved' ? '#4f46e5' : '#374151',
-              borderLeft: activeView === 'saved' ? '3px solid #4f46e5' : '3px solid transparent',
-              width: '100%',
-            }} 
-            icon={<BookOutlined style={{ fontSize: 22, color: activeView === 'saved' ? '#4f46e5' : '#374151' }} />}
-          >{t('blog.saved')}</Button>
+            <Option value="feed">{t('blog.forYou')}</Option>
+            <Option value="search">{t('blog.search')}</Option>
+            <Option value="activity">
+              {t('blog.notifications')} 
+              {notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length > 0 && ` (${notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length})`}
+            </Option>
+            <Option value="drafts">{t('blog.drafts')} {hasDraft ? ' (1)' : ''}</Option>
+            <Option value="saved">{t('blog.saved')}</Option>
+          </Select>
         </div>
-      </div>
+      ) : (
+        <div style={{ width: 220, display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 100, height: 'max-content', zIndex: 10 }}>
+          <Button            icon={<HomeOutlined style={{ fontSize: 20, color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : '#374151' }} />} 
+              onClick={() => {
+                setCurrentEventFilter(null);
+                setActiveView('feed');
+                fetchBlogs(blogsSort, null);
+              }} 
+              style={{ 
+                justifyContent: 'flex-start', border: 'none', 
+                backgroundColor: activeView === 'feed' && !currentEventFilter ? '#eef2ff' : 'transparent', 
+                fontWeight: activeView === 'feed' && !currentEventFilter ? 700 : 500, 
+                fontSize: 16, height: 48, borderRadius: 12, flexShrink: 0,
+                color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151'),
+                borderLeft: activeView === 'feed' && !currentEventFilter ? '3px solid #4f46e5' : '3px solid transparent',
+              }}
+          >{t('blog.forYou')}</Button>
+          
+          <Button 
+            type="primary" 
+            shape="round" 
+            icon={<PlusOutlined />} 
+            size="large" 
+            style={{ width: '100%', marginTop: 24, height: 48, fontSize: 16, fontWeight: 600, backgroundColor: '#000000' }}
+            onClick={() => {
+              if (!canPost) return message.warning('Vui lòng đăng nhập');
+              setIsModalVisible(true);
+            }}
+          >
+            {t('blog.newBlogs')}
+          </Button>
+          
+          <Button 
+            type="text" 
+            onClick={() => {
+              setActiveView('search');
+              setSearchQuery('');
+            }}
+            style={{ 
+              textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, flexShrink: 0,
+              fontWeight: activeView === 'search' ? 700 : 500, 
+              display: 'flex', alignItems: 'center', gap: 12, 
+              backgroundColor: activeView === 'search' ? '#eef2ff' : 'transparent',
+              color: activeView === 'search' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151'),
+              borderLeft: activeView === 'search' ? '3px solid #4f46e5' : '3px solid transparent',
+            }} 
+            icon={<SearchOutlined style={{ fontSize: 22, color: activeView === 'search' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151') }} />}
+          >{t('blog.search')}</Button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button 
+              type="text" 
+              onClick={() => setActiveView('activity')} 
+              style={{ 
+                textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, flexShrink: 0,
+                fontWeight: activeView === 'activity' ? 700 : 500, 
+                display: 'flex', alignItems: 'center', gap: 12, 
+                backgroundColor: activeView === 'activity' ? '#eef2ff' : 'transparent',
+                color: activeView === 'activity' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151'),
+                borderLeft: activeView === 'activity' ? '3px solid #4f46e5' : '3px solid transparent',
+              }} 
+              icon={<HeartOutlined style={{ fontSize: 22, color: activeView === 'activity' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151') }} />}
+            >
+              {t('blog.notifications')}
+              {notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length > 0 && (
+                <Badge count={notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length} />
+              )}
+            </Button>
+            <Button 
+              type="text" 
+              onClick={() => setActiveView('drafts')} 
+              style={{ 
+                textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, flexShrink: 0,
+                fontWeight: activeView === 'drafts' ? 700 : 500, 
+                display: 'flex', alignItems: 'center', gap: 12, 
+                backgroundColor: activeView === 'drafts' ? '#eef2ff' : 'transparent',
+                color: activeView === 'drafts' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151'),
+                borderLeft: activeView === 'drafts' ? '3px solid #4f46e5' : '3px solid transparent',
+              }} 
+              icon={<FormOutlined style={{ fontSize: 22, color: activeView === 'drafts' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151') }} />}
+            >
+              {t('blog.drafts')}
+              {hasDraft && <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#4f46e5', marginLeft: 4 }} />}
+            </Button>
+            <Button 
+              type="text" 
+              onClick={() => setActiveView('saved')} 
+              style={{ 
+                textAlign: 'left', height: 48, borderRadius: 12, fontSize: 16, flexShrink: 0,
+                fontWeight: activeView === 'saved' ? 700 : 500, 
+                display: 'flex', alignItems: 'center', gap: 12, 
+                backgroundColor: activeView === 'saved' ? '#eef2ff' : 'transparent',
+                color: activeView === 'saved' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151'),
+                borderLeft: activeView === 'saved' ? '3px solid #4f46e5' : '3px solid transparent',
+              }} 
+              icon={<BookOutlined style={{ fontSize: 22, color: activeView === 'saved' ? '#4f46e5' : (theme === 'dark' ? '#d1d5db' : '#374151') }} />}
+            >
+              {t('blog.saved')}
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {isMobile && (
+        <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 100 }}>
+          <Button type="primary" shape="circle" icon={<PlusOutlined />} size="large" onClick={() => setIsModalVisible(true)} style={{ width: 56, height: 56, backgroundColor: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }} />
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div style={{ flex: 1, maxWidth: 620 }}>
       
       {activeView === 'activity' ? (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.notifications')}</Title>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderRadius: 24, border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e5e5', padding: '24px' }}>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20, color: theme === 'dark' ? '#fff' : 'inherit' }}>{t('blog.notifications')}</Title>
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             <Button shape="round" type={notificationFilter === 'all' ? 'primary' : 'default'} onClick={() => setNotificationFilter('all')}>{t('blog.filterAll')}</Button>
             <Button shape="round" type={notificationFilter === 'comments' ? 'primary' : 'default'} onClick={() => setNotificationFilter('comments')}>{t('blog.filterComments')}</Button>
@@ -985,26 +1038,44 @@ const BlogPage = () => {
                 if (item.Type === 'blog_like') {
                   actionText = t('blog.likedYourBlog');
                   typeIcon = <HeartFilled style={{ color: '#ef4444', fontSize: 13 }} />;
-                  typeColor = '#fef2f2';
+                  typeColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2';
                 }
                 if (item.Type === 'blog_comment') {
                   const title = item.TargetTitle ? `"${item.TargetTitle}"` : t('blog.blogPost');
                   actionText = `${t('blog.commentedOn')} ${title}`;
                   typeIcon = <MessageOutlined style={{ color: '#3b82f6', fontSize: 13 }} />;
-                  typeColor = '#eff6ff';
+                  typeColor = theme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff';
                 }
                 if (item.Type === 'comment_reply') {
                   const preview = item.TargetTitle?.length > 40 ? item.TargetTitle.substring(0, 40) + '...' : item.TargetTitle;
                   actionText = `${t('blog.repliedToYourComment')} "${preview}"`;
                   typeIcon = <MessageOutlined style={{ color: '#8b5cf6', fontSize: 13 }} />;
-                  typeColor = '#f5f3ff';
+                  typeColor = theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : '#f5f3ff';
                 }
                 if (item.Type === 'comment_like') {
                   const preview = item.TargetTitle?.length > 40 ? item.TargetTitle.substring(0, 40) + '...' : item.TargetTitle;
                   actionText = `${t('blog.likedYourComment')} "${preview}"`;
                   typeIcon = <HeartFilled style={{ color: '#ef4444', fontSize: 13 }} />;
-                  typeColor = '#fef2f2';
+                  typeColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2';
                 }
+                if (item.Type === 'system_alert') {
+                  actionText = ''; // Rendered separately
+                  typeIcon = <ExclamationCircleOutlined style={{ color: '#ef4444', fontSize: 13 }} />;
+                  typeColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2';
+                }
+                
+                const notifKey = `${item.Type}_${item.ID}`;
+                const isExpanded = expandedNotifs.has(notifKey);
+                const toggleExpand = (e) => {
+                  e.stopPropagation();
+                  setExpandedNotifs(prev => {
+                    const next = new Set(prev);
+                    if (next.has(notifKey)) next.delete(notifKey);
+                    else next.add(notifKey);
+                    return next;
+                  });
+                };
+
                 return (
                   <List.Item
                     style={{ 
@@ -1022,27 +1093,48 @@ const BlogPage = () => {
                       avatar={
                         <div style={{ position: 'relative' }}>
                           <Avatar src={getAvatarUrl(item.ActorAvatar)} size={44} icon={<UserOutlined />} />
-                          <span style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: theme === 'dark' ? '#27272a' : '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
                             {typeIcon}
                           </span>
                         </div>
                       }
                       title={
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <Text strong style={{ fontSize: 14, fontWeight: readNotificationIds.has(`${item.Type}_${item.ID}`) ? 400 : 700 }}>{item.ActorName}</Text>
-                          {item.ActorRole && <span style={{ fontSize: 11, padding: '1px 7px', backgroundColor: 'rgba(255,255,255,0.8)', color: '#374151', borderRadius: 10, border: '1px solid #e5e7eb' }}>{item.ActorRole}</span>}
-                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: readNotificationIds.has(`${item.Type}_${item.ID}`) ? 400 : 500 }}>{actionText}</Text>
+                          {item.Type !== 'system_alert' ? (
+                            <>
+                              <Text strong style={{ fontSize: 14, color: theme === 'dark' ? '#fff' : 'inherit', fontWeight: readNotificationIds.has(`${item.Type}_${item.ID}`) ? 400 : 700 }}>{item.ActorName}</Text>
+                              {item.ActorRole && <span style={{ fontSize: 11, padding: '1px 7px', backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)', color: theme === 'dark' ? '#d1d5db' : '#374151', borderRadius: 10, border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb' }}>{item.ActorRole}</span>}
+                              <Text style={{ fontSize: 14, color: theme === 'dark' ? '#d1d5db' : '#374151', fontWeight: readNotificationIds.has(`${item.Type}_${item.ID}`) ? 400 : 500 }}>{actionText}</Text>
+                            </>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+                              <div><Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag></div>
+                              <Text style={{ fontSize: 14, color: theme === 'dark' ? '#fff' : '#000', fontWeight: readNotificationIds.has(`${item.Type}_${item.ID}`) ? 400 : 600 }}>{item.TargetTitle}</Text>
+                            </div>
+                          )}
                         </div>
                       }
                       description={
                         <div>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
+                          <Text type="secondary" style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : undefined }}>
                             {dayjs(item.CreatedAt).subtract(7, 'hour').fromNow(true)
                               .replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')} {t('blog.ago')}
                           </Text>
-                          {(item.Type === 'blog_comment' || item.Type === 'comment_reply') && item.CommentContent && (
-                            <div style={{ marginTop: 4, fontSize: 13, color: '#374151', fontStyle: 'italic' }}>
-                              "{item.CommentContent.length > 80 ? item.CommentContent.substring(0, 80) + '...' : item.CommentContent}"
+                          {(item.Type === 'blog_comment' || item.Type === 'comment_reply' || item.Type === 'system_alert') && item.CommentContent && (
+                            <div style={{ marginTop: 4, fontSize: 13, color: theme === 'dark' ? '#9ca3af' : '#374151', fontStyle: 'italic', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                              {isExpanded ? (
+                                <>
+                                  "{item.CommentContent}"
+                                  <span onClick={toggleExpand} style={{ color: '#3b82f6', cursor: 'pointer', marginLeft: 8, fontWeight: 500 }}>Thu gọn</span>
+                                </>
+                              ) : (
+                                <>
+                                  "{item.CommentContent.length > 80 ? item.CommentContent.substring(0, 80) + '...' : item.CommentContent}"
+                                  {item.CommentContent.length > 80 && (
+                                    <span onClick={toggleExpand} style={{ color: '#3b82f6', cursor: 'pointer', marginLeft: 8, fontWeight: 500 }}>Xem thêm</span>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                           {(item.Type === 'blog_comment' || item.Type === 'comment_reply') && item.CommentImageURL && (
@@ -1061,12 +1153,12 @@ const BlogPage = () => {
           )}
         </div>
       ) : activeView === 'drafts' ? (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.drafts')}</Title>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderRadius: 24, border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e5e5', padding: '24px' }}>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20, color: theme === 'dark' ? '#fff' : 'inherit' }}>{t('blog.drafts')}</Title>
           {hasDraft ? (
-            <div style={{ padding: '16px', border: '1px solid #f0f0f0', borderRadius: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setIsModalVisible(true)}>
+            <div style={{ padding: '16px', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #f0f0f0', borderRadius: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setIsModalVisible(true)}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>{t('blog.draftSaved')}</div>
+                <div style={{ fontWeight: 600, fontSize: 16, color: theme === 'dark' ? '#fff' : 'inherit' }}>{t('blog.draftSaved')}</div>
                 <div style={{ color: '#9ca3af', fontSize: 14 }}>{t('blog.clickToEdit')}</div>
               </div>
               <Space>
@@ -1090,14 +1182,14 @@ const BlogPage = () => {
           )}
         </div>
       ) : activeView === 'saved' ? (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
-          <Title level={2} style={{ marginTop: 0, marginBottom: 20 }}>{t('blog.saved')}</Title>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderRadius: 24, border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e5e5', padding: '24px' }}>
+          <Title level={2} style={{ marginTop: 0, marginBottom: 20, color: theme === 'dark' ? '#fff' : 'inherit' }}>{t('blog.saved')}</Title>
           <Input 
             prefix={<SearchOutlined style={{ color: '#9ca3af', fontSize: 20 }} />}
             placeholder={t('blog.searchSaved')}
             value={savedSearchQuery}
             onChange={(e) => setSavedSearchQuery(e.target.value)}
-            style={{ borderRadius: 24, backgroundColor: '#f3f4f6', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
+            style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f3f4f6', color: theme === 'dark' ? '#fff' : 'inherit', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
           />
           {loadingSaved ? (
             <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>
@@ -1112,30 +1204,36 @@ const BlogPage = () => {
                 (b.AuthorName && b.AuthorName.toLowerCase().includes(savedSearchQuery.toLowerCase()))
               )}
               renderItem={item => (
-                <div style={{ padding: '16px 0', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }} onClick={() => { setDetailBlog(item); setDetailModalVisible(true); fetchComments(item.BlogID, commentSort); }}>
+                <div style={{ padding: '16px 0', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', cursor: 'pointer' }} onClick={() => { setDetailBlog(item); setDetailModalVisible(true); fetchComments(item.BlogID, commentSort); }}>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <Avatar src={getAvatarUrl(item.AuthorAvatar)} icon={<UserOutlined />} size={40} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Text strong style={{ fontSize: 15 }}>{item.AuthorName}</Text>
-                        {item.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(item.AuthorRole).bg, color: getRoleStyle(item.AuthorRole).color, borderRadius: 12 }}>{item.AuthorRole}</span>}
+                        {((item.AuthorName && item.AuthorName.toLowerCase().includes('hệ thống')) || (item.Title && item.Title.includes('THÔNG BÁO TỪ HỆ THỐNG'))) ? (
+                          <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '2px 10px', fontSize: 14, fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag>
+                        ) : (
+                          <>
+                            <Text strong style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}>{item.AuthorName}</Text>
+                            {item.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(item.AuthorRole).bg, color: getRoleStyle(item.AuthorRole).color, borderRadius: 12 }}>{item.AuthorRole}</span>}
+                          </>
+                        )}
                         {item.EventTitle && (
                           <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                             <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
-                            <Text strong className="hover-underline" style={{ fontSize: 15, color: '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
+                            <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
                           </div>
                         )}
                         <Text type="secondary" style={{ fontSize: 14, marginLeft: 4 }}>{dayjs(item.CreatedAt).fromNow()}</Text>
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 15 }}>{item.Content}</div>
+                      <div style={{ marginTop: 4, fontSize: 15, color: theme === 'dark' ? '#d1d5db' : '#111827' }}>{item.Content}</div>
                       
                       {item.EventTitle && (
                         <div style={{ marginTop: 12 }}>
                           <span 
                             onClick={(e) => { e.stopPropagation(); navigate(`/events/${item.EventID}`); }}
-                            style={{ fontSize: 13, padding: '4px 12px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 16, color: '#4b5563', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 500 }}
-                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e5e7eb'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                            style={{ fontSize: 13, padding: '4px 12px', backgroundColor: theme === 'dark' ? '#3f3f46' : '#f3f4f6', border: theme === 'dark' ? '1px solid #52525b' : '1px solid #e5e7eb', borderRadius: 16, color: theme === 'dark' ? '#d1d5db' : '#4b5563', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 500 }}
+                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#52525b' : '#e5e7eb'; e.currentTarget.style.borderColor = theme === 'dark' ? '#71717a' : '#d1d5db'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3f3f46' : '#f3f4f6'; e.currentTarget.style.borderColor = theme === 'dark' ? '#52525b' : '#e5e7eb'; }}
                           >
                             {t('blog.joinEvent')}: {item.EventTitle}
                           </span>
@@ -1150,29 +1248,29 @@ const BlogPage = () => {
           )}
         </div>
       ) : activeView === 'search' ? (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: 24, border: '1px solid #e5e5e5', padding: '24px' }}>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderRadius: 24, border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e5e5', padding: '24px' }}>
           <Input 
             prefix={<SearchOutlined style={{ color: '#9ca3af', fontSize: 20 }} />}
             placeholder={t('blog.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ borderRadius: 24, backgroundColor: '#f3f4f6', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
+            style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f3f4f6', color: theme === 'dark' ? '#fff' : 'inherit', border: 'none', height: 48, fontSize: 16, marginBottom: 24 }}
           />
           
           {searchQuery.trim() ? (
             /* Realtime search results */
             <div>
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'inline-block', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 18, marginBottom: 4, color: '#1d4ed8' }}>
+                <div style={{ display: 'inline-block', backgroundColor: theme === 'dark' ? 'rgba(59,130,246,0.1)' : '#dbeafe', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 18, marginBottom: 4, color: theme === 'dark' ? '#60a5fa' : '#1d4ed8' }}>
                   {t('blog.searchResults')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {trendingEvents.filter(ev => ev.title.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 
                   ? trendingEvents.filter(ev => ev.title.toLowerCase().includes(searchQuery.toLowerCase())).map(ev => (
-                    <div key={ev.id} style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: '#f8faff', border: '1px solid #e0e7ff', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#eef2ff'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f8faff'}
+                    <div key={ev.id} style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: theme === 'dark' ? '#18181b' : '#f8faff', border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e0e7ff', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#27272a' : '#eef2ff'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#18181b' : '#f8faff'}
                       onClick={() => {
                         setCurrentEventFilter(ev.id);
                         setSearchQuery('');
@@ -1180,7 +1278,7 @@ const BlogPage = () => {
                         fetchBlogs(blogsSort, ev.id);
                       }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 16 }}>
+                        <div style={{ fontWeight: 600, fontSize: 16, color: theme === 'dark' ? '#fff' : 'inherit' }}>
                           {ev.title}
                         </div>
                         <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} {t('blog.blogCount')} · {ev.score} {t('blog.interactionCount')}</div>
@@ -1196,20 +1294,20 @@ const BlogPage = () => {
             /* Default: show trending */
             <div>
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'inline-block', backgroundColor: '#fef08a', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 20, marginBottom: 4 }}>
+                <div style={{ display: 'inline-block', backgroundColor: theme === 'dark' ? 'rgba(250,204,21,0.1)' : '#fef08a', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 20, marginBottom: 4, color: theme === 'dark' ? '#fde047' : '#854d0e' }}>
                   {t('blog.trending')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {trendingEvents.length > 0 ? trendingEvents.map(ev => (
-                  <div key={ev.id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => {
+                  <div key={ev.id} style={{ padding: '12px 0', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => {
                     setCurrentEventFilter(ev.id);
                     setSearchQuery('');
                     setActiveView('feed');
                     fetchBlogs(blogsSort, ev.id);
                   }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 16 }}>{ev.title}</div>
+                      <div style={{ fontWeight: 600, fontSize: 16, color: theme === 'dark' ? '#fff' : '#000' }}>{ev.title}</div>
                       <div style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{ev.blogCount} {t('blog.blogsDiscussing')} · {ev.score} {t('blog.interactionCount')}</div>
                     </div>
                   </div>
@@ -1251,14 +1349,14 @@ const BlogPage = () => {
         
         {/* Blogs Container */}
       <div style={{ 
-        backgroundColor: '#ffffff', 
+        backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', 
         borderRadius: 24, 
-        border: '1px solid #e5e5e5', 
+        border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e5e5', 
         boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
         overflow: 'hidden'
       }}>
         
-        <div style={{ backgroundColor: '#ffffff', padding: '16px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }} onClick={() => { if(canPost) setIsModalVisible(true); }}>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', padding: isMobile ? '16px 12px' : '16px 24px', cursor: 'pointer', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }} onClick={() => { if(canPost) setIsModalVisible(true); }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
               <Avatar src={getAvatarUrl(user?.avatarURL || user?.AvatarURL)} icon={<UserOutlined />} size={40} />
@@ -1277,7 +1375,7 @@ const BlogPage = () => {
           itemLayout="vertical"
           dataSource={blogs}
           renderItem={item => (
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ padding: isMobile ? '16px 12px' : '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }}>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Avatar src={getAvatarUrl(item.AuthorAvatar)} icon={<UserOutlined />} size={40} />
@@ -1285,19 +1383,25 @@ const BlogPage = () => {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                      <Text strong style={{ fontSize: 15, color: '#000' }}>{item.AuthorName}</Text>
-                      {item.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(item.AuthorRole).bg, color: getRoleStyle(item.AuthorRole).color, borderRadius: 12 }}>{item.AuthorRole}</span>}
+                      {((item.AuthorName && item.AuthorName.toLowerCase().includes('hệ thống')) || (item.Title && item.Title.includes('THÔNG BÁO TỪ HỆ THỐNG'))) ? (
+                        <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '2px 10px', fontSize: 14, fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag>
+                      ) : (
+                        <>
+                          <Text strong style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}>{item.AuthorName}</Text>
+                          {item.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(item.AuthorRole).bg, color: getRoleStyle(item.AuthorRole).color, borderRadius: 12 }}>{item.AuthorRole}</span>}
+                        </>
+                      )}
                       {item.EventTitle && (
                         <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                           <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
-                          <Text strong className="hover-underline" style={{ fontSize: 15, color: '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
+                          <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
                         </div>
                       )}
                       <Text type="secondary" style={{ fontSize: 14, marginLeft: 4 }}>{dayjs(item.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')}</Text>
                     </div>
                     
                     <Space>
-                      {(user?.role === 'Admin' || user?.userId === item.AuthorID) && (
+                      {user?.userId === item.AuthorID && (
                         <Button type="text" danger size="small" onClick={() => handleDelete(item.BlogID)}>Xóa</Button>
                       )}
                       <Dropdown 
@@ -1325,7 +1429,8 @@ const BlogPage = () => {
                   </div>
                   
                   <div style={{ marginTop: 4 }}>
-                    {item.Title && <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{item.Title}</div>}
+                    {item.Title && !item.Title.includes('THÔNG BÁO TỪ HỆ THỐNG') && <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{item.Title}</div>}
+                    {item.Title && item.Title.includes('THÔNG BÁO TỪ HỆ THỐNG') && item.Title.replace('THÔNG BÁO TỪ HỆ THỐNG', '').trim() !== '' && <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{item.Title.replace('THÔNG BÁO TỪ HỆ THỐNG', '').replace(/^\[|\]$/g, '').trim()}</div>}
                     <Paragraph style={{ margin: 0, fontSize: 15, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                       {item.Content}
                     </Paragraph>
@@ -1415,7 +1520,7 @@ const BlogPage = () => {
                               transition: 'width 0.3s ease'
                             }} />
                             <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontWeight: isVoted ? 600 : 500, color: isVoted ? '#1890ff' : '#000' }}>{opt.text}</span>
+                              <span style={{ fontWeight: isVoted ? 600 : 500, color: isVoted ? '#1890ff' : (theme === 'dark' ? '#fff' : '#000') }}>{opt.text}</span>
                               <span style={{ color: '#9ca3af' }}>{percent}%</span>
                             </div>
                           </div>
@@ -1479,6 +1584,7 @@ const BlogPage = () => {
       )}
       </div>
       </div>
+      )}
 
       {/* Thread Creation Modal */}
       <Modal
@@ -1491,7 +1597,7 @@ const BlogPage = () => {
         style={{ top: 40 }}
         title={<div style={{ textAlign: 'center', fontWeight: 700, fontSize: 18 }}>{t('blog.newBlogs', { defaultValue: 'Blog mới' })}</div>}
       >
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button type="text" onClick={() => setIsModalVisible(false)} style={{ margin: -8 }}>{t('blog.cancel')}</Button>
           <Button type="primary" shape="round" onClick={handlePost} loading={submitting} disabled={!content.trim() && !title.trim() && fileList.length === 0 && !showPoll}>{t('blog.post')}</Button>
         </div>
@@ -1546,13 +1652,13 @@ const BlogPage = () => {
               )}
 
               {showPoll && (
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 16, padding: 16, marginBottom: 16, boxSizing: 'border-box' }}>
+                <div style={{ border: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', borderRadius: 16, padding: 16, marginBottom: 16, boxSizing: 'border-box' }}>
                   <Input 
                     placeholder={t('blog.askAQuestion')} 
                     variant="borderless"
                     value={pollQuestion}
                     onChange={(e) => setPollQuestion(e.target.value)}
-                    style={{ padding: '0 0 12px 0', fontSize: 15, fontWeight: 600, borderBottom: '1px solid #f0f0f0', borderRadius: 0, marginBottom: 12 }}
+                    style={{ padding: '0 0 12px 0', fontSize: 15, fontWeight: 600, borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', borderRadius: 0, marginBottom: 12 }}
                   />
                   {pollOptions.map((opt, index) => (
                     <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
@@ -1623,18 +1729,25 @@ const BlogPage = () => {
       {/* Blog Detail Modal */}
       <Modal
         open={detailModalVisible}
-        onCancel={handleCloseModal}
+        onCancel={() => {
+          setDetailModalVisible(false);
+          setDetailBlog(null);
+          if (onClosePopup) {
+            onClosePopup();
+          } else {
+            navigate('/blogs');
+          }
+        }}
         footer={null}
         width={680}
-
         bodyStyle={{ padding: 0 }}
         style={{ top: 20 }}
         closable={false}
       >
         {detailBlog && (
-          <div style={{ height: '85vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center' }}>
-              <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setDetailModalVisible(false); setDetailBlog(null); }} style={{ marginRight: 16, fontSize: 18 }} />
+          <div style={{ height: '85vh', display: 'flex', flexDirection: 'column', backgroundColor: theme === 'dark' ? '#18181b' : '#fff' }}>
+            <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', alignItems: 'center' }}>
+              <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setDetailModalVisible(false); setDetailBlog(null); if (onClosePopup) onClosePopup(); }} style={{ marginRight: 16, fontSize: 18 }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 18 }}>{t('blog.postDetails')}</div>
             </div>
@@ -1648,18 +1761,18 @@ const BlogPage = () => {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                      <Text strong style={{ fontSize: 15, color: '#000' }}>{detailBlog.AuthorName}</Text>
+                      <Text strong style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}>{detailBlog.AuthorName}</Text>
                       {detailBlog.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(detailBlog.AuthorRole).bg, color: getRoleStyle(detailBlog.AuthorRole).color, borderRadius: 12 }}>{detailBlog.AuthorRole}</span>}
                       {detailBlog.EventTitle && (
                         <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(detailBlog.EventID); fetchBlogs(blogsSort, detailBlog.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                           <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
-                          <Text strong className="hover-underline" style={{ fontSize: 15, color: '#000', marginLeft: 6 }}>{detailBlog.EventTitle}</Text>
+                          <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{detailBlog.EventTitle}</Text>
                         </div>
                       )}
                       <Text type="secondary" style={{ fontSize: 14, marginLeft: 4 }}>{dayjs(detailBlog.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')}</Text>
                     </div>
                     <Space>
-                      {(user?.role === 'Admin' || user?.userId === detailBlog.AuthorID) && (
+                      {user?.userId === detailBlog.AuthorID && (
                         <Button type="text" danger size="small" onClick={() => { handleDelete(detailBlog.BlogID); setDetailModalVisible(false); }}>{t('blog.delete')}</Button>
                       )}
                       <Dropdown 
@@ -1768,13 +1881,13 @@ const BlogPage = () => {
                 </div>
               </div>
               
-              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
                   <Select
                     value={commentSort}
                     onChange={handleSortChange}
                     variant="borderless"
-                    style={{ fontWeight: 600, fontSize: 15, padding: 0, marginLeft: -12, color: '#000' }}
+                    style={{ fontWeight: 600, fontSize: 15, padding: 0, marginLeft: -12, color: theme === 'dark' ? '#fff' : '#000' }}
                     dropdownStyle={{ borderRadius: 12 }}
                   >
                     <Option value="top">↓ Hàng đầu</Option>
@@ -1800,7 +1913,7 @@ const BlogPage = () => {
                         onChange={(e) => setCommentInput(e.target.value)}
                         onPressEnter={() => handleAddComment(detailBlog.BlogID)}
                         suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}>{t('blog.post')}</Button>}
-                        style={{ borderRadius: 24, backgroundColor: '#f9fafb', border: '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15 }}
+                        style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}
                       />
                     </div>
                     {commentImageFiles.length > 0 && (
@@ -1836,7 +1949,7 @@ const BlogPage = () => {
                             <Avatar src={getAvatarUrl(comment.AuthorAvatar)} icon={<UserOutlined />} size={36} />
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <Text strong style={{ fontSize: 15 }}>{comment.AuthorName}</Text>
+                                <Text strong style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}>{comment.AuthorName}</Text>
                                 {comment.AuthorRole && <span style={{ fontSize: 11, padding: '2px 6px', backgroundColor: getRoleStyle(comment.AuthorRole).bg, color: getRoleStyle(comment.AuthorRole).color, borderRadius: 10, marginLeft: 6 }}>{comment.AuthorRole}</span>}
                                 <Text type="secondary" style={{ fontSize: 14, marginLeft: 6 }}>{dayjs(comment.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')} {t('blog.ago')}</Text>
                                 {comment.UpdatedAt && <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>{t('blog.edited')}</Text>}
@@ -1855,7 +1968,7 @@ const BlogPage = () => {
                                 </div>
                               ) : (
                                 <div>
-                                  <div style={{ fontSize: 15, marginTop: 4, color: '#111827' }}>{comment.Content}</div>
+                                  <div style={{ fontSize: 15, marginTop: 4, color: theme === 'dark' ? '#d1d5db' : '#111827' }}>{comment.Content}</div>
                                   {comment.ImageURL && <ImageGrid imageUrl={comment.ImageURL} />}
                                 </div>
                               )}
@@ -1897,7 +2010,7 @@ const BlogPage = () => {
                               <Avatar src={getAvatarUrl(reply.AuthorAvatar)} icon={<UserOutlined />} size={28} />
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                                  <Text strong style={{ fontSize: 14 }}>{reply.AuthorName}</Text>
+                                  <Text strong style={{ fontSize: 14, color: theme === 'dark' ? '#fff' : '#000' }}>{reply.AuthorName}</Text>
                                   {reply.AuthorRole && <span style={{ fontSize: 10, padding: '2px 6px', backgroundColor: getRoleStyle(reply.AuthorRole).bg, color: getRoleStyle(reply.AuthorRole).color, borderRadius: 10, marginLeft: 6 }}>{reply.AuthorRole}</span>}
                                   <Text type="secondary" style={{ fontSize: 13, marginLeft: 6 }}>{dayjs(reply.CreatedAt).subtract(7, 'hour').fromNow(true).replace('một', '1').replace('Một', '1').replace('vài giây', '1 giây')}</Text>
                                   {reply.UpdatedAt && <Text type="secondary" style={{ fontSize: 11, marginLeft: 6 }}>(đã chỉnh sửa)</Text>}
@@ -1916,7 +2029,7 @@ const BlogPage = () => {
                                   </div>
                                 ) : (
                                   <div>
-                                    <div style={{ fontSize: 14, marginTop: 4, color: '#111827' }}>{reply.Content}</div>
+                                    <div style={{ fontSize: 14, marginTop: 4, color: theme === 'dark' ? '#d1d5db' : '#111827' }}>{reply.Content}</div>
                                     {reply.ImageURL && <ImageGrid imageUrl={reply.ImageURL} />}
                                   </div>
                                 )}
@@ -1973,7 +2086,7 @@ const BlogPage = () => {
                                     onChange={(e) => setReplyInput(e.target.value)}
                                     onPressEnter={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)}
                                     suffix={<Button type="link" onClick={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)} style={{ padding: 0 }}>Đăng</Button>}
-                                    style={{ borderRadius: 24, backgroundColor: '#f9fafb', border: '1px solid #e5e5e5', padding: '4px 12px' }}
+                                    style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '4px 12px', color: theme === 'dark' ? '#fff' : '#000' }}
                                   />
                                 </div>
                                 {replyImageFiles.length > 0 && (
@@ -2095,8 +2208,26 @@ const BlogPage = () => {
         </div>
       </Modal>
 
-    </MainLayout>
+      {/* FAB New Post on Mobile */}
+      {isMobile && canPost && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }}>
+          <Button 
+            type="primary" 
+            shape="circle" 
+            icon={<PlusOutlined style={{ fontSize: 24 }} />} 
+            style={{ width: 56, height: 56, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', background: '#4f46e5' }}
+            onClick={() => setIsModalVisible(true)}
+          />
+        </div>
+      )}
+    </>
   );
+
+  if (noLayout) {
+    return pageContent;
+  }
+
+  return <MainLayout>{pageContent}</MainLayout>;
 };
 
 export default BlogPage;

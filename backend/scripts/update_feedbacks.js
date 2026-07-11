@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { connectDB, getPool } = require('../config/db');
 
 async function updateFeedbacksTable() {

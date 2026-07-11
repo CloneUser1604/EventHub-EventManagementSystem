@@ -65,7 +65,6 @@ const Counter = ({target, suffix = ""}) => {
   );
 };
 
-<<<<<<< HEAD
 const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
   if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return <CodeOutlined />;
@@ -78,8 +77,6 @@ const getCategoryIcon = (categoryName) => {
   return <AppstoreOutlined />;
 };
 
-
-=======
 // ─── Custom Featured Card ──────────────────────────────────────
 const FeaturedEventCard = ({ event, index }) => {
   const navigate = useNavigate();
@@ -154,8 +151,6 @@ const FeaturedEventCard = ({ event, index }) => {
     </div>
   );
 };
-
->>>>>>> e327bcf86549f211b22360e539b7612b019cdeca
 const HomePage = () => {
   const navigate = useNavigate();
   const {events, isLoading, categories, fetchEvents, fetchMeta} = useEventStore();

@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getImageUrl } from '../../utils/imageHelpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const getCategoryStyle = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
@@ -41,6 +42,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
   const isOngoing = !isPast && !isUpcoming;
 
   const status = statusConfig[event.Status] || { color: 'default', label: event.Status };
+  const { t } = useTranslation();
 
   const [isFav, setIsFav] = useState(false);
   useEffect(() => {
@@ -66,34 +68,38 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           }
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
-          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
             {event.CategoryName && (
-              <Tag icon={getCategoryStyle(event.CategoryName).icon} color={getCategoryStyle(event.CategoryName).color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
-                {event.CategoryName}
+              <Tag color={getCategoryStyle(event.CategoryName).color} style={{ margin: 0, borderRadius: 6, border: 'none', background: 'var(--tag-bg)' }}>
+                {getCategoryStyle(event.CategoryName).icon} <span style={{ marginLeft: 4 }}>{t(`categories.${event.CategoryName}`) !== `categories.${event.CategoryName}` ? t(`categories.${event.CategoryName}`) : event.CategoryName}</span>
               </Tag>
             )}
-            {showStatus && status.label !== 'Đã kết thúc' && <Tag color={status.color} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{status.label}</Tag>}
+            {showStatus && status.label !== 'Đã kết thúc' && (
+              <Tag color={status.color} style={{ margin: 0, borderRadius: 6, border: 'none' }}>
+                {status.label}
+              </Tag>
+            )}
           </div>
           
           {/* Top Right Badges */}
           <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
             {isPast ? (
-              <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>ĐÃ KẾT THÚC</div>
+              <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{t('eventCard.ended')}</div>
             ) : isOngoing ? (
               <div style={{ background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse 2s infinite' }} /> ĐANG DIỄN RA
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse 2s infinite' }} /> {t('eventCard.happening')}
               </div>
             ) : isUpcoming ? (
-              <div style={{ background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>SẮP DIỄN RA</div>
+              <div style={{ background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{t('eventCard.upcoming')}</div>
             ) : null}
 
             {isFull && !isPast && (
-              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>HẾT CHỖ</div>
+              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{t('eventCard.full')}</div>
             )}
             
             {isFav && (
-              <div style={{ background: '#fff', color: '#ef4444', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <HeartFilled /> YÊU THÍCH
+              <div style={{ background: '#be123c', color: 'white', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(190,18,60,0.3)' }}>
+                <HeartFilled style={{color: '#fecdd3'}} /> {t('eventCard.favorite')}
               </div>
             )}
           </div>
@@ -101,8 +107,11 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
       }
       bodyStyle={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}
     >
-      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
-        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <div
+        className="event-card-title"
+        style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 8, lineHeight: 1.4,
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+      >
         {event.Title}
       </div>
 
@@ -113,25 +122,25 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
           <EnvironmentOutlined style={{ color: '#7c3aed', flexShrink: 0 }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName || 'Chưa cập nhật'}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.VenueName || t('eventCard.notUpdated')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13 }}>
           <UserOutlined style={{ color: '#f59e0b', flexShrink: 0 }} />
-          <span>{event.RegisteredCount || 0} người đã đăng ký</span>
+          <span>{event.RegisteredCount || 0} {t('eventCard.registeredUsers')}</span>
         </div>
         {remaining !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             <TeamOutlined style={{ color: isFull ? '#ef4444' : '#10b981', flexShrink: 0 }} />
             <span style={{ color: isFull ? '#ef4444' : '#6b7280' }}>
-              {isFull ? 'Đã đầy' : `Còn ${remaining} chỗ`}
+              {isFull ? t('eventCard.spotsFull') : `${t('eventCard.spotsLeft')} ${remaining}`}
             </span>
           </div>
         )}
         <div style={{ marginTop: 4 }}>
           {event.IsInternalOnly ? (
-            <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Sinh viên trường</Tag>
+            <Tag color="purple" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{t('eventCard.internalOnly')}</Tag>
           ) : (
-            <Tag color="cyan" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>Tất cả mọi người</Tag>
+            <Tag color="cyan" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{t('eventCard.everyone')}</Tag>
           )}
         </div>
       </div>

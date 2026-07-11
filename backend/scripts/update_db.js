@@ -43,6 +43,18 @@ async function runUpdate() {
       }
     }
 
+    // 4. Add EmailNotifs to Users
+    try {
+      await pool.request().query(`ALTER TABLE Users ADD EmailNotifs BIT DEFAULT 1`);
+      console.log('[+] Added EmailNotifs to Users');
+    } catch (e) {
+      if (e.message.includes('already has an object named') || e.message.includes('column names in each table must be unique')) {
+        console.log('[-] EmailNotifs column already exists');
+      } else {
+        console.warn('[!] Error adding EmailNotifs:', e.message);
+      }
+    }
+
     console.log('DB Update complete!');
     process.exit(0);
   } catch (error) {

@@ -2,3 +2,9 @@ node_modules
 scratch
 backend/uploads
 .env
+
+# Ignored files and folders
+.agents/
+*.csv
+*.xlsx
+"Copy of Template3_System Test.xlsx -  Workflow_ Blog.csv"

@@ -79,7 +79,7 @@ export default function FeedbackSection({eventId}) {
         marginTop: 48,
         paddingTop: 48,
         borderTop: "1px solid #e2e8f0",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Geist', sans-serif",
       }}
     >
       <div

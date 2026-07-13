@@ -42,12 +42,14 @@ const EventListPage = () => {
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId") || "",
     venueId: "",
+    timeStatus: "",
+    isInternal: "",
     startDate: "",
     endDate: "",
     page: 1,
     limit: 6,
     sortBy: "StartDate",
-    sortOrder: "ASC",
+    sortOrder: "DESC",
     status: "Published",
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,6 +75,8 @@ const EventListPage = () => {
       search: "",
       categoryId: "",
       venueId: "",
+      timeStatus: "",
+      isInternal: "",
       startDate: "",
       endDate: "",
       page: 1,
@@ -81,6 +85,8 @@ const EventListPage = () => {
     filters.search ||
     filters.categoryId ||
     filters.venueId ||
+    filters.timeStatus ||
+    filters.isInternal ||
     filters.startDate;
 
   const FilterPanel = () => (
@@ -134,6 +140,37 @@ const EventListPage = () => {
       </div>
       <div>
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Đối tượng tham gia
+        </Text>
+        <Select
+          value={filters.isInternal || undefined}
+          onChange={(v) => updateFilter("isInternal", v || "")}
+          placeholder="Tất cả đối tượng"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="true">Sinh viên trường</Option>
+          <Option value="false">Tất cả mọi người</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Trạng thái sự kiện
+        </Text>
+        <Select
+          value={filters.timeStatus || undefined}
+          onChange={(v) => updateFilter("timeStatus", v || "")}
+          placeholder="Tất cả trạng thái"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="upcoming">Sắp diễn ra</Option>
+          <Option value="ongoing">Đang diễn ra</Option>
+          <Option value="past">Đã kết thúc</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
           {t('browse.time')}
         </Text>
         <RangePicker
@@ -161,9 +198,9 @@ const EventListPage = () => {
           }}
           style={{width: "100%"}}
         >
-          <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
           <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
-          <Option value="CreatedAt_DESC">{t('browse.sortNewest')}</Option>
+          <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
+          <Option value="Participants_DESC">{t('browse.sortParticipantsDesc')}</Option>
           <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
           <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
         </Select>
@@ -204,16 +241,25 @@ const EventListPage = () => {
           >
             🔍 {t('browse.title')}
           </Title>
-          <div style={{display: "flex", gap: 12, maxWidth: 400}}>
-            <Input.Search
+          <div style={{display: "flex", maxWidth: 400}}>
+            <Input
+              size="large"
               placeholder={t('browse.search')}
               value={filters.search}
               onChange={(e) =>
                 setFilters((f) => ({...f, search: e.target.value}))
               }
-              onSearch={() => fetchEvents({...filters})}
-              style={{flex: 1, borderRadius: 10}}
+              onPressEnter={() => fetchEvents({...filters})}
+              style={{flex: 1, borderRadius: '8px 0 0 8px'}}
               allowClear
+            />
+            <Button 
+              className="custom-search-btn"
+              type="primary" 
+              size="large" 
+              icon={<SearchOutlined />} 
+              onClick={() => fetchEvents({...filters})}
+              style={{ borderRadius: '0 8px 8px 0', border: 'none' }}
             />
           </div>
 
@@ -264,6 +310,24 @@ const EventListPage = () => {
                     : t('browse.byDate')}
                 </Tag>
               )}
+              {filters.timeStatus && (
+                <Tag
+                  closable
+                  onClose={() => updateFilter("timeStatus", "")}
+                  color="orange"
+                >
+                  {filters.timeStatus === 'upcoming' ? 'Sắp diễn ra' : filters.timeStatus === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                </Tag>
+              )}
+              {filters.isInternal && (
+                <Tag
+                  closable
+                  onClose={() => updateFilter("isInternal", "")}
+                  color="magenta"
+                >
+                  {filters.isInternal === 'true' ? 'Sinh viên trường' : 'Tất cả mọi người'}
+                </Tag>
+              )}
             </div>
           )}
         </div>
@@ -278,6 +342,13 @@ const EventListPage = () => {
           .category-filter .ant-select-selection-placeholder {
             color: #166534 !important;
             opacity: 0.7;
+          }
+          .category-filter .ant-select-selection-item {
+            color: #166534 !important;
+          }
+          .custom-search-btn {
+            background-color: #f97316 !important;
+            color: #ffffff !important;
           }
           body {
             font-family: 'DM Sans', sans-serif !important;

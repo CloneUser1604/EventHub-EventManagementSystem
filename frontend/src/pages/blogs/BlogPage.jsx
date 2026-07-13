@@ -14,8 +14,23 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Helper to build image URL
-const buildImgUrl = (url) => url.startsWith('http') ? url : `http://localhost:5000/${url.replace(/\\/g, '/')}`;
+// Helper to build image URL - normalizes to current backend regardless of stored host
+const BACKEND_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+const buildImgUrl = (url) => {
+  if (!url) return '';
+  // If it's a full URL containing /uploads/, extract the path and repoint to current backend
+  if (url.startsWith('http')) {
+    try {
+      const parsed = new URL(url);
+      // Re-attach to current backend base
+      return `${BACKEND_BASE}${parsed.pathname}`;
+    } catch (e) {
+      return url;
+    }
+  }
+  // Relative path
+  return `${BACKEND_BASE}/${url.replace(/\\/g, '/')}`;
+};
 
 // Parse ImageURL: returns array of string URLs
 const parseImages = (raw) => {
@@ -1903,7 +1918,6 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         beforeUpload={(file) => { setCommentImageFiles(prev => [...prev, file]); return false; }} 
                         showUploadList={false} 
                         accept="image/*"
-                        fileList={commentImageFiles}
                       >
                         <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} />
                       </Upload>
@@ -2075,7 +2089,6 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                     beforeUpload={(file) => { setReplyImageFiles(prev => [...prev, file]); return false; }} 
                                     showUploadList={false} 
                                     accept="image/*"
-                                    fileList={replyImageFiles}
                                   >
                                     <Button type="text" shape="circle" size="small" icon={<PictureOutlined style={{ fontSize: 16, color: '#6b7280' }} />} />
                                   </Upload>

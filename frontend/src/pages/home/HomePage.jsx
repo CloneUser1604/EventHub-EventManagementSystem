@@ -1,18 +1,6 @@
-<<<<<<< HEAD
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Input, Button, Row, Col, Tag, Spin, Select, Empty, Typography } from 'antd';
-import { 
-  SearchOutlined, ArrowRightOutlined, CalendarOutlined, TeamOutlined, TrophyOutlined,
-  CodeOutlined, BookOutlined, RocketOutlined, SmileOutlined, HeartOutlined, NotificationOutlined, AppstoreOutlined
-} from '@ant-design/icons';
-import MainLayout from '../../components/layout/MainLayout';
-import EventCard from '../../components/events/EventCard';
-import useEventStore from '../../store/eventStore';
-import dayjs from 'dayjs';
-=======
 import React, {useEffect, useState, useRef} from "react";
 import {useNavigate} from "react-router-dom";
+import { getImageUrl } from "../../utils/imageHelpers";
 import {
   Input,
   Button,
@@ -37,6 +25,12 @@ import {
   FireOutlined,
   SafetyCertificateOutlined,
   RocketOutlined,
+  CodeOutlined, 
+  BookOutlined, 
+  SmileOutlined, 
+  HeartOutlined, 
+  NotificationOutlined, 
+  AppstoreOutlined
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
@@ -45,7 +39,6 @@ import useSettingStore from "../../store/settingStore";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useScrollAnimation } from "../../hooks/useScrollAnimation";
 import dayjs from "dayjs";
->>>>>>> e327bcf86549f211b22360e539b7612b019cdeca
 
 const {Title, Text} = Typography;
 const {Option} = Select;
@@ -73,7 +66,6 @@ const Counter = ({target, suffix = ""}) => {
   );
 };
 
-<<<<<<< HEAD
 const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
   if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return <CodeOutlined />;
@@ -86,8 +78,6 @@ const getCategoryIcon = (categoryName) => {
   return <AppstoreOutlined />;
 };
 
-
-=======
 // ─── Custom Featured Card ──────────────────────────────────────
 const FeaturedEventCard = ({ event, index }) => {
   const navigate = useNavigate();
@@ -107,7 +97,7 @@ const FeaturedEventCard = ({ event, index }) => {
       }}
     >
       <img
-        src={event.CoverImageURL || "https://images.unsplash.com/photo-1540575467063-178a50c2df87"}
+        src={event.CoverImageURL ? getImageUrl(event.CoverImageURL) : "https://images.unsplash.com/photo-1540575467063-178a50c2df87"}
         alt={event.Title}
         className="featured-card-img"
         style={{
@@ -154,16 +144,17 @@ const FeaturedEventCard = ({ event, index }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <CalendarOutlined style={{ color: "#F9FAFB" }} /> {dayjs(event.StartDate).format("DD/MM - HH:mm")}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <EnvironmentOutlined style={{ color: "#F9FAFB" }} /> {event.VenueName?.split(" ")[0] || "Online"}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+            <EnvironmentOutlined style={{ color: "#F9FAFB", flexShrink: 0 }} /> 
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {event.VenueName || "Online"}
+            </span>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
->>>>>>> e327bcf86549f211b22360e539b7612b019cdeca
 const HomePage = () => {
   const navigate = useNavigate();
   const {events, isLoading, categories, fetchEvents, fetchMeta} = useEventStore();
@@ -185,8 +176,20 @@ const HomePage = () => {
     fetchEvents({status: "Published", limit: 100, page: 1});
   }, []);
 
-  const handleScrollLeft = () => carouselRef.current?.prev();
-  const handleScrollRight = () => carouselRef.current?.next();
+  const canScroll = () => {
+    const w = window.innerWidth;
+    if (w >= 1024 && featuredEvents.length <= 3) return false;
+    if (w >= 768 && w < 1024 && featuredEvents.length <= 2) return false;
+    if (w < 768 && featuredEvents.length <= 1) return false;
+    return true;
+  };
+
+  const handleScrollLeft = () => {
+    if (canScroll()) carouselRef.current?.prev();
+  };
+  const handleScrollRight = () => {
+    if (canScroll()) carouselRef.current?.next();
+  };
   const handleSearch = () => {
     navigate(`/events?search=${encodeURIComponent(search)}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
   };
@@ -318,6 +321,10 @@ const HomePage = () => {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
           }
+          .category-tag-hover, .category-tag-hover > * {
+            white-space: nowrap !important;
+            overflow: visible !important;
+          }
         `}</style>
         <div 
           className="hide-scrollbar" 
@@ -327,35 +334,41 @@ const HomePage = () => {
             flexWrap: 'nowrap', 
             justifyContent: 'flex-start', 
             overflowX: 'auto',
-            paddingBottom: 8 // for scrollbar space if visible
+            paddingBottom: 8, // for scrollbar space if visible
+            paddingTop: 10, // for hover scale and translateY space
+            paddingLeft: 4, // prevent left edge box-shadow clipping
+            paddingRight: 4,
+            marginLeft: -4, // offset padding
+            marginRight: -4
           }}
         >
-          <Tag
+          <div
             className="category-tag-hover"
             onClick={() => navigate('/events')}
             style={{ 
               cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
               background: '#1a2744', color: 'white', border: 'none', fontWeight: 600, 
-              flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' 
+              flexShrink: 0, whiteSpace: 'nowrap', width: 'max-content', display: 'inline-flex', alignItems: 'center' 
             }}
           >
             🔥 Tất cả
-          </Tag>
+          </div>
           {categories.map((c) => (
-            <Tag
+            <div
               className="category-tag-hover"
               key={c.CategoryID}
               onClick={() => navigate(`/events?categoryId=${c.CategoryID}`)}
-              icon={getCategoryIcon(c.Name)}
               style={{ 
                 cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
                 fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', 
-                color: '#374151', flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' 
+                color: '#374151', flexShrink: 0, whiteSpace: 'nowrap', width: 'max-content', display: 'inline-flex', alignItems: 'center', gap: 6 
               }}
             >
+              {getCategoryIcon(c.Name)}
               {c.Name}
-            </Tag>
+            </div>
           ))}
+          <div style={{ width: 1, flexShrink: 0 }}></div>
         </div>
       </section>
 
@@ -453,7 +466,7 @@ const HomePage = () => {
       ══════════════════════════════════════════════════ */}
       {featuredEvents.length > 0 && (
         <section ref={featuredEventsRef} style={{padding: "100px 24px", maxWidth: 1200, margin: "0 auto"}}>
-          <div className={`motion-fade-up ${featuredEventsVisible ? 'is-visible' : ''}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
             <div>
               <Title level={2} style={{ fontFamily: "'Geist', sans-serif", fontSize: 36, fontWeight: 800, margin: 0, color: theme === 'dark' ? '#fff' : '#18181b' }}>
                 {t('home.featured')} <span style={{color: "#f27024"}}>★</span>
@@ -465,25 +478,44 @@ const HomePage = () => {
           </div>
 
           <div style={{ position: 'relative', margin: "0 -12px", transition: 'opacity 0.5s' }} className={featuredEventsVisible ? 'is-visible' : ''}>
-            <Button 
-              shape="circle" 
-              size="large"
-              icon={<LeftOutlined />} 
-              onClick={handleScrollLeft} 
-              style={{ position: 'absolute', top: '50%', left: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-            />
-            <Button 
-              shape="circle" 
-              size="large"
-              icon={<RightOutlined />} 
-              onClick={handleScrollRight} 
-              style={{ position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-            />
+            <div>
+              <Button 
+                shape="circle" 
+                size="large"
+                icon={<LeftOutlined />} 
+                onClick={handleScrollLeft} 
+                style={{ position: 'absolute', top: '50%', left: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+              />
+              <Button 
+                shape="circle" 
+                size="large"
+                icon={<RightOutlined />} 
+                onClick={handleScrollRight} 
+                style={{ position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+              />
+            </div>
+            <style>{`
+              @media (min-width: 1024px) {
+                .slick-force-left-3 .slick-track { transform: translate3d(0, 0, 0) !important; }
+              }
+              @media (min-width: 768px) and (max-width: 1023px) {
+                .slick-force-left-2 .slick-track { transform: translate3d(0, 0, 0) !important; }
+              }
+              @media (max-width: 767px) {
+                .slick-force-left-1 .slick-track { transform: translate3d(0, 0, 0) !important; }
+              }
+            `}</style>
             <Carousel
-              ref={carouselRef} autoplay autoplaySpeed={4000} slidesToShow={3} infinite={true} dots={false}
+              className={`${featuredEvents.length <= 3 ? 'slick-force-left-3' : ''} ${featuredEvents.length <= 2 ? 'slick-force-left-2' : ''} ${featuredEvents.length <= 1 ? 'slick-force-left-1' : ''}`}
+              ref={carouselRef} 
+              autoplay={featuredEvents.length > 3} 
+              autoplaySpeed={4000} 
+              slidesToShow={3} 
+              infinite={featuredEvents.length > 3} 
+              dots={false}
               responsive={[
-                { breakpoint: 1024, settings: { slidesToShow: 2 } },
-                { breakpoint: 768, settings: { slidesToShow: 1 } },
+                { breakpoint: 1024, settings: { slidesToShow: 2, infinite: featuredEvents.length > 2, autoplay: featuredEvents.length > 2 } },
+                { breakpoint: 768, settings: { slidesToShow: 1, infinite: featuredEvents.length > 1, autoplay: featuredEvents.length > 1 } },
               ]}
             >
               {featuredEvents.map((event, index) => (

@@ -10,7 +10,7 @@ const getEvents = async (req, res) => {
     const {
       page = 1, limit = 12,
       search, categoryId, venueId, status, approvalStatus,
-      startDate, endDate, organizerId,
+      startDate, endDate, organizerId, timeStatus, isInternal,
       sortBy = 'StartDate', sortOrder = 'ASC',
     } = req.query;
 
@@ -61,6 +61,18 @@ const getEvents = async (req, res) => {
       conditions.push(`e.EndDate <= @EndDate`);
       params.push({ name: 'EndDate', type: sql.DateTime, value: new Date(endDate) });
     }
+    if (timeStatus === 'upcoming') {
+      conditions.push(`e.StartDate > GETDATE()`);
+    } else if (timeStatus === 'ongoing') {
+      conditions.push(`e.StartDate <= GETDATE() AND e.EndDate >= GETDATE()`);
+    } else if (timeStatus === 'past') {
+      conditions.push(`e.EndDate < GETDATE()`);
+    }
+    if (isInternal === 'true') {
+      conditions.push(`e.IsInternalOnly = 1`);
+    } else if (isInternal === 'false') {
+      conditions.push(`e.IsInternalOnly = 0`);
+    }
     if (organizerId && (isAdmin || isOrganizer)) {
       conditions.push(`e.OrganizerID = @OrganizerID`);
       params.push({ name: 'OrganizerID', type: sql.Int, value: parseInt(organizerId) });
@@ -68,7 +80,7 @@ const getEvents = async (req, res) => {
 
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
 
-    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt', Rating: 'AverageRating' };
+    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt', Rating: 'AverageRating', Participants: 'RegisteredCount' };
     const orderCol = validSortCols[sortBy] || 'e.StartDate';
     const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 

@@ -828,7 +828,8 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       message={t('eventDetail.eventEndedAlert')}
                       type="info"
                       showIcon
-                      style={{borderRadius: 10, marginBottom: 12}}
+                      icon={<ClockCircleOutlined style={{color: '#6b7280'}} />}
+                      style={{borderRadius: 10, marginBottom: 12, backgroundColor: '#f3f4f6', borderColor: '#e5e7eb', color: '#374151'}}
                     />
                   ) : isFull ? (
                     <Alert

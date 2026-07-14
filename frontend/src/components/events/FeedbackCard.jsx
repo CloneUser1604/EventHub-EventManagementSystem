@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {Avatar, Rate, Button, Image, Modal, Input, message, Tag} from "antd";
+import {Avatar, Rate, Button, Image, Modal, Input, message, Tag, Radio, Space} from "antd";
 import {UserOutlined, DeleteOutlined, MessageOutlined, WarningOutlined, EditOutlined} from "@ant-design/icons";
 import dayjs from "dayjs";
 import {feedbackService} from "../../services/feedback.service";
@@ -16,6 +16,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
   const [replyModalOpen, setReplyModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [reportType, setReportType] = useState("");
   const [reportReason, setReportReason] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -66,10 +67,15 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
   };
 
   const handleReport = async () => {
-    if (!reportReason.trim()) return message.warning("Vui lòng nhập lý do báo cáo.");
+    let finalReason = reportType;
+    if (reportType === "Khác") {
+      finalReason = reportReason;
+    }
+
+    if (!finalReason || !finalReason.trim()) return message.warning("Vui lòng chọn hoặc nhập lý do báo cáo.");
     setLoading(true);
     try {
-      await feedbackService.reportFeedback(selectedEvent?.EventID, item.FeedbackID, reportReason);
+      await feedbackService.reportFeedback(selectedEvent?.EventID, item.FeedbackID, finalReason);
       message.success("Đã báo cáo đánh giá lên Admin.");
       setReportModalOpen(false);
       onSuccess();
@@ -181,9 +187,54 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
         <TextArea rows={4} placeholder="Nhập phản hồi của bạn..." value={replyContent} onChange={(e) => setReplyContent(e.target.value)} />
       </Modal>
 
-      <Modal title="Báo cáo đánh giá" open={reportModalOpen} onCancel={() => setReportModalOpen(false)} onOk={handleReport} confirmLoading={loading} okText="Báo cáo" okButtonProps={{danger: true}}>
-        <div style={{marginBottom: 12}}>Vui lòng cho biết lý do bạn báo cáo đánh giá này:</div>
-        <TextArea rows={4} placeholder="Ví dụ: Đánh giá chứa từ ngữ phản cảm, sai sự thật..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
+      <Modal 
+        title="Báo cáo đánh giá" 
+        open={reportModalOpen} 
+        onCancel={() => {
+          setReportModalOpen(false);
+          setReportType("");
+          setReportReason("");
+        }} 
+        onOk={handleReport} 
+        confirmLoading={loading} 
+        okText="Gửi báo cáo" 
+        cancelText="Hủy"
+        okButtonProps={{danger: true, disabled: !reportType}}
+      >
+        <div style={{marginBottom: 16}}>Vui lòng chọn lí do bạn muốn báo cáo đánh giá này:</div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {["Từ ngữ thô tục, phản cảm", "Spam, quảng cáo rác", "Nội dung sai sự thật, công kích cá nhân", "Hình ảnh/Video không phù hợp", "Khác"].map((reason, idx) => (
+            <div key={idx}>
+              <div 
+                onClick={() => setReportType(reason)}
+                style={{ 
+                  padding: '12px 16px', 
+                  borderRadius: 8, 
+                  border: reportType === reason ? '2px solid #ef4444' : '1px solid #d1d5db',
+                  backgroundColor: reportType === reason ? '#fef2f2' : '#ffffff',
+                  cursor: 'pointer',
+                  fontWeight: reportType === reason ? 600 : 400,
+                  color: reportType === reason ? '#b91c1c' : '#374151',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {reason}
+              </div>
+              {reason === 'Khác' && reportType === 'Khác' && (
+                <div style={{ marginTop: 8 }}>
+                  <TextArea 
+                    autoFocus
+                    placeholder="Vui lòng nhập chi tiết lí do báo cáo..." 
+                    rows={3} 
+                    value={reportReason}
+                    onChange={e => setReportReason(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </Modal>
     </div>
   );

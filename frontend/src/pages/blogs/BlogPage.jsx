@@ -221,7 +221,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const canPost = isAuthenticated;
 
   const getAvatarUrl = (url) => {
-    if (!url) return '';
+    if (!url) return undefined; // return undefined so Ant Design Avatar falls back to icon
     if (url.startsWith('http')) return url;
     if (url.startsWith('avatar_')) return `http://localhost:5000/uploads/avatars/${url}`;
     return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;

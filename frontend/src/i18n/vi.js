@@ -267,7 +267,7 @@ export const vi = {
     "replyTo": "Trả lời",
     "edited": "(đã chỉnh sửa)",
     "noComments": "Chưa có bình luận nào",
-    "post": "Đăng ở blog",
+    "post": "Đăng blog",
     "filterAll": "Tất cả",
     "filterComments": "Bình luận",
     "filterLikes": "Lượt thích"

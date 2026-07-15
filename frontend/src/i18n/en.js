@@ -267,7 +267,7 @@ export const en = {
     "replyTo": "Reply to",
     "edited": "(edited)",
     "noComments": "No comments yet",
-    "post": "Post to blog",
+    "post": "Post blog",
     "filterAll": "All",
     "filterComments": "Comments",
     "filterLikes": "Likes"

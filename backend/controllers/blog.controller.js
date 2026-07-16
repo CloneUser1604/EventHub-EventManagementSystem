@@ -46,7 +46,7 @@ const getBlogs = async (req, res) => {
           SELECT 
             b.BlogID, b.Title, b.Content, b.CoverURL, b.Images, b.PollQuestion, b.PollOptions, b.PublishedAt, b.CreatedAt,
             u.UserID AS AuthorID, u.FullName AS AuthorName, u.AvatarURL AS AuthorAvatar, u.Role AS AuthorRole,
-            e.EventID, e.Title AS EventTitle,
+            e.EventID, e.Title AS EventTitle, e.Status AS EventStatus, e.EndDate AS EventEndDate, e.RegistrationDeadline AS EventRegistrationDeadline,
             (SELECT COUNT(*) FROM BlogLikes WHERE BlogID = b.BlogID) AS LikeCount,
             (SELECT COUNT(*) FROM BlogComments WHERE BlogID = b.BlogID) AS CommentCount
           FROM Blogs b
@@ -168,7 +168,7 @@ const getBlogById = async (req, res) => {
         SELECT 
           b.BlogID, b.Title, b.Content, b.CoverURL, b.Images, b.PollQuestion, b.PollOptions, b.PublishedAt, b.CreatedAt,
           u.UserID AS AuthorID, u.FullName AS AuthorName, u.AvatarURL AS AuthorAvatar, u.Role AS AuthorRole,
-          e.EventID, e.Title AS EventTitle,
+          e.EventID, e.Title AS EventTitle, e.Status AS EventStatus, e.EndDate AS EventEndDate, e.RegistrationDeadline AS EventRegistrationDeadline,
           (SELECT COUNT(*) FROM BlogLikes WHERE BlogID = b.BlogID) AS LikeCount,
           (SELECT COUNT(*) FROM BlogComments WHERE BlogID = b.BlogID) AS CommentCount
         FROM Blogs b

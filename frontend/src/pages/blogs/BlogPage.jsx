@@ -35,6 +35,7 @@ const buildImgUrl = (url) => {
 // Parse ImageURL: returns array of string URLs
 const parseImages = (raw) => {
   if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
   try {
     const arr = JSON.parse(raw);
     if (Array.isArray(arr)) return arr;
@@ -43,7 +44,7 @@ const parseImages = (raw) => {
 };
 
 // Grid image display component
-const ImageGrid = ({ imageUrl, maxVisible = 3 }) => {
+const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
   const [lightbox, setLightbox] = React.useState(null); // index of open image
   const [showAll, setShowAll] = React.useState(false);
   const images = parseImages(imageUrl);
@@ -74,7 +75,14 @@ const ImageGrid = ({ imageUrl, maxVisible = 3 }) => {
               />
               {isLast && (
                 <div
-                  onClick={() => setShowAll(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onExpand) {
+                      onExpand();
+                    } else {
+                      setShowAll(true);
+                    }
+                  }}
                   style={{
                     position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -89,7 +97,7 @@ const ImageGrid = ({ imageUrl, maxVisible = 3 }) => {
         })}
       </div>
       {showAll && images.length > maxVisible && (
-        <Button type="link" size="small" onClick={() => setShowAll(false)} style={{ padding: 0, marginTop: 4 }}>Thu gọn</Button>
+        <Button type="text" size="small" onClick={() => setShowAll(false)} style={{ padding: '2px 12px', marginTop: 8, fontWeight: 600, color: '#3b82f6', backgroundColor: '#eff6ff', borderRadius: 12 }}>Thu gọn</Button>
       )}
       <Modal
         open={lightbox !== null}
@@ -1455,9 +1463,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     <div style={{ marginTop: 12 }}>
                       <span 
                         onClick={(e) => { e.stopPropagation(); navigate(`/events/${item.EventID}`); }}
-                        style={{ fontSize: 13, padding: '4px 12px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 16, color: '#4b5563', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 500 }}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e5e7eb'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                        style={{ fontSize: 13, padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 16, color: '#2563eb', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 600 }}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
                         Tham gia sự kiện: {item.EventTitle}
                       </span>
@@ -1481,23 +1489,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                   )}
 
                   {item.Images && item.Images.length > 0 && (
-                    <div className="hide-scrollbar" style={{ marginTop: 12, display: 'flex', overflowX: 'auto', gap: 8, paddingBottom: 4 }}>
-                      {item.Images.map((img, idx) => (
-                        <img 
-                          key={idx}
-                          src={img} 
-                          alt="Blog Content" 
-                          style={{
-                            flexShrink: 0,
-                            width: item.Images.length === 1 ? '100%' : 260, 
-                            height: item.Images.length === 1 ? 'auto' : 340,
-                            maxHeight: 500, 
-                            objectFit: 'cover', 
-                            borderRadius: 12,
-                            border: '1px solid #f0f0f0'
-                          }} 
-                        />
-                      ))}
+                    <div style={{ marginTop: 12 }}>
+                      <ImageGrid imageUrl={item.Images} onExpand={() => { setDetailBlog(item); setDetailModalVisible(true); fetchComments(item.BlogID, commentSort); }} />
                     </div>
                   )}
 
@@ -1824,9 +1817,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     <div style={{ marginTop: 12 }}>
                       <span 
                         onClick={(e) => { e.stopPropagation(); navigate(`/events/${detailBlog.EventID}`); }}
-                        style={{ fontSize: 13, padding: '6px 14px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 16, color: '#4b5563', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 500 }}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e5e7eb'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                        style={{ fontSize: 13, padding: '6px 14px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 16, color: '#2563eb', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s', fontWeight: 600 }}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
                         Tham gia sự kiện: {detailBlog.EventTitle}
                       </span>
@@ -1844,23 +1837,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                   )}
 
                   {detailBlog.Images && detailBlog.Images.length > 0 && (
-                    <div className="hide-scrollbar" style={{ marginTop: 12, display: 'flex', overflowX: 'auto', gap: 8, paddingBottom: 4 }}>
-                      {detailBlog.Images.map((img, idx) => (
-                        <img 
-                          key={idx}
-                          src={img} 
-                          alt="Blog Content" 
-                          style={{
-                            flexShrink: 0,
-                            width: detailBlog.Images.length === 1 ? '100%' : 260, 
-                            height: detailBlog.Images.length === 1 ? 'auto' : 340,
-                            maxHeight: 500, 
-                            objectFit: 'cover', 
-                            borderRadius: 12,
-                            border: '1px solid #f0f0f0'
-                          }} 
-                        />
-                      ))}
+                    <div style={{ marginTop: 12 }}>
+                      <ImageGrid imageUrl={detailBlog.Images} maxVisible={999} />
                     </div>
                   )}
 

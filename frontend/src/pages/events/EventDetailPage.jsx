@@ -658,27 +658,31 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
               <div style={{marginBottom: 20}}>
                 <Tag
                   color={
-                    event.Status !== "Published"
-                      ? "default"
-                      : isPast
+                    event.Status === "Cancelled"
+                      ? "red"
+                      : event.Status !== "Published"
                         ? "default"
-                        : deadlinePassed
-                          ? "red"
-                          : isFull
-                            ? "orange"
-                            : "green"
+                        : isPast
+                          ? "default"
+                          : deadlinePassed
+                            ? "red"
+                            : isFull
+                              ? "orange"
+                              : "green"
                   }
                   style={{borderRadius: 6, fontWeight: 600, marginBottom: 12}}
                 >
-                  {event.Status !== "Published"
-                    ? event.Status
-                    : isPast
-                      ? t('eventDetail.badgeEnded')
-                      : deadlinePassed
-                        ? t('eventDetail.badgeClosed')
-                        : isFull
-                          ? t('eventDetail.badgeFull')
-                          : t('eventDetail.badgeOpened')}
+                  {event.Status === "Cancelled"
+                    ? "🔴 Đã huỷ"
+                    : event.Status !== "Published"
+                      ? event.Status
+                      : isPast
+                        ? t('eventDetail.badgeEnded')
+                        : deadlinePassed
+                          ? t('eventDetail.badgeClosed')
+                          : isFull
+                            ? t('eventDetail.badgeFull')
+                            : t('eventDetail.badgeOpened')}
                 </Tag>
                 <div
                   style={{

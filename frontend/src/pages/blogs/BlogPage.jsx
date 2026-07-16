@@ -475,7 +475,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const fetchEvents = async () => {
     setLoadingEvents(true);
     try {
-      const res = await eventService.getEvents({ limit: 100 });
+      const res = await eventService.getEvents({ limit: 100, status: 'all_published_cancelled' });
       if (res.data?.success) {
         setEvents(res.data.data.events || []);
       }

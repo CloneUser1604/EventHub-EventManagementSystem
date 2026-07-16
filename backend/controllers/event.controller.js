@@ -27,8 +27,12 @@ const getEvents = async (req, res) => {
     if (isAdmin) {
       // Admin sees everything — optionally filter by status/approvalStatus
       if (status) {
-        conditions.push(`e.Status = @Status`);
-        params.push({ name: 'Status', type: sql.VarChar(20), value: status });
+        if (status === 'all_published_cancelled') {
+          conditions.push(`e.Status IN ('Published', 'Cancelled')`);
+        } else {
+          conditions.push(`e.Status = @Status`);
+          params.push({ name: 'Status', type: sql.VarChar(20), value: status });
+        }
       }
       if (approvalStatus) {
         conditions.push(`e.ApprovalStatus = @ApprovalStatus`);
@@ -36,9 +40,19 @@ const getEvents = async (req, res) => {
       }
     } else if (isOrganizer) {
       params.push({ name: 'OrgID', type: sql.Int, value: req.user.UserID });
-      conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
+      if (status === 'all_published_cancelled') {
+        conditions.push(`(e.Status IN ('Published', 'Cancelled') OR e.OrganizerID = @OrgID)`);
+      } else {
+        conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
+      }
     } else {
-      conditions.push(`e.Status = 'Published'`);
+      if (status === 'all_published_cancelled') {
+        conditions.push(`e.Status IN ('Published', 'Cancelled')`);
+      } else if (status === 'Cancelled') {
+        conditions.push(`e.Status = 'Cancelled'`);
+      } else {
+        conditions.push(`e.Status = 'Published'`);
+      }
     }
 
     if (search) {
@@ -164,7 +178,7 @@ const getEventById = async (req, res) => {
 
     const isOwner = req.user?.UserID === event.OrganizerID;
     const isAdmin = req.user?.Role === 'Admin';
-    if (!isAdmin && !isOwner && event.Status !== 'Published') {
+    if (!isAdmin && !isOwner && event.Status !== 'Published' && event.Status !== 'Cancelled') {
       return notFoundResponse(res, 'Không tìm thấy sự kiện');
     }
 

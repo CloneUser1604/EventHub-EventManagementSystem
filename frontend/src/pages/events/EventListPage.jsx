@@ -50,7 +50,7 @@ const EventListPage = () => {
     limit: 6,
     sortBy: "StartDate",
     sortOrder: "DESC",
-    status: "Published",
+    status: "all_published_cancelled",
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showFavs, setShowFavs] = useState(false);
@@ -63,7 +63,7 @@ const EventListPage = () => {
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
-    params.status = "Published";
+    params.status = "all_published_cancelled";
     fetchEvents(params);
   }, [filters]);
 

@@ -84,7 +84,9 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           
           {/* Top Right Badges */}
           <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            {isPast ? (
+            {event.Status === 'Cancelled' ? (
+              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{status.label}</div>
+            ) : isPast ? (
               <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{t('eventCard.ended')}</div>
             ) : isOngoing ? (
               <div style={{ background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag } from 'antd';
-import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
 import { eventService } from '../../services/event.service';
@@ -142,6 +142,18 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const id = adminBlogId || params.id;
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
+  
+  const getEventActionText = (ev) => {
+    if (!ev) return '';
+    const now = new Date();
+    const isCancelled = ev.EventStatus === 'Cancelled';
+    const isEnded = ev.EventEndDate && new Date(ev.EventEndDate) < now;
+    const isRegClosed = ev.EventRegistrationDeadline && new Date(ev.EventRegistrationDeadline) < now;
+    if (isCancelled || isEnded || isRegClosed) {
+      return 'Chi tiết sự kiện: ';
+    }
+    return 'Tham gia sự kiện: ';
+  };
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1467,7 +1479,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
                         onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
-                        Tham gia sự kiện: {item.EventTitle}
+                        {getEventActionText(item)}{item.EventTitle}
                       </span>
                     </div>
                   )}
@@ -1821,7 +1833,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
                         onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
-                        Tham gia sự kiện: {detailBlog.EventTitle}
+                        {getEventActionText(detailBlog)}{detailBlog.EventTitle}
                       </span>
                     </div>
                   )}
@@ -1900,11 +1912,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} />
                       </Upload>
                       <Input 
-                        placeholder={`${t('blog.replyTo')} ${detailBlog.AuthorName}...`}
+                        placeholder={t('blog.writeComment')}
                         value={commentInput}
                         onChange={(e) => setCommentInput(e.target.value)}
                         onPressEnter={() => handleAddComment(detailBlog.BlogID)}
-                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}>{t('blog.post')}</Button>}
+                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}><SendOutlined style={{ fontSize: 20 }} /></Button>}
                         style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}
                       />
                     </div>
@@ -2076,7 +2088,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                     value={replyInput}
                                     onChange={(e) => setReplyInput(e.target.value)}
                                     onPressEnter={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)}
-                                    suffix={<Button type="link" onClick={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)} style={{ padding: 0 }}>Đăng</Button>}
+                                    suffix={<Button type="link" onClick={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)} style={{ padding: 0 }}><SendOutlined style={{ fontSize: 20 }} /></Button>}
                                     style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '4px 12px', color: theme === 'dark' ? '#fff' : '#000' }}
                                   />
                                 </div>

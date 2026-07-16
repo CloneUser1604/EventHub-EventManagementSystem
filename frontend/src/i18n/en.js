@@ -265,6 +265,7 @@ export const en = {
     "postDetails": "Post Details",
     "report": "Report",
     "replyTo": "Reply to",
+    "writeComment": "Write a comment...",
     "edited": "(edited)",
     "noComments": "No comments yet",
     "post": "Post blog",

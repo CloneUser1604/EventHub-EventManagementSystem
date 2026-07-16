@@ -265,6 +265,7 @@ export const vi = {
     "postDetails": "Chi tiết bài viết",
     "report": "Báo cáo",
     "replyTo": "Trả lời",
+    "writeComment": "Viết bình luận...",
     "edited": "(đã chỉnh sửa)",
     "noComments": "Chưa có bình luận nào",
     "post": "Đăng blog",

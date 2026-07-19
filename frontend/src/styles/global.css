@@ -1,0 +1,301 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --canvas-white: #F9FAFB;
+  --pure-surface: #FFFFFF;
+  --charcoal-ink: #18181B;
+  --muted-steel: #71717A;
+  --whisper-border: rgba(226, 232, 240, 0.6);
+  --onyx-accent: #27272A;
+
+  /* Overriding old variables to prevent breaking existing classes, mapping them to the new neutral palette */
+  --navy: var(--charcoal-ink); --navy-mid: #27272A; --blue: var(--onyx-accent); --blue-light: #3f3f46;
+  --indigo: var(--onyx-accent); --purple: var(--charcoal-ink); --teal: var(--muted-steel); --green: #10b981;
+  --orange: #f59e0b; --red: #ef4444; --gray-50: var(--canvas-white); --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7; --gray-300: #d4d4d8; --gray-500: var(--muted-steel);
+  --gray-700: #3f3f46; --gray-900: var(--charcoal-ink); --white: var(--pure-surface);
+
+  --font-main: 'Geist', sans-serif; 
+  --font-head: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  
+  --radius-lg: 16px; --radius-md: 12px; --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); 
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08); 
+  --transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-main);background:var(--gray-50);color:var(--gray-900);-webkit-font-smoothing:antialiased; transition: background 0.3s, color 0.3s;}
+body.dark-mode-active { background: #141414; color: #ffffff; }
+
+/* Dark Mode Overrides for Ant Design elements that assume light background */
+body.dark-mode-active .ant-typography,
+body.dark-mode-active .ant-btn-text,
+body.dark-mode-active .ant-descriptions-item-label,
+body.dark-mode-active .ant-descriptions-item-content,
+body.dark-mode-active .ant-empty-description,
+body.dark-mode-active .ant-select-selection-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+body.dark-mode-active .sticky-panel-box,
+body.dark-mode-active .agenda-item-box,
+body.dark-mode-active .organizer-box {
+  background: #1f1f1f !important;
+  border-color: #333 !important;
+}
+
+body.dark-mode-active .hero-search-bar {
+  background: rgba(30, 30, 30, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode-active .hero-search-bar .ant-input,
+body.dark-mode-active .hero-search-bar .ant-input-affix-wrapper {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+body.dark-mode-active .hero-search-bar .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+body.dark-mode-active .hero-search-category {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode-active .hero-search-category .ant-select-selector,
+body.dark-mode-active .hero-search-category .ant-select-selection-placeholder,
+body.dark-mode-active .hero-search-category .ant-select-selection-item {
+  color: #fff !important;
+}
+
+body.dark-mode-active .hero-search-bar .ant-btn-primary {
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border: none !important;
+}
+body.dark-mode-active .hero-search-bar .ant-btn-primary:hover {
+  background: #2563eb !important;
+}
+
+body.dark-mode-active .event-card-title {
+  color: #ffffff !important;
+}
+
+body.dark-mode-active .countdown-box {
+  background: #2a2a2a !important;
+  border-color: #444 !important;
+}
+
+body.dark-mode-active .countdown-text {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+body.dark-mode-active .ant-select-selector,
+body.dark-mode-active .ant-picker {
+  background: #1f1f1f !important;
+  border-color: #333 !important;
+  color: #fff !important;
+}
+
+body.dark-mode-active .ant-select-arrow,
+body.dark-mode-active .ant-picker-suffix,
+body.dark-mode-active .ant-picker-input > input {
+  color: rgba(255,255,255,0.6) !important;
+}
+h1,h2,h3,h4,h5{font-family:var(--font-head);}
+a{color:inherit;text-decoration:none;}
+.ant-btn-primary{
+  background: var(--onyx-accent) !important;
+  border: none !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  transition: var(--transition) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+.ant-btn-primary:hover{
+  transform: translateY(-1px);
+  background: var(--charcoal-ink) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  opacity: 1 !important;
+}
+
+.ant-card{
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--whisper-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.ant-card-head {
+  border-bottom: 1px solid var(--whisper-border) !important;
+}
+.ant-tag{
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  border: 1px solid var(--whisper-border) !important;
+}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--gray-50);}
+::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-300);}
+
+/* Removed neon gradient text */
+.gradient-text{
+  color: var(--charcoal-ink);
+  font-weight: 700;
+}
+.card-hover{transition:var(--transition);cursor:pointer;}
+.card-hover:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)!important;}
+
+/* Fix Ant Design Rate colors */
+.ant-rate-star-full .anticon svg,
+.ant-rate-star-half .ant-rate-star-first .anticon svg {
+  fill: #facc15 !important;
+  color: #facc15 !important;
+}
+.ant-rate-star-zero .anticon svg,
+.ant-rate-star-half .ant-rate-star-second .anticon svg {
+  fill: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+/* Fade in up */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Floating animation for decorative blobs */
+@keyframes floatBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.animate-float {
+  animation: floatBlob 15s ease-in-out infinite;
+}
+
+/* Hover Zoom for Images */
+.hover-zoom-img {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover .hover-zoom-img {
+  transform: scale(1.08);
+}
+
+/* Shimmer gradient text */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-shimmer {
+  background-size: 200% auto !important;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Icon floating */
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-float-icon {
+  display: inline-block;
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+/* Category Tags Hover */
+.category-tag-hover {
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.category-tag-hover:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--blue-light) !important;
+  color: var(--blue) !important;
+}
+
+/* Continuous Subtle Pulse for Buttons */
+@keyframes softPulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+.animate-soft-pulse {
+  animation: softPulse 2s infinite;
+}
+/* ─── SCROLL ANIMATIONS FOR LANDING PAGE ─── */
+
+.motion-fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-fade-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.motion-fade-in {
+  opacity: 0;
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-fade-in.is-visible {
+  opacity: 1;
+}
+
+.motion-slide-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-slide-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.motion-slide-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-slide-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.motion-delay-100 { transition-delay: 100ms; }
+.motion-delay-200 { transition-delay: 200ms; }
+.motion-delay-300 { transition-delay: 300ms; }
+.motion-delay-400 { transition-delay: 400ms; }
+.motion-delay-500 { transition-delay: 500ms; }
+
+/* Dành cho section events - custom hover scale */
+.landing-event-card {
+  transition: all 0.3s ease;
+}
+.landing-event-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}

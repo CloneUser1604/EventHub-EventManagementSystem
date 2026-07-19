@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import useAuthStore from '../store/authStore';
 import { getImageUrl } from '../utils/imageHelpers';
@@ -10,6 +10,8 @@ const UserProfile = () => {
   const { accessToken, user: globalUser } = useAuthStore();
   const [profileData, setProfileData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -58,6 +60,15 @@ const UserProfile = () => {
   const formatEventDate = (dateString) => {
     if (!dateString) return 'Chưa xác định';
     return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getBadgeStyle = (status) => {
+    const s = status?.toLowerCase() || '';
+    if (s === 'cancelled') return { backgroundColor: '#ef4444', color: '#fff', border: 'none' }; // Nền Đỏ
+    if (s === 'published' || s === 'active') return { backgroundColor: '#10b981', color: '#fff', border: 'none' }; // Nền Xanh lá
+    if (s === 'pendingapproval' || s === 'pending') return { backgroundColor: '#f59e0b', color: '#fff', border: 'none' }; // Nền Cam
+    if (s === 'completed') return { backgroundColor: '#3b82f6', color: '#fff', border: 'none' }; // Nền Xanh dương
+    return { backgroundColor: '#64748b', color: '#fff', border: 'none' }; // Draft hoặc Mặc định (Xám)
   };
 
   return (
@@ -112,16 +123,22 @@ const UserProfile = () => {
               <h3 className="section-title">Sự kiện đã và đang tổ chức</h3>
               <div className="event-list">
                 {organizedEvents.length > 0 ? (
-                  organizedEvents.map((event, idx) => (
-                    <div key={idx} className="event-item">
-                      <div className="event-info">
-                        <h4>{event.Title || event.title}</h4>
-                        <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
-                        <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
+                  organizedEvents.map((event, idx) => {
+                    const statusText = event.Status || event.status || 'Active';
+                    return (
+                      <div key={idx} className="event-item">
+                        <div className="event-info">
+                          <h4>{event.Title || event.title}</h4>
+                          <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
+                          <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
+                        </div>
+                        {/* ĐÃ SỬA: Thay thế class tĩnh thành style màu động */}
+                        <span className="status-badge" style={getBadgeStyle(statusText)}>
+                          {statusText}
+                        </span>
                       </div>
-                      <span className="status-badge active">{event.Status || event.status || 'Active'}</span>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : <p className="no-data">Bạn chưa tạo sự kiện nào.</p>}
               </div>
             </div>
@@ -132,7 +149,13 @@ const UserProfile = () => {
                 <div className="event-list">
                   {registeredEvents.length > 0 ? (
                     registeredEvents.map((event, idx) => (
-                      <div key={idx} className="event-item">
+                      <div 
+                        key={idx} 
+                        className="event-item"
+                        onClick={() => navigate('/my-calendar')}
+                        style={{ cursor: 'pointer' }}
+                        title="Đến lịch của tôi"
+                      >
                         <div className="event-info">
                           <h4>{event.Title || event.title}</h4>
                           <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>

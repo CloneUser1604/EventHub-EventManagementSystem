@@ -9,7 +9,9 @@ const {
   getAllUsers,
   updateUserStatus,
   broadcastNotification,
-  getOrganizerStats
+  getOrganizerStats,
+  getEventNotifications,
+  revokeEventNotification 
 } = require('../controllers/admin.controller');
 
 // Admin: Quản lý sự kiện
@@ -17,6 +19,10 @@ router.get('/events/pending', authenticate, authorize('Admin'), getPendingEvents
 router.post('/events/:eventId/approve', authenticate, authorize('Admin'), approveEvent);
 router.post('/events/:eventId/reject', authenticate, authorize('Admin'), rejectEvent);
 router.post('/events/:eventId/cancel', authenticate, authorize('Admin'), cancelEvent);
+
+// Admin: Quản lý thông báo sự kiện
+router.get('/events/:eventId/notifications', authenticate, authorize('Admin'), getEventNotifications);
+router.delete('/events/:eventId/notifications', authenticate, authorize('Admin'), revokeEventNotification);
 
 // Admin: Quản lý người dùng
 router.get('/users', authenticate, authorize('Admin'), getAllUsers);

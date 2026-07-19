@@ -8,13 +8,12 @@ import {
   HomeOutlined, CalendarOutlined, BellOutlined, UserOutlined,
   LogoutOutlined, SettingOutlined, MenuOutlined, PlusOutlined,
   DashboardOutlined, CheckCircleOutlined, TeamOutlined,
-  SearchOutlined, SafetyCertificateOutlined
+  SearchOutlined
 } from '@ant-design/icons';
 import useAuthStore from "../../store/authStore";
 import useNotificationStore from "../../store/notificationStore";
 import useSettingStore from "../../store/settingStore";
 import { useTranslation } from "../../hooks/useTranslation";
-// ĐÃ THÊM: Import công cụ xử lý ảnh
 import { getImageUrl } from '../../utils/imageHelpers';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -204,14 +203,25 @@ const MainLayout = ({ children }) => {
               >
                 <List.Item.Meta
                   title={
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      
+                      {/* Thẻ thông báo hệ thống (Màu đỏ/cam) */}
                       {n.Type === 'General' && n.RelatedType === 'System' && (
                         <div>
                           <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag>
                         </div>
                       )}
+
+                      {/* ĐÃ SỬA: Thẻ thông báo từ BTC (Màu xanh dương) - Dựa vào RelatedType */}
+                      {n.RelatedType === 'Event' && (
+                        <div>
+                          <Tag color="blue" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ BAN TỔ CHỨC</Tag>
+                        </div>
+                      )}
+                      
                       <Text style={{ fontSize: 14, fontWeight: n.IsRead ? 400 : 600, color: theme === 'dark' ? '#fff' : '#000' }}>
-                        {n.Title}
+                        {/* ĐÃ SỬA: Tự động lọc bỏ mẩu tin 📢 [BTC Sự kiện...] ở đầu title cho đẹp mắt */}
+                        {n.Title.replace(/^📢\s*\[.*?\]\s*/, '')}
                       </Text>
                     </div>
                   }
@@ -232,7 +242,8 @@ const MainLayout = ({ children }) => {
                           </>
                         )}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(n.CreatedAt).fromNow()}</Text>
+                      {/* ĐÃ SỬA: Thay thế replace('Z', '') để cắt đuôi Z, giải quyết dứt điểm lỗi cộng thêm 7 tiếng */}
+                      <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(n.CreatedAt?.replace('Z', '')).fromNow()}</Text>
                     </div>
                   }
                 />
@@ -253,30 +264,22 @@ const MainLayout = ({ children }) => {
           .mobile-menu-btn { display: inline-block !important; }
           .header-user-name { display: none !important; }
         }
-        /* Custom horizontal menu styling to match the screenshot */
-        .desktop-nav.ant-menu-dark {
-          background: transparent !important;
-        }
+        .desktop-nav.ant-menu-dark { background: transparent !important; }
         .desktop-nav.ant-menu-dark .ant-menu-item {
           background-color: transparent !important;
           color: rgba(255, 255, 255, 0.75) !important;
-          font-weight: 500;
-          font-size: 15px;
+          font-weight: 500; font-size: 15px;
           border-bottom: 2px solid transparent !important;
-          transition: all 0.3s;
-          padding: 0 16px !important;
+          transition: all 0.3s; padding: 0 16px !important;
         }
         .desktop-nav.ant-menu-dark .ant-menu-item:hover,
-        .desktop-nav.ant-menu-dark .ant-menu-item-active {
-          color: #2563eb !important;
-        }
+        .desktop-nav.ant-menu-dark .ant-menu-item-active { color: #2563eb !important; }
         .desktop-nav.ant-menu-dark .ant-menu-item-selected {
           color: #2563eb !important;
           border-bottom: 2px solid #2563eb !important;
           background-color: transparent !important;
         }
       `}</style>
-      {/* ── Header ─────────────────────────────────────── */}
       <Header style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: scrolled ? 'rgba(15,22,41,0.97)' : '#0f1629',
@@ -286,13 +289,11 @@ const MainLayout = ({ children }) => {
         padding: '0 24px', height: 64,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>
           <span style={{ color: 'white', fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: -0.5 }}>EMS</span>
         </Link>
 
-        {/* Desktop Nav */}
         <Menu
           mode="horizontal"
           selectedKeys={[activeKey]}
@@ -302,7 +303,6 @@ const MainLayout = ({ children }) => {
           items={navItems.map(n => ({ ...n, onClick: () => navigate(n.key) }))}
         />
 
-        {/* Right Actions */}
         <Space size={8}>
           {isAuthenticated ? (
             <>
@@ -320,7 +320,6 @@ const MainLayout = ({ children }) => {
                 )}
                 trigger={['click']} placement="bottomRight">
                 <Space style={{ cursor: 'pointer', padding: '0 8px', borderRadius: 8, transition: 'all 0.3s' }} className="hover-bg">
-                  {/* ĐÃ SỬA: Đưa getImageUrl vào bọc thuộc tính src của Avatar */}
                   <Avatar
                     src={getImageUrl(user?.avatarURL) || undefined}
                     style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
@@ -344,15 +343,12 @@ const MainLayout = ({ children }) => {
         </Space>
       </Header>
 
-      {/* Mobile Drawer */}
       <Drawer title={<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800 }}>🎓 EMS</span>} open={mobileOpen} onClose={() => setMobileOpen(false)} placement="left" width={260}>
         <Menu mode="vertical" selectedKeys={[activeKey]} items={navItems.map(n => ({ ...n, onClick: () => { navigate(n.key); setMobileOpen(false); } }))} style={{ border: 'none' }} />
       </Drawer>
 
-      {/* ── Content ─────────────────────────────────────── */}
       <Content>{children}</Content>
 
-      {/* ── Footer ──────────────────────────────────────── */}
       <Footer style={{ background: '#0f1629', color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '20px 24px' }}>
         <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
           © {new Date().getFullYear()} EMS — Event Management System
@@ -369,12 +365,8 @@ const MainLayout = ({ children }) => {
         <div style={{ padding: '16px 0', textAlign: 'center' }}>
           <Text style={{ fontSize: 16 }}>{staffModal.notification?.Message}</Text>
           <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <Button size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Declined', staffModal.notification?.NotificationID)}>
-              Từ chối
-            </Button>
-            <Button type="primary" size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Accepted', staffModal.notification?.NotificationID)}>
-              Đồng ý tham gia
-            </Button>
+            <Button size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Declined', staffModal.notification?.NotificationID)}>Từ chối</Button>
+            <Button type="primary" size="large" onClick={() => respondStaffInvite(staffModal.notification?.RelatedID, 'Accepted', staffModal.notification?.NotificationID)}>Đồng ý tham gia</Button>
           </div>
         </div>
       </Modal>
@@ -389,12 +381,8 @@ const MainLayout = ({ children }) => {
         <div style={{ padding: '16px 0', textAlign: 'center' }}>
           <Text style={{ fontSize: 16 }}>{speakerModal.notification?.Message}</Text>
           <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <Button size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Declined', speakerModal.notification?.NotificationID)}>
-              Từ chối
-            </Button>
-            <Button type="primary" size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Accepted', speakerModal.notification?.NotificationID)}>
-              Đồng ý tham gia
-            </Button>
+            <Button size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Declined', speakerModal.notification?.NotificationID)}>Từ chối</Button>
+            <Button type="primary" size="large" onClick={() => respondSpeakerInvite(speakerModal.notification?.RelatedID, 'Accepted', speakerModal.notification?.NotificationID)}>Đồng ý tham gia</Button>
           </div>
         </div>
       </Modal>

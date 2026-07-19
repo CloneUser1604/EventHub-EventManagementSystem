@@ -19,13 +19,10 @@ const getEvents = async (req, res) => {
     const isAdmin     = req.user?.Role === 'Admin';
     const isOrganizer = req.user?.Role === 'Organizer';
 
-    // Build WHERE conditions + params as arrays — apply to each request separately
     const conditions = [];
-    const params = [];   // { name, type, value }
+    const params = [];
 
-    // Role-based visibility
     if (isAdmin) {
-      // Admin sees everything — optionally filter by status/approvalStatus
       if (status) {
         if (status === 'all_published_cancelled') {
           conditions.push(`e.Status IN ('Published', 'Cancelled')`);
@@ -98,19 +95,16 @@ const getEvents = async (req, res) => {
     const orderCol = validSortCols[sortBy] || 'e.StartDate';
     const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
-    // Helper to build a fresh request with all params
     const buildRequest = () => {
       const r = pool.request();
       params.forEach(p => r.input(p.name, p.type, p.value));
       return r;
     };
 
-    // Count
     const countResult = await buildRequest()
       .query(`SELECT COUNT(*) AS Total FROM Events e WHERE ${whereClause}`);
     const total = countResult.recordset[0]?.Total || 0;
 
-    // Data
     const result = await buildRequest()
       .input('Offset', sql.Int, offset)
       .input('Limit',  sql.Int, parseInt(limit))
@@ -204,8 +198,6 @@ const getEventById = async (req, res) => {
       delete s.speakerEmailsStr;
       return s;
     });
-
-
 
     let isStaff = false;
     if (req.user) {
@@ -341,23 +333,19 @@ const createEvent = async (req, res) => {
                 
       const newSessionId = sessionResult.recordset[0].SessionID;
 
-      // Xử lý thêm Speaker vào Session
       if (s.speakerEmails && Array.isArray(s.speakerEmails) && s.speakerEmails.length > 0) {
         for (const email of s.speakerEmails) {
           const userCheck = await pool.request()
             .input('Email', sql.VarChar(255), email.trim())
             .query(`SELECT UserID, Role, IsActive FROM Users WHERE Email = @Email`);
           const speaker = userCheck.recordset[0];
-          // Nếu tồn tại User, có Role='Speaker', và IsActive=1 (hoặc do Organizer vừa tạo đang Pending) thì map vào
           if (speaker && speaker.Role === 'Speaker') {
-            // Thêm vào SessionSpeakers
             await pool.request()
               .input('SessionID', sql.Int, newSessionId)
               .input('SpeakerID', sql.Int, speaker.UserID)
               .query(`IF NOT EXISTS (SELECT 1 FROM SessionSpeakers WHERE SessionID=@SessionID AND SpeakerID=@SpeakerID)
                       INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
             
-            // Thêm vào SpeakerInvitations
             await pool.request()
               .input('EventID', sql.Int, newEvent.EventID)
               .input('SpeakerID', sql.Int, speaker.UserID)
@@ -531,14 +519,11 @@ const updateEvent = async (req, res) => {
         WHERE EventID=@EventID
       `);
 
-    // Cập nhật sessions cho Draft
     if (parsedSessions.length > 0) {
-      // Lưu trạng thái SpeakerInvitations cũ
       const oldInvs = await pool.request().input('EventID', sql.Int, parseInt(id)).query(`SELECT SpeakerID, Status FROM SpeakerInvitations WHERE EventID=@EventID`);
       const oldInvMap = {};
       oldInvs.recordset.forEach(i => oldInvMap[i.SpeakerID] = i.Status);
 
-      // Xoá tất cả session cũ và liên kết
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM SpeakerInvitations WHERE EventID=@EventID`);
       await pool.request().input('EventID', sql.Int, parseInt(id)).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
@@ -683,6 +668,53 @@ const cancelEvent = async (req, res) => {
   }
 };
 
+// ─── NOTIFY PARTICIPANTS (GỬI THÔNG BÁO TỪ BTC) ─────────────────────────
+const notifyParticipants = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, message } = req.body;
+    const pool = getPool();
+
+    // 1. Lấy tên sự kiện để chèn vào thông báo cho Participant dễ nhận biết
+    const eventCheck = await pool.request()
+      .input('EventID', sql.Int, parseInt(id))
+      .query(`SELECT Title FROM Events WHERE EventID = @EventID`);
+    
+    const eventTitle = eventCheck.recordset[0]?.Title || 'Sự kiện';
+
+    const regs = await pool.request()
+      .input('EventID', sql.Int, parseInt(id))
+      .query(`SELECT ParticipantID FROM Registrations WHERE EventID=@EventID AND Status='Registered'`);
+    
+    const participants = regs.recordset;
+
+    if (participants.length === 0) {
+      return errorResponse(res, 'Chưa có ai đăng ký tham gia sự kiện này.', 400);
+    }
+
+    // 2. Đóng dấu nhận diện [BTC] (cho Admin lọc) VÀ [Sự kiện: ...] (cho Participant đọc)
+    const formattedTitle = `📢 [BTC] [Sự kiện: ${eventTitle}] ${title}`;
+
+    // 3. Insert thông báo vào Database
+    for (const reg of participants) {
+      await pool.request()
+        .input('UserID', sql.Int, reg.ParticipantID)
+        .input('Title', sql.NVarChar(300), formattedTitle)
+        .input('Message', sql.NVarChar(sql.MAX), message)
+        .input('Type', sql.VarChar(30), 'General')
+        .input('RelatedID', sql.Int, parseInt(id))
+        .input('RelatedType', sql.VarChar(50), 'Event')
+        .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) 
+                VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
+    }
+
+    return successResponse(res, null, `Đã gửi thông báo thành công tới ${participants.length} người tham dự!`);
+  } catch (error) {
+    console.error('notifyParticipants error:', error.message);
+    return errorResponse(res, 'Lỗi server khi gửi thông báo');
+  }
+};
+
 // ─── SESSIONS ──────────────────────────────────────────────────
 const getSessions = async (req, res) => {
   try {
@@ -795,7 +827,6 @@ const getDashboardStats = async (req, res) => {
       FROM Events e JOIN Users u ON e.OrganizerID=u.UserID ORDER BY e.CreatedAt DESC
     `);
 
-    // Chart Data
     const eventsChart = await pool.request().query(`
       SELECT FORMAT(CreatedAt, '${formatStr}') as label, COUNT(*) as value 
       FROM Events 
@@ -834,6 +865,7 @@ module.exports = {
   getEvents, getEventById, createEvent, updateEvent, deleteEvent,
   submitForApproval,
   cancelEvent,
+  notifyParticipants,
   getSessions, addSession, updateSession, deleteSession,
   unlockEventEdit, getCategories, getVenues, getDashboardStats,
 };

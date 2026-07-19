@@ -13,11 +13,13 @@ import {
   Tag,
   Typography,
   Drawer,
+  Switch,
 } from "antd";
-import {SearchOutlined, FilterOutlined, CloseOutlined} from "@ant-design/icons";
+import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
+import { useTranslation } from "../../hooks/useTranslation";
 import dayjs from "dayjs";
 
 const {Title, Text} = Typography;
@@ -40,15 +42,19 @@ const EventListPage = () => {
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId") || "",
     venueId: "",
+    timeStatus: "",
+    isInternal: "",
     startDate: "",
     endDate: "",
     page: 1,
-    limit: 12,
+    limit: 6,
     sortBy: "StartDate",
-    sortOrder: "ASC",
-    status: "Published",
+    sortOrder: "DESC",
+    status: "all_published_cancelled",
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showFavs, setShowFavs] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchMeta();
@@ -57,7 +63,7 @@ const EventListPage = () => {
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
-    params.status = "Published";
+    params.status = "all_published_cancelled";
     fetchEvents(params);
   }, [filters]);
 
@@ -69,6 +75,8 @@ const EventListPage = () => {
       search: "",
       categoryId: "",
       venueId: "",
+      timeStatus: "",
+      isInternal: "",
       startDate: "",
       endDate: "",
       page: 1,
@@ -77,6 +85,8 @@ const EventListPage = () => {
     filters.search ||
     filters.categoryId ||
     filters.venueId ||
+    filters.timeStatus ||
+    filters.isInternal ||
     filters.startDate;
 
   const FilterPanel = () => (
@@ -89,14 +99,15 @@ const EventListPage = () => {
             marginBottom: 8,
             fontSize: 13,
             fontFamily: "'Inter', sans-serif",
+            color: "inherit"
           }}
         >
-          Lĩnh vực
+          {t('browse.category')}
         </Text>
         <Select
           value={filters.categoryId || undefined}
           onChange={(v) => updateFilter("categoryId", v || "")}
-          placeholder="Tất cả lĩnh vực"
+          placeholder={t('browse.allCategories')}
           style={{width: "100%"}}
           dropdownStyle={{fontFamily: "'Inter', sans-serif"}}
           className="category-filter"
@@ -104,19 +115,19 @@ const EventListPage = () => {
         >
           {categories.map((c) => (
             <Option key={c.CategoryID} value={String(c.CategoryID)}>
-              {c.Name}
+              {t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name}
             </Option>
           ))}
         </Select>
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Địa điểm
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.venue')}
         </Text>
         <Select
           value={filters.venueId || undefined}
           onChange={(v) => updateFilter("venueId", v || "")}
-          placeholder="Tất cả địa điểm"
+          placeholder={t('browse.allVenues')}
           style={{width: "100%"}}
           allowClear
         >
@@ -128,8 +139,39 @@ const EventListPage = () => {
         </Select>
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Thời gian
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Đối tượng tham gia
+        </Text>
+        <Select
+          value={filters.isInternal || undefined}
+          onChange={(v) => updateFilter("isInternal", v || "")}
+          placeholder="Tất cả đối tượng"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="true">Sinh viên trường</Option>
+          <Option value="false">Tất cả mọi người</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Trạng thái sự kiện
+        </Text>
+        <Select
+          value={filters.timeStatus || undefined}
+          onChange={(v) => updateFilter("timeStatus", v || "")}
+          placeholder="Tất cả trạng thái"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="upcoming">Sắp diễn ra</Option>
+          <Option value="ongoing">Đang diễn ra</Option>
+          <Option value="past">Đã kết thúc</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.time')}
         </Text>
         <RangePicker
           style={{width: "100%"}}
@@ -145,8 +187,8 @@ const EventListPage = () => {
         />
       </div>
       <div>
-        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13}}>
-          Sắp xếp
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          {t('browse.sortBy')}
         </Text>
         <Select
           value={`${filters.sortBy}_${filters.sortOrder}`}
@@ -156,19 +198,28 @@ const EventListPage = () => {
           }}
           style={{width: "100%"}}
         >
-          <Option value="StartDate_ASC">Ngày bắt đầu (sớm nhất)</Option>
-          <Option value="StartDate_DESC">Ngày bắt đầu (muộn nhất)</Option>
-          <Option value="CreatedAt_DESC">Mới nhất</Option>
-          <Option value="Title_ASC">Tên A-Z</Option>
+          <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
+          <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
+          <Option value="Participants_DESC">{t('browse.sortParticipantsDesc')}</Option>
+          <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
+          <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
         </Select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#be123c', borderRadius: 8, border: '1px solid #9f1239', boxShadow: '0 4px 12px rgba(190,18,60,0.15)' }}>
+        <Text strong style={{ fontSize: 13, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <HeartFilled style={{ color: '#fecdd3' }} /> {t('browse.favorites')}
+        </Text>
+        <Switch checked={showFavs} onChange={setShowFavs} style={{ background: showFavs ? '#fb7185' : 'rgba(255,255,255,0.3)' }} />
       </div>
       {hasFilters && (
         <Button onClick={clearFilters} icon={<CloseOutlined />} block>
-          Xoá bộ lọc
+          {t('browse.clearFilters')}
         </Button>
       )}
     </div>
   );
+
+  const displayedEvents = showFavs ? events.filter(e => JSON.parse(localStorage.getItem('favoriteEvents') || '[]').includes(String(e.EventID))) : events;
 
   return (
     <MainLayout>
@@ -188,38 +239,28 @@ const EventListPage = () => {
               margin: "0 0 20px",
             }}
           >
-            🔍 Khám phá sự kiện
+            🔍 {t('browse.title')}
           </Title>
-          <div style={{display: "flex", gap: 12, maxWidth: 600}}>
-            <Input.Search
+          <div style={{display: "flex", maxWidth: 400}}>
+            <Input
               size="large"
-              placeholder="Tìm kiếm sự kiện..."
+              placeholder={t('browse.search')}
               value={filters.search}
               onChange={(e) =>
                 setFilters((f) => ({...f, search: e.target.value}))
               }
-              onSearch={() => fetchEvents({...filters})}
-              style={{flex: 1, borderRadius: 10}}
+              onPressEnter={() => fetchEvents({...filters})}
+              style={{flex: 1, borderRadius: '8px 0 0 8px'}}
               allowClear
             />
-            <Button
-              size="large"
-              icon={<FilterOutlined />}
-              onClick={() => setDrawerOpen(true)}
-              style={{
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "white",
-              }}
-            >
-              Lọc{" "}
-              {hasFilters && (
-                <Tag color="blue" style={{marginLeft: 4, marginRight: -4}}>
-                  !
-                </Tag>
-              )}
-            </Button>
+            <Button 
+              className="custom-search-btn"
+              type="primary" 
+              size="large" 
+              icon={<SearchOutlined />} 
+              onClick={() => fetchEvents({...filters})}
+              style={{ borderRadius: '0 8px 8px 0', border: 'none' }}
+            />
           </div>
 
           {/* Active filters */}
@@ -233,11 +274,10 @@ const EventListPage = () => {
                   onClose={() => updateFilter("categoryId", "")}
                   color="blue"
                 >
-                  {
-                    categories.find(
-                      (c) => String(c.CategoryID) === filters.categoryId,
-                    )?.Name
-                  }
+                  {(() => {
+                    const c = categories.find((c) => String(c.CategoryID) === filters.categoryId);
+                    return c ? (t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name) : "";
+                  })()}
                 </Tag>
               )}
               {filters.venueId && (
@@ -265,7 +305,27 @@ const EventListPage = () => {
                   }
                   color="cyan"
                 >
-                  Theo ngày
+                  {filters.startDate && filters.endDate 
+                    ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
+                    : t('browse.byDate')}
+                </Tag>
+              )}
+              {filters.timeStatus && (
+                <Tag
+                  closable
+                  onClose={() => updateFilter("timeStatus", "")}
+                  color="orange"
+                >
+                  {filters.timeStatus === 'upcoming' ? 'Sắp diễn ra' : filters.timeStatus === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                </Tag>
+              )}
+              {filters.isInternal && (
+                <Tag
+                  closable
+                  onClose={() => updateFilter("isInternal", "")}
+                  color="magenta"
+                >
+                  {filters.isInternal === 'true' ? 'Sinh viên trường' : 'Tất cả mọi người'}
                 </Tag>
               )}
             </div>
@@ -283,6 +343,13 @@ const EventListPage = () => {
             color: #166534 !important;
             opacity: 0.7;
           }
+          .category-filter .ant-select-selection-item {
+            color: #166534 !important;
+          }
+          .custom-search-btn {
+            background-color: #f97316 !important;
+            color: #ffffff !important;
+          }
           body {
             font-family: 'DM Sans', sans-serif !important;
           }
@@ -297,6 +364,7 @@ const EventListPage = () => {
           {/* Sidebar filter — desktop */}
           <Col xs={0} lg={6}>
             <div
+              className="sticky-panel-box"
               style={{
                 background: "white",
                 borderRadius: 14,
@@ -310,7 +378,7 @@ const EventListPage = () => {
                 strong
                 style={{fontSize: 15, fontFamily: "'Inter', sans-serif"}}
               >
-                Bộ lọc
+                {t('browse.filterTitle')}
               </Text>
               <div style={{marginTop: 16}}>
                 <FilterPanel />
@@ -328,24 +396,26 @@ const EventListPage = () => {
                 marginBottom: 20,
               }}
             >
-              <Text type="secondary">
-                {isLoading ? "..." : `${total} sự kiện được tìm thấy`}
-              </Text>
+              {filters.search && (
+                <Text type="secondary">
+                  {isLoading ? "..." : `${total} ${t('browse.eventsFound')}`}
+                </Text>
+              )}
             </div>
 
             {isLoading ? (
               <div style={{textAlign: "center", padding: 80}}>
                 <Spin size="large" />
               </div>
-            ) : events.length === 0 ? (
+            ) : displayedEvents.length === 0 ? (
               <Empty
-                description="Không tìm thấy sự kiện nào"
+                description={t('browse.noEvents')}
                 style={{padding: 60}}
               />
             ) : (
               <>
                 <Row gutter={[16, 16]}>
-                  {events.map((event) => (
+                  {displayedEvents.map((event) => (
                     <Col key={event.EventID} xs={24} sm={12} xl={8}>
                       <EventCard event={event} />
                     </Col>
@@ -358,7 +428,6 @@ const EventListPage = () => {
                     pageSize={filters.limit}
                     onChange={(page) => setFilters((f) => ({...f, page}))}
                     showSizeChanger={false}
-                    showTotal={(t) => `${t} sự kiện`}
                   />
                 </div>
               </>
@@ -369,14 +438,14 @@ const EventListPage = () => {
 
       {/* Mobile filter drawer */}
       <Drawer
-        title="Bộ lọc"
+        title={t('browse.filterTitle')}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="right"
         width={300}
         footer={
           <Button type="primary" block onClick={() => setDrawerOpen(false)}>
-            Áp dụng
+            {t('browse.apply')}
           </Button>
         }
       >

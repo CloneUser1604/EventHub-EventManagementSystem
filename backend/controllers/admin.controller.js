@@ -63,13 +63,14 @@ const approveEvent = async (req, res) => {
       request.input('P_MaxParticipants', sql.Int, proposedChangesObj.maxParticipants || null);
       request.input('P_CategoryID', sql.Int, proposedChangesObj.categoryId || null);
       request.input('P_VenueID', sql.Int, proposedChangesObj.venueId || null);
+      request.input('P_IsInternalOnly', sql.Bit, proposedChangesObj.isInternalOnly);
 
       updateQuery = `
           UPDATE Events 
           SET ApprovalStatus = 'Approved', Status = 'Published', ApprovedBy = @AdminID, ApprovedAt = GETDATE(), UpdatedAt = GETDATE(),
               Title = @P_Title, Description = @P_Description, CoverImageURL = @P_CoverImageURL, 
               StartDate = @P_StartDate, EndDate = @P_EndDate, RegistrationDeadline = @P_RegistrationDeadline,
-              MaxParticipants = @P_MaxParticipants, CategoryID = @P_CategoryID, VenueID = @P_VenueID,
+              MaxParticipants = @P_MaxParticipants, CategoryID = @P_CategoryID, VenueID = @P_VenueID, IsInternalOnly = @P_IsInternalOnly,
               ProposedChanges = NULL, EditReason = NULL
           OUTPUT INSERTED.Title, INSERTED.OrganizerID
           WHERE EventID = @EventID
@@ -365,11 +366,87 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
+// ─── BROADCAST NOTIFICATION ──────────────────────────────────────
+const broadcastNotification = async (req, res) => {
+  try {
+    const { title, message, audience } = req.body;
+    if (!title || !message) return res.status(400).json({ success: false, message: 'Vui lòng nhập tiêu đề và nội dung' });
+
+    const pool = getPool();
+    let query = `
+      INSERT INTO Notifications (UserID, Title, Message, Type, RelatedType)
+      SELECT UserID, @Title, @Message, 'General', 'System'
+      FROM Users
+    `;
+    if (audience && audience !== 'All') {
+      query += ` WHERE Role = @Audience`;
+    }
+
+    const request = pool.request()
+      .input('Title', sql.NVarChar(300), title)
+      .input('Message', sql.NVarChar(sql.MAX), message);
+
+    if (audience && audience !== 'All') {
+      request.input('Audience', sql.VarChar(50), audience);
+    }
+
+    await request.query(query);
+    return res.status(200).json({ success: true, message: 'Đã gửi thông báo thành công' });
+  } catch (error) {
+    console.error('Broadcast notification error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi khi gửi thông báo' });
+  }
+};
+
+// ─── GET ORGANIZER STATS ──────────────────────────────────────────
+const getOrganizerStats = async (req, res) => {
+  try {
+    const pool = getPool();
+    const result = await pool.request().query(`
+      SELECT 
+        u.UserID, 
+        u.FullName, 
+        op.OrganizationName, 
+        u.AvatarURL,
+        (SELECT COUNT(*) FROM Events WHERE OrganizerID = u.UserID AND Status = 'Published') AS PublishedEvents,
+        (SELECT COUNT(*) FROM Events e JOIN Registrations r ON e.EventID = r.EventID WHERE e.OrganizerID = u.UserID AND r.Status = 'Registered') AS TotalParticipants,
+        (SELECT COUNT(*) FROM Events WHERE OrganizerID = u.UserID AND ApprovalStatus = 'Rejected') AS RejectedEvents,
+        (SELECT COUNT(*) FROM Blogs WHERE AuthorID = u.UserID AND IsReported = 1) AS ReportedBlogsCount
+      FROM Users u
+      LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
+      WHERE u.Role = 'Organizer'
+    `);
+    
+    // Process results into Top and Risk
+    const allOrgs = result.recordset.map(org => ({
+      ...org,
+      RiskScore: org.RejectedEvents * 2 + org.ReportedBlogsCount * 3,
+      PerformanceScore: org.PublishedEvents * 10 + org.TotalParticipants
+    }));
+
+    const topOrganizers = [...allOrgs].sort((a, b) => b.PerformanceScore - a.PerformanceScore).slice(0, 10);
+    const riskOrganizers = [...allOrgs].filter(o => o.RiskScore > 0).sort((a, b) => b.RiskScore - a.RiskScore);
+
+    return res.status(200).json({ 
+      success: true, 
+      data: {
+        topOrganizers,
+        riskOrganizers
+      }
+    });
+  } catch (error) {
+    console.error('Get organizer stats error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi khi lấy dữ liệu BTC' });
+  }
+};
+
 module.exports = {
   getPendingEvents,
   approveEvent,
   rejectEvent,
   cancelEvent,
   getAllUsers,
-  updateUserStatus
+  updateUserStatus,
+  broadcastNotification,
+  getOrganizerStats
 };

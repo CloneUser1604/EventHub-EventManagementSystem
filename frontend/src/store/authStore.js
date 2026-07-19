@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/auth.service';
+import useSettingStore from './settingStore';
 
 const useAuthStore = create(
   persist(
@@ -21,7 +22,7 @@ const useAuthStore = create(
 
           const { accessToken, refreshToken, user } = data;
           
-          // [BẢN VÁ]: Chuẩn hóa tên biến user ngay từ lúc login để đồng bộ với toàn hệ thống
+          //Chuẩn hóa tên biến user ngay từ lúc login để đồng bộ với toàn hệ thống
           const normalizedUser = {
             ...user,
             userId: user.UserID || user.userId,
@@ -30,6 +31,15 @@ const useAuthStore = create(
             role: user.Role || user.role,
             avatarURL: user.AvatarURL || user.avatarURL,
             phone: user.Phone || user.phone,
+            // ĐÃ SỬA: Nhớ hứng trường University lúc login
+            university: user.University || user.university, 
+            // Giữ lại các key viết hoa cũ cho các file component khác đỡ bị lỗi
+            UserID: user.UserID || user.userId,
+            FullName: user.FullName || user.fullName,
+            Role: user.Role || user.role,
+            Email: user.Email || user.email,
+            AvatarURL: user.AvatarURL || user.avatarURL,
+            University: user.University || user.university
           };
 
           localStorage.setItem('accessToken', accessToken);
@@ -60,6 +70,11 @@ const useAuthStore = create(
         try { await authService.logout(); } catch {}
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        
+        // Đặt lại mặc định giao diện Sáng và Tiếng Việt khi đăng xuất
+        useSettingStore.getState().setTheme('light');
+        useSettingStore.getState().setLanguage('vi');
+
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
 
@@ -68,7 +83,7 @@ const useAuthStore = create(
           const res = await authService.getMe();
           const u = res.data.data;
           
-          // [BẢN VÁ]: Chuẩn hóa tên biến user lúc lấy lại thông tin
+          //Chuẩn hóa tên biến user lúc lấy lại thông tin
           const normalizedUser = {
             userId: u.userId || u.UserID, 
             fullName: u.fullName || u.FullName, 
@@ -76,6 +91,8 @@ const useAuthStore = create(
             role: u.role || u.Role, 
             avatarURL: u.avatarURL || u.AvatarURL, 
             phone: u.phone || u.Phone,
+            //lấy trường University để trang Sự kiện check
+            university: u.university || u.University, 
             isVerified: u.isVerified, 
             createdAt: u.createdAt,
             organizerProfile: u.organizerProfile,
@@ -86,7 +103,8 @@ const useAuthStore = create(
             FullName: u.fullName || u.FullName,
             Role: u.role || u.Role,
             Email: u.email || u.Email,
-            AvatarURL: u.avatarURL || u.AvatarURL
+            AvatarURL: u.avatarURL || u.AvatarURL,
+            University: u.university || u.University
           };
           
           set({ user: normalizedUser, isAuthenticated: true });
@@ -100,7 +118,7 @@ const useAuthStore = create(
     }),
     {
       name: 'ems-auth',
-      partialze: (s) => ({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated }),
+      partialize: (s) => ({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated }),
     }
   )
 );

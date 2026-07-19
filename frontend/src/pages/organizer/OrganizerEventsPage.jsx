@@ -6,33 +6,55 @@ import MainLayout from '../../components/layout/MainLayout';
 import { eventService } from '../../services/event.service';
 import dayjs from 'dayjs';
 import { getImageUrl } from '../../utils/imageHelpers';
+import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
 
-const statusConfig = {
-  Draft:          { color: 'default', label: 'Nháp' },
-  PendingApproval:{ color: 'orange',  label: 'Chờ duyệt' },
-  Published:      { color: 'green',   label: 'Đã công bố' },
-  Rejected:       { color: 'red',     label: 'Bị từ chối' },
-  Cancelled:      { color: 'red',     label: 'Đã huỷ' },
-  Completed:      { color: 'blue',    label: 'Đã kết thúc' },
-};
+const getStatusConfig = (t) => ({
+  Draft:          { color: 'default', label: t('myEvents.draft') },
+  PendingApproval:{ color: 'orange',  label: t('myEvents.pending') },
+  Published:      { color: 'green',   label: t('myEvents.published') },
+  Rejected:       { color: 'red',     label: t('myEvents.rejected') },
+  Cancelled:      { color: 'red',     label: t('myEvents.cancelled') },
+  Completed:      { color: 'blue',    label: t('myEvents.completed') },
+});
 
 const OrganizerEventsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [reasonModal, setReasonModal] = useState({ open: false, reason: '', title: '' });
 
-  useEffect(() => { fetchMyEvents(); }, []);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const getDerivedStatus = (e) => {
+    if (e.Status === 'Published' && dayjs(e.EndDate).isBefore(dayjs())) {
+      return 'Completed';
+    }
+    return e.Status;
+  };
+
+  useEffect(() => { 
+    if (user?.UserID || user?.userId) {
+      fetchMyEvents(); 
+    }
+  }, [user?.UserID, user?.userId]);
 
   const fetchMyEvents = async () => {
     setLoading(true);
     try {
-      const res = await eventService.getEvents({ limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
+      const res = await eventService.getEvents({ organizerId: user?.UserID || user?.userId, limit: 100, sortBy: 'CreatedAt', sortOrder: 'DESC' });
       setEvents(res.data.data.events);
     } catch { message.error('Lấy danh sách thất bại'); }
     finally { setLoading(false); }
@@ -87,13 +109,13 @@ const OrganizerEventsPage = () => {
 
   const filtered = events.filter(e => {
     const matchSearch = !search || e.Title.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = !statusFilter || e.Status === statusFilter;
+    const matchStatus = !statusFilter || getDerivedStatus(e) === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const columns = [
     {
-      title: 'Sự kiện',
+      title: t('myEvents.event'),
       dataIndex: 'Title',
       render: (title, row) => (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -105,19 +127,19 @@ const OrganizerEventsPage = () => {
           </div>
           <div>
             <Text strong style={{ display: 'block', fontSize: 14 }}>{title}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{row.CategoryName || '—'}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{row.CategoryName ? (t(`categories.${row.CategoryName}`) || row.CategoryName) : '—'}</Text>
           </div>
         </div>
       ),
     },
     {
-      title: 'Thời gian',
+      title: t('myEvents.time'),
       dataIndex: 'StartDate',
       width: 160,
       render: (d) => <Text style={{ fontSize: 13 }}>{dayjs(d).format('DD/MM/YYYY HH:mm')}</Text>,
     },
     {
-      title: 'Đăng ký',
+      title: t('myEvents.registered'),
       width: 100,
       render: (_, row) => (
         <span style={{ fontSize: 13 }}>
@@ -126,54 +148,58 @@ const OrganizerEventsPage = () => {
       ),
     },
     {
-      title: 'Trạng thái',
+      title: t('myEvents.status'),
       dataIndex: 'Status',
       width: 130,
-      render: (s, row) => (
-        <div>
-          <Tag color={statusConfig[s]?.color || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>
-            {statusConfig[s]?.label || s}
-          </Tag>
-          {row.ApprovalStatus === 'Pending' && row.Status === 'Published' && (
-            <Tag color="orange" style={{ marginTop: 4, borderRadius: 6, display: 'block', width: 'fit-content' }}>
-              Đang chờ duyệt sửa
+      render: (s, row) => {
+        const derived = getDerivedStatus(row);
+        const cfg = getStatusConfig(t);
+        return (
+          <div>
+            <Tag color={cfg[derived]?.color || 'default'} style={{ borderRadius: 6, fontWeight: 600 }}>
+              {cfg[derived]?.label || derived}
             </Tag>
-          )}
-        </div>
-      ),
+            {row.ApprovalStatus === 'Pending' && row.Status === 'Published' && (
+              <Tag color="orange" style={{ marginTop: 4, borderRadius: 6, display: 'block', width: 'fit-content' }}>
+                Đang chờ duyệt sửa
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
-      title: 'Hành động',
+      title: t('myEvents.action'),
       width: 200,
       render: (_, row) => (
         <Space size={4}>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title={t('myEvents.viewDetails')}>
             <Button type="text" icon={<EyeOutlined />} size="small" onClick={() => navigate(`/events/${row.EventID}`)} />
           </Tooltip>
           {['Draft', 'Rejected'].includes(row.Status) && (
             <>
-              <Tooltip title="Chỉnh sửa">
+              <Tooltip title={t('myEvents.edit')}>
                 <Button type="text" icon={<EditOutlined />} size="small" onClick={() => navigate(`/organizer/events/${row.EventID}/edit`)} />
               </Tooltip>
-              <Tooltip title="Gửi duyệt">
+              <Tooltip title={t('myEvents.submitApproval')}>
                 <Button type="text" icon={<SendOutlined />} size="small" style={{ color: '#2563eb' }} onClick={() => handleSubmit(row.EventID)} />
               </Tooltip>
-              <Tooltip title="Xoá">
+              <Tooltip title={t('myEvents.delete')}>
                 <Button type="text" icon={<DeleteOutlined />} size="small" danger onClick={() => handleDelete(row.EventID, row.Title)} />
               </Tooltip>
             </>
           )}
           {['Published'].includes(row.Status) && (
             <>
-              <Tooltip title="Sửa nội dung">
+              <Tooltip title={t('myEvents.editContent')}>
                 <Button type="text" icon={<EditOutlined />} size="small" onClick={() => navigate(`/organizer/events/${row.EventID}/edit`)} />
               </Tooltip>
-              <Tooltip title="Quản lý sự kiện">
+              <Tooltip title={t('myEvents.manageEvent')}>
                 <Button type="text" icon={<EyeOutlined />} size="small" style={{ color: '#10b981' }} onClick={() => navigate(`/organizer/events/${row.EventID}/dashboard`)}>
-                  Quản lý
+                  {t('myEvents.manage')}
                 </Button>
               </Tooltip>
-              <Tooltip title="Huỷ sự kiện">
+              <Tooltip title={t('myEvents.cancelEvent')}>
                 <Button type="text" icon={<CloseCircleOutlined />} size="small" danger onClick={() => handleCancel(row.EventID, row.Title)} />
               </Tooltip>
             </>
@@ -190,23 +216,23 @@ const OrganizerEventsPage = () => {
 
   return (
     <MainLayout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '24px 12px 60px' : '32px 24px 80px' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 0, justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', marginBottom: 28 }}>
           <div>
-            <Title level={2} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>🗂️ Sự kiện của tôi</Title>
-            <Text type="secondary">Quản lý toàn bộ sự kiện bạn đã tạo</Text>
+            <Title level={isMobile ? 3 : 2} style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>🗂️ {t('myEvents.title')}</Title>
+            <Text type="secondary">{t('myEvents.subtitle')}</Text>
           </div>
           <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate('/organizer/events/create')}
-            style={{ borderRadius: 10, height: 44, fontWeight: 700 }}>
-            Tạo sự kiện mới
+            style={{ borderRadius: 10, height: 44, fontWeight: 700, width: isMobile ? '100%' : 'auto' }}>
+            {t('myEvents.createNew')}
           </Button>
         </div>
 
         {/* Stats bar */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-          {Object.entries(statusConfig).map(([status, conf]) => {
-            const count = events.filter(e => e.Status === status).length;
+          {Object.entries(getStatusConfig(t)).map(([status, conf]) => {
+            const count = events.filter(e => getDerivedStatus(e) === status).length;
             if (!count) return null;
             return (
               <div key={status} onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
@@ -221,11 +247,11 @@ const OrganizerEventsPage = () => {
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <Input.Search placeholder="Tìm kiếm sự kiện..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 340 }} allowClear />
-          <Select value={statusFilter || undefined} onChange={v => setStatusFilter(v || '')} placeholder="Tất cả trạng thái" allowClear style={{ width: 180 }}>
-            {Object.entries(statusConfig).map(([v, c]) => <Select.Option key={v} value={v}>{c.label}</Select.Option>)}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: 20 }}>
+          <Input.Search placeholder={t('myEvents.search')} value={search} onChange={e => setSearch(e.target.value)}
+            style={{ width: isMobile ? '100%' : 340 }} allowClear />
+          <Select value={statusFilter || undefined} onChange={v => setStatusFilter(v || '')} placeholder={t('myEvents.allStatus')} allowClear style={{ width: isMobile ? '100%' : 180 }}>
+            {Object.entries(getStatusConfig(t)).map(([v, c]) => <Select.Option key={v} value={v}>{c.label}</Select.Option>)}
           </Select>
         </div>
 
@@ -237,6 +263,8 @@ const OrganizerEventsPage = () => {
           pagination={{ pageSize: 10, showTotal: t => `${t} sự kiện` }}
           locale={{ emptyText: <Empty description="Bạn chưa có sự kiện nào" extra={<Button type="primary" onClick={() => navigate('/organizer/events/create')}>Tạo ngay</Button>} /> }}
           style={{ background: 'white', borderRadius: 14 }}
+          size={isMobile ? "small" : "middle"}
+          scroll={{ x: 800 }}
         />
 
         {/* Rejection Reason Modal */}

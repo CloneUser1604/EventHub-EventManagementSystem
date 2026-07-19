@@ -23,7 +23,7 @@ const EditProfile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
 
   const [formData, setFormData] = useState({
-    fullName: '', phone: '', avatarURL: '', email: ''
+    fullName: '', phone: '', avatarURL: '', email: '', university: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -49,9 +49,9 @@ const EditProfile = () => {
           phone: u.phone || u.Phone || '',
           avatarURL: u.avatarURL || u.AvatarURL || '',
           email: u.email || u.Email || '',
+          university: u.university || u.University || '', // Load dữ liệu trường ĐH
         });
 
-        // Ghi nhận Role và mảng tài liệu cũ của Organizer
         setUserRole(u.role || u.Role);
         if (u.organizerProfile && u.organizerProfile.documents) {
           setExistingDocs(u.organizerProfile.documents);
@@ -69,28 +69,42 @@ const EditProfile = () => {
   const handleSaveInfo = async (e) => {
     e.preventDefault();
 
-    // ĐÃ THÊM: Validate Số điện thoại chuẩn VN (10 số, bắt đầu bằng số 0)
+    // 1. Validate Họ và Tên
+    const trimmedName = formData.fullName.trim();
+    if (!trimmedName) {
+      return message.warning('Họ và tên không được để trống hoặc chỉ chứa dấu cách!');
+    }
+    const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$/;
+    if (!nameRegex.test(trimmedName)) {
+      return message.warning('Họ và tên không hợp lệ! Vui lòng không nhập số hoặc ký tự đặc biệt.');
+    }
+
+    // 2. Validate Số điện thoại chuẩn nhà mạng VN
     if (formData.phone) {
-      const phoneRegex = /^0\d{9}$/;
+      const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
       if (!phoneRegex.test(formData.phone)) {
-        return message.warning('Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số và bắt đầu bằng số 0.');
+        return message.warning('Số điện thoại không hợp lệ! Vui lòng nhập đúng 10 số đầu số mạng Việt Nam (VD: 09, 03...).');
       }
     }
 
     setIsSaving(true);
     try {
       const formDataPayload = new FormData();
-      formDataPayload.append('fullName', formData.fullName);
+      formDataPayload.append('fullName', trimmedName);
       formDataPayload.append('phone', formData.phone);
       
-      // Ưu tiên gửi file ảnh, nếu không có thì gửi link URL
+      // ĐÃ SỬA: Ép cứng giá trị gửi đi để Backend luôn nhận được
+      if (userRole === 'Participant') {
+        const uniValue = formData.university === 'Đại học FPT' ? 'Đại học FPT' : 'Khác';
+        formDataPayload.append('university', uniValue);
+      }
+      
       if (avatarFile) {
         formDataPayload.append('avatar', avatarFile);
       } else {
         formDataPayload.append('avatarURL', formData.avatarURL);
       }
       
-      // Nếu có chọn file tài liệu mới thì đính kèm vào
       if (newDocs) {
         Array.from(newDocs).forEach(file => {
           formDataPayload.append('documents', file);
@@ -100,7 +114,7 @@ const EditProfile = () => {
       const config = { 
         headers: { 
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'multipart/form-data' // Bắt buộc khi có file
+          'Content-Type': 'multipart/form-data'
         } 
       };
 
@@ -179,7 +193,7 @@ const EditProfile = () => {
 
             <div className="profile-photo-section">
               <img 
-                src={avatarPreview || getImageUrl(formData.avatarURL) || 'https://ui-avatars.com/api/?name=User&background=4a25e1&color=fff'} 
+                src={avatarPreview || getImageUrl(formData.avatarURL) || 'https://ui-avatars.com/api/?name=User&background=27272a&color=fff'} 
                 alt="Avatar" 
                 className="avatar-preview" 
                 style={{ objectFit: 'cover' }}
@@ -187,10 +201,8 @@ const EditProfile = () => {
               <div className="photo-actions">
                 <p className="photo-hint">Ảnh đại diện <br/><span>Nên dùng ảnh vuông, định dạng JPG/PNG.</span></p>
                 <div className="btn-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  
-                  {/* Nút tải ảnh lên từ máy */}
                   <label style={{
-                    background: '#4f46e5', color: 'white', padding: '8px 12px', borderRadius: '6px', 
+                    background: '#27272A', color: 'white', padding: '8px 12px', borderRadius: '6px', 
                     cursor: 'pointer', fontSize: '13px', fontWeight: 500, display: 'inline-block', margin: 0
                   }}>
                     <i className="fa-solid fa-cloud-arrow-up" style={{marginRight: 6}}></i> Tải ảnh lên
@@ -202,8 +214,8 @@ const EditProfile = () => {
                         if (e.target.files && e.target.files[0]) {
                           const file = e.target.files[0];
                           setAvatarFile(file);
-                          setAvatarPreview(URL.createObjectURL(file)); // Cập nhật hình xem trước
-                          setFormData({...formData, avatarURL: ''}); // Xóa URL cũ để ưu tiên file
+                          setAvatarPreview(URL.createObjectURL(file)); 
+                          setFormData({...formData, avatarURL: ''}); 
                         }
                       }} 
                     />
@@ -216,7 +228,7 @@ const EditProfile = () => {
                     value={formData.avatarURL} 
                     onChange={(e) => {
                       setFormData({...formData, avatarURL: e.target.value});
-                      setAvatarFile(null); // Bỏ chọn file nếu dán URL
+                      setAvatarFile(null); 
                       setAvatarPreview(null);
                     }} 
                     style={{ flex: 1, minWidth: '150px' }}
@@ -241,7 +253,6 @@ const EditProfile = () => {
                 <input type="email" value={formData.email} disabled style={{ backgroundColor: '#f8fafc' }} />
               </div>
               
-              {/* ĐÃ SỬA: Chặn nhập chữ, giới hạn 10 ký tự */}
               <div className="input-group">
                 <label>Số điện thoại</label>
                 <input 
@@ -256,13 +267,40 @@ const EditProfile = () => {
                 />
               </div>
 
-              {/* KHU VỰC TẢI TÀI LIỆU (Chỉ hiện với Organizer) */}
+              {/* KHU VỰC DÀNH RIÊNG CHO PARTICIPANT */}
+              {userRole === 'Participant' && (
+                <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Bạn có phải là sinh viên trường Đại học FPT không?</label>
+                  <div style={{ display: 'flex', gap: '24px', marginTop: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px' }}>
+                      <input
+                        type="radio"
+                        name="university"
+                        checked={formData.university === 'Đại học FPT'}
+                        onChange={() => setFormData({...formData, university: 'Đại học FPT'})}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      /> Có
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px' }}>
+                      <input
+                        type="radio"
+                        name="university"
+                        checked={formData.university !== 'Đại học FPT'}
+                        // ĐÃ SỬA: Đổi onChange thành "Khác"
+                        onChange={() => setFormData({...formData, university: 'Khác'})}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      /> Không
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* KHU VỰC TẢI TÀI LIỆU DÀNH CHO ORGANIZER */}
               {userRole === 'Organizer' && (
                 <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Tài liệu xác minh & Giấy phép sự kiện</label>
                   <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
                     
-                    {/* Hiển thị tài liệu cũ (nếu có) */}
                     {existingDocs.length > 0 && (
                       <div style={{ marginBottom: '16px' }}>
                         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b' }}>Tài liệu hiện tại của bạn:</p>

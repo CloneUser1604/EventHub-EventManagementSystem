@@ -16,6 +16,7 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 import { getImageUrl } from '../../utils/imageHelpers';
+import { useTranslation } from '../../hooks/useTranslation';
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -23,22 +24,24 @@ dayjs.locale('vi');
 const { Title, Text } = Typography;
 
 /* ── Countdown component ────────────────────────────────────── */
-const Countdown = ({ targetDate, size = 'normal' }) => {
+const Countdown = ({ targetDate, size = 'normal', t }) => {
   const [timeLeft, setTimeLeft] = useState({ expired: false, text: '' });
 
   useEffect(() => {
     const tick = () => {
       const diff = dayjs(targetDate).diff(dayjs());
-      if (diff <= 0) { setTimeLeft({ expired: true, text: 'Đang diễn ra' }); return; }
+      if (diff <= 0) { setTimeLeft({ expired: true, text: t ? t('calendar.ongoing') : 'Đang diễn ra' }); return; }
       const d = dayjs.duration(diff);
       const days = Math.floor(d.asDays());
-      if (days > 1) setTimeLeft({ expired: false, text: `Còn ${days} ngày` });
+      const inDaysStr = t ? t('calendar.inDays') : 'Còn';
+      const daysStr = t ? t('calendar.days') : 'ngày';
+      if (days > 1) setTimeLeft({ expired: false, text: `${inDaysStr} ${days} ${daysStr}` });
       else setTimeLeft({ expired: false, text: `${d.hours()}g ${d.minutes()}p ${d.seconds()}s` });
     };
     tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, [targetDate]);
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate, t]);
 
   return (
     <span style={{
@@ -105,19 +108,28 @@ const TicketModal = ({ registration, onClose }) => {
 /* ── Event Registration Card ───────────────────────────────── */
 const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isPast = dayjs(reg.EndDate).isBefore(dayjs());
   const isOngoing = dayjs(reg.StartDate).isBefore(dayjs()) && !isPast;
   const isCancelled = reg.Status === 'Cancelled' || reg.EventStatus === 'Cancelled';
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <Card
       style={{ borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', opacity: isCancelled ? 0.65 : 1 }}
       styles={{ body: { padding: 0 } }}
     >
-      <div style={{ display: 'flex', gap: 0 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 0 }}>
         {/* Color bar */}
         <div style={{
-          width: 6, flexShrink: 0,
+          width: isMobile ? '100%' : 6, 
+          height: isMobile ? 6 : 'auto', 
+          flexShrink: 0,
           background: isCancelled ? '#e5e7eb'
             : isOngoing ? 'linear-gradient(180deg,#10b981,#059669)'
             : isPast ? '#9ca3af'
@@ -125,10 +137,10 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
         }} />
 
         {/* Cover */}
-        <div style={{ width: 120, height: 'auto', minHeight: 100, background: '#1a2744', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: isMobile ? '100%' : 120, height: isMobile ? 120 : 'auto', minHeight: isMobile ? 120 : 100, background: '#1a2744', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           {reg.CoverImageURL
-            ? <img src={getImageUrl(reg.CoverImageURL)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 100 }} />
-            : <div style={{ width: '100%', height: '100%', minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎓</div>}
+            ? <img src={getImageUrl(reg.CoverImageURL)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: isMobile ? 120 : 100 }} />
+            : <div style={{ width: '100%', height: '100%', minHeight: isMobile ? 120 : 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎓</div>}
           {isOngoing && (
             <div style={{ position: 'absolute', top: 6, left: 6, background: '#10b981', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>
               LIVE
@@ -166,7 +178,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
               {!isPast && !isCancelled && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <ClockCircleOutlined style={{ color: '#f59e0b', fontSize: 12 }} />
-                  <Countdown targetDate={reg.StartDate} size="small" />
+                  <Countdown targetDate={reg.StartDate} size="small" t={t} />
                 </div>
               )}
             </div>
@@ -174,26 +186,26 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
 
           <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button size="small" onClick={() => navigate(`/events/${reg.EventID}`)} style={{ borderRadius: 7, fontSize: 13 }}>
-              Chi tiết <RightOutlined />
+              {t('calendar.detail')} <RightOutlined />
             </Button>
             {reg.Status === 'Registered' && !isPast && !isCancelled && (
               reg.isSpeakerForThisEvent ? null :
               reg.isStaffForThisEvent ? (
                 <Button size="small" type="primary" onClick={() => navigate(`/events/${reg.EventID}`)}
                   style={{ borderRadius: 7, fontSize: 13 }}>
-                  Quét QR Check-in
+                  {t('calendar.scanQr')}
                 </Button>
               ) : reg.OTPCode ? (
                 <Button size="small" type="primary" onClick={() => onViewTicket(reg)}
                   style={{ borderRadius: 7, fontSize: 13 }}>
-                  Xem Mã OTP
+                  {t('calendar.viewOtp')}
                 </Button>
               ) : null
             )}
             {reg.Status === 'Registered' && !isPast && !isCancelled && !reg.isStaffForThisEvent && !reg.isSpeakerForThisEvent && (
-              <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg)}
+              <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg, t)}
                 style={{ borderRadius: 7, fontSize: 13 }}>
-                Huỷ
+                {t('calendar.cancel')}
               </Button>
             )}
           </div>
@@ -210,6 +222,14 @@ const MyCalendarPage = () => {
   const [ticketReg, setTicketReg] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const { t } = useTranslation();
+  
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -222,11 +242,11 @@ const MyCalendarPage = () => {
     finally { setLoading(false); }
   };
 
-  const handleCancel = (reg) => {
+  const handleCancel = (reg, tFunction) => {
     Modal.confirm({
-      title: 'Huỷ đăng ký?',
-      content: `Bạn có chắc muốn huỷ đăng ký sự kiện "${reg.Title}"?`,
-      okText: 'Huỷ đăng ký', okButtonProps: { danger: true }, cancelText: 'Không',
+      title: tFunction('calendar.confirmCancelTitle'),
+      content: `${tFunction('calendar.confirmCancelBody')} "${reg.Title}"?`,
+      okText: tFunction('calendar.yesCancel'), okButtonProps: { danger: true }, cancelText: tFunction('calendar.no'),
       onOk: async () => {
         try {
           await registrationService.cancel(reg.RegistrationID);
@@ -275,116 +295,116 @@ const MyCalendarPage = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: '40px 24px 32px' }}>
+      <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: isMobile ? '24px 16px 20px' : '40px 24px 32px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <Title level={2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
-            📅 Lịch của tôi
+          <Title level={isMobile ? 3 : 2} style={{ color: 'white', fontFamily: "'Inter', sans-serif", margin: '0 0 6px' }}>
+            📅 {t('calendar.title')}
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
-            {upcoming.length} sắp tới · {ongoing.length} đang diễn ra · {past.length} đã tham dự
+            {upcoming.length} {t('calendar.upcoming').toLowerCase()} · {ongoing.length} {t('calendar.ongoing').toLowerCase()} · {past.length} {t('calendar.attended').toLowerCase()}
           </Text>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 28, alignItems: 'start' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '16px 12px 60px' : '32px 24px 80px', width: '100%', overflowX: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 24 : 28, alignItems: 'start', width: '100%' }}>
 
           {/* Left: List */}
-          <div>
+          <div style={{ minWidth: 0, width: '100%' }}>
             <Tabs
               activeKey={activeTab}
               onChange={setActiveTab}
               items={[
                 {
                   key: 'upcoming',
-                  label: <Badge count={upcoming.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>Sắp tới</span></Badge>,
-                  children: renderList(upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Bạn chưa đăng ký sự kiện nào sắp tới'),
+                  label: <Badge count={upcoming.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>{t('calendar.upcoming')}</span></Badge>,
+                  children: renderList(upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), t('calendar.emptyUpcoming')),
                 },
                 {
                   key: 'ongoing',
-                  label: <Badge count={ongoing.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>Đang diễn ra</span></Badge>,
-                  children: renderList(ongoing.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), 'Không có sự kiện nào đang diễn ra'),
+                  label: <Badge count={ongoing.length} size="small" offset={[6, -2]}><span style={{ paddingRight: 8 }}>{t('calendar.ongoing')}</span></Badge>,
+                  children: renderList(ongoing.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate))), t('calendar.emptyOngoing')),
                 },
                 {
                   key: 'past',
-                  label: `Đã qua (${past.length})`,
-                  children: renderList(past.sort((a, b) => dayjs(b.StartDate).diff(dayjs(a.StartDate))), 'Chưa có sự kiện đã qua'),
+                  label: `${t('calendar.past')} (${past.length})`,
+                  children: renderList(past.sort((a, b) => dayjs(b.StartDate).diff(dayjs(a.StartDate))), t('calendar.emptyPast')),
                 },
                 {
                   key: 'cancelled_by_user',
-                  label: `Đã huỷ (${cancelledByUser.length})`,
-                  children: renderList(cancelledByUser, 'Bạn chưa huỷ đăng ký sự kiện nào'),
+                  label: `${t('calendar.cancelled')} (${cancelledByUser.length})`,
+                  children: renderList(cancelledByUser, t('calendar.emptyCancelled')),
                 },
                 {
                   key: 'cancelled_event',
-                  label: `Sự kiện bị huỷ (${cancelledEvent.length})`,
-                  children: renderList(cancelledEvent, 'Không có sự kiện nào bị huỷ'),
+                  label: `${t('calendar.eventCancelled')} (${cancelledEvent.length})`,
+                  children: renderList(cancelledEvent, t('calendar.emptyEventCancelled')),
                 },
               ]}
             />
           </div>
 
-          {/* Right: Mini calendar + next event */}
-          <div style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Right: Mini calendar + next event */}
+            <div style={{ position: 'sticky', top: isMobile ? 0 : 80, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* Mini calendar */}
-            <Card style={{ borderRadius: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
-                <Text strong style={{ fontFamily: "'Inter', sans-serif", fontSize: 15 }}>
-                  {currentMonth.format('MM/YYYY')}
-                </Text>
-                <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, textAlign: 'center' }}>
-                {['CN','T2','T3','T4','T5','T6','T7'].map(d => (
-                  <div key={d} style={{ fontSize: 11, color: '#9ca3af', padding: '4px 0', fontWeight: 600 }}>{d}</div>
-                ))}
-                {calendarDays.map((day, i) => {
-                  const isToday = day === now.date() && currentMonth.month() === now.month() && currentMonth.year() === now.year();
-                  const hasEvent = day && eventDays.has(day);
-                  return (
-                    <div key={i} style={{
-                      padding: '5px 0', borderRadius: 6, fontSize: 12, fontWeight: hasEvent ? 700 : 400,
-                      background: isToday ? 'linear-gradient(135deg,#2563eb,#4f46e5)' : hasEvent ? '#eff6ff' : 'transparent',
-                      color: isToday ? 'white' : hasEvent ? '#2563eb' : day ? '#374151' : 'transparent',
-                      position: 'relative',
-                    }}>
-                      {day || ''}
-                      {hasEvent && !isToday && (
-                        <div style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#2563eb' }} />
-                      )}
+              {/* Mini calendar */}
+              <Card style={{ borderRadius: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}>&lt;</Button>
+                  <Text strong style={{ fontFamily: "'Inter', sans-serif", fontSize: 15 }}>
+                    {currentMonth.format('MM/YYYY')}
+                  </Text>
+                  <Button type="text" size="small" onClick={() => setCurrentMonth(m => m.add(1, 'month'))}>&gt;</Button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, textAlign: 'center' }}>
+                  {['CN','T2','T3','T4','T5','T6','T7'].map(d => (
+                    <div key={d} style={{ fontSize: 11, color: '#9ca3af', padding: '4px 0', fontWeight: 600 }}>{d}</div>
+                  ))}
+                  {calendarDays.map((day, i) => {
+                    const isToday = day === now.date() && currentMonth.month() === now.month() && currentMonth.year() === now.year();
+                    const hasEvent = day && eventDays.has(day);
+                    return (
+                      <div key={i} style={{
+                        padding: '5px 0', borderRadius: 6, fontSize: 12, fontWeight: hasEvent ? 700 : 400,
+                        background: isToday ? 'linear-gradient(135deg,#2563eb,#4f46e5)' : hasEvent ? '#eff6ff' : 'transparent',
+                        color: isToday ? 'white' : hasEvent ? '#2563eb' : day ? '#374151' : 'transparent',
+                        position: 'relative',
+                      }}>
+                        {day || ''}
+                        {hasEvent && !isToday && (
+                          <div style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#2563eb' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Next event */}
+              {upcoming.length > 0 && (() => {
+                const next = upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate)))[0];
+                return (
+                  <Card style={{ borderRadius: 14, background: 'linear-gradient(135deg,#0f1629,#1a2744)', border: 'none' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Sự kiện tiếp theo</Text>
+                    <Text strong style={{ color: 'white', fontSize: 14, display: 'block', marginBottom: 8 }}>{next.Title}</Text>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
+                      {dayjs(next.StartDate).format('DD/MM · HH:mm')}
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Next event */}
-            {upcoming.length > 0 && (() => {
-              const next = upcoming.sort((a, b) => dayjs(a.StartDate).diff(dayjs(b.StartDate)))[0];
-              return (
-                <Card style={{ borderRadius: 14, background: 'linear-gradient(135deg,#0f1629,#1a2744)', border: 'none' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Sự kiện tiếp theo</Text>
-                  <Text strong style={{ color: 'white', fontSize: 14, display: 'block', marginBottom: 8 }}>{next.Title}</Text>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
-                    {dayjs(next.StartDate).format('DD/MM · HH:mm')}
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Đếm ngược</Text>
-                    <div style={{ marginTop: 2 }}><Countdown targetDate={next.StartDate} /></div>
-                  </div>
-                  {next.OTPCode && (
-                    <Button type="primary" block size="small" onClick={() => setTicketReg(next)}
-                      style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}>
-                      Xem Mã OTP
-                    </Button>
-                  )}
-                </Card>
-              );
-            })()}
+                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Đếm ngược</Text>
+                      <div style={{ marginTop: 2 }}><Countdown targetDate={next.StartDate} /></div>
+                    </div>
+                    {next.OTPCode && (
+                      <Button type="primary" block size="small" onClick={() => setTicketReg(next)}
+                        style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}>
+                        Xem Mã OTP
+                      </Button>
+                    )}
+                  </Card>
+                );
+              })()}
+            </div>
           </div>
-        </div>
       </div>
 
       <TicketModal registration={ticketReg} onClose={() => setTicketReg(null)} />

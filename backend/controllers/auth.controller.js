@@ -82,8 +82,6 @@ const register = async (req, res) => {
       }
     }
 
-    // No email verification needed — account is active immediately
-
     return createdResponse(
       res,
       { userId: newUser.UserID, email: newUser.Email, role: newUser.Role },
@@ -144,7 +142,6 @@ const login = async (req, res) => {
     console.log(`\n🔐 [LOGIN] email="${email}" | time=${new Date().toISOString()}`);
     const pool = getPool();
 
-    // ĐÃ SỬA: Xóa hoàn toàn 'u.MustChangePassword' khỏi câu truy vấn SELECT
     const result = await pool.request()
       .input('Email', sql.VarChar(255), email)
       .query(`SELECT u.UserID, u.FullName, u.Email, u.PasswordHash, u.Role, u.Phone, u.IsActive, u.IsVerified, u.AvatarURL, 
@@ -163,7 +160,6 @@ const login = async (req, res) => {
 
     if (!user.IsActive) {
       console.log(`  ❌ Account inactive`);
-      // ĐÃ SỬA: Bỏ qua kiểm tra MustChangePassword cho Speaker
       if (user.Role === 'Speaker') {
         return unauthorizedResponse(res, 'Tài khoản diễn giả chưa được Admin phê duyệt.');
       }
@@ -181,8 +177,6 @@ const login = async (req, res) => {
 
     console.log(`  ✅ LOGIN SUCCESS: ${email} (${user.Role})`);
     
-    // ĐÃ SỬA: Bỏ khối code bắt buộc Speaker đổi mật khẩu (vì không có dữ liệu MustChangePassword)
-
     const tokenPayload = { userId: user.UserID, email: user.Email, role: user.Role };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
@@ -267,7 +261,6 @@ const getMe = async (req, res) => {
   try {
     const pool = getPool();
     
-    // ĐÃ SỬA: Quét bắt chính xác ID người dùng dù token viết hoa hay viết thường
     const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
     
     if (!exactUserId) {
@@ -294,7 +287,7 @@ const getMe = async (req, res) => {
 
     const user = {
       userId: row.UserID, 
-      fullName: row.FullName, // Nếu DB rỗng, dòng này sẽ là null
+      fullName: row.FullName, 
       email: row.Email,
       role: row.Role, 
       avatarURL: row.AvatarURL, 
@@ -304,7 +297,6 @@ const getMe = async (req, res) => {
       createdAt: row.CreatedAt,
     };
 
-    // ... (Phần code xử lý Organizer và Events giữ nguyên như cũ của bạn)
     if (row.OrganizerProfileID) {
       user.organizerProfile = {
         id: row.OrganizerProfileID,
@@ -365,6 +357,54 @@ const getMe = async (req, res) => {
   }
 };
 
+// ─── UPDATE ME (ĐÃ THÊM MỚI ĐỂ HỖ TRỢ ĐỔI THÔNG TIN / TRƯỜNG ĐH) ───
+const updateMe = async (req, res) => {
+  try {
+    const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
+    const { fullName, phone, university, avatarURL } = req.body;
+    const pool = getPool();
+
+    // 1. Lọc URL ảnh nếu có up file
+    let finalAvatarURL = avatarURL || null;
+    if (req.files && req.files['avatar'] && req.files['avatar'].length > 0) {
+      finalAvatarURL = req.files['avatar'][0].filename;
+    }
+
+    // 2. Cập nhật thông tin User cơ bản (Bao gồm trường University)
+    await pool.request()
+      .input('UserID', sql.Int, exactUserId)
+      .input('FullName', sql.NVarChar(150), fullName)
+      .input('Phone', sql.VarChar(20), phone || null)
+      .input('University', sql.NVarChar(150), university || null)
+      .input('AvatarURL', sql.VarChar(500), finalAvatarURL)
+      .query(`
+        UPDATE Users 
+        SET FullName = @FullName, Phone = @Phone, University = @University, AvatarURL = @AvatarURL, UpdatedAt = GETDATE()
+        WHERE UserID = @UserID
+      `);
+
+    // 3. Nếu là Organizer và có tải lại Giấy phép, reset trạng thái duyệt
+    if (req.user.Role === 'Organizer' && req.files && req.files['documents'] && req.files['documents'].length > 0) {
+      const filePaths = req.files['documents'].map(f => f.filename);
+      const documentJSON = JSON.stringify(filePaths);
+
+      await pool.request()
+        .input('UserID', sql.Int, exactUserId)
+        .input('DocumentURL', sql.VarChar(500), documentJSON)
+        .query(`
+          UPDATE OrganizerProfiles 
+          SET DocumentURL = @DocumentURL, ApprovalStatus = 'Pending', UpdatedAt = GETDATE()
+          WHERE UserID = @UserID
+        `);
+    }
+
+    return successResponse(res, null, 'Cập nhật hồ sơ thành công');
+  } catch (error) {
+    console.error('updateMe error:', error);
+    return errorResponse(res, 'Cập nhật hồ sơ thất bại. Vui lòng thử lại.');
+  }
+};
+
 // ─── FORGOT PASSWORD ──────────────────────────────────────────
 const forgotPassword = async (req, res) => {
   try {
@@ -387,7 +427,6 @@ const forgotPassword = async (req, res) => {
       .input('ResetTokenExpiry', sql.DateTime, resetTokenExpiry)
       .query(`UPDATE Users SET ResetToken = @ResetToken, ResetTokenExpiry = @ResetTokenExpiry WHERE UserID = @UserID`);
 
-    // Ghi log đường dẫn đặt lại mật khẩu để tiện debug khi cấu hình email chưa chuẩn
     const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     console.log(`\n========================================`);
     console.log(`🔑 PASSWORD RESET LINK cho ${email}:`);
@@ -451,14 +490,12 @@ const changePassword = async (req, res) => {
 };
 
 // ─── CREATE SPEAKER (Organizer tạo trong event) ───────────────
-// ─── ORGANIZER: Tạo tài khoản Speaker ──────────────────────────
 const createSpeaker = async (req, res) => {
   try {
     const { fullName, email, phone, bio, expertise, linkedInURL, password } = req.body;
 
     const pool = getPool();
     
-    // 1. Kiểm tra email đã tồn tại chưa
     const existing = await pool.request()
       .input('Email', sql.VarChar(255), email)
       .query(`SELECT UserID, Role FROM Users WHERE Email = @Email`);
@@ -467,14 +504,12 @@ const createSpeaker = async (req, res) => {
 
     if (existing.recordset.length > 0) {
       const existingUser = existing.recordset[0];
-      // Nếu email đã tồn tại với role Speaker → dùng lại
       if (existingUser.Role === 'Speaker') {
         speakerId = existingUser.UserID;
       } else {
         return conflictResponse(res, 'Email này đã được dùng cho tài khoản khác (không phải Diễn giả)');
       }
     } else {
-      // Tạo tài khoản Speaker mới do Organizer tạo (cần Admin duyệt)
       const tempToken = crypto.randomBytes(32).toString('hex');
       const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 ngày
 
@@ -494,20 +529,14 @@ const createSpeaker = async (req, res) => {
 
       speakerId = insertResult.recordset[0].UserID;
 
-      // Tạo SpeakerProfile
       await pool.request()
         .input('UserID', sql.Int, speakerId)
         .input('Bio', sql.NVarChar(sql.MAX), bio || null)
         .input('Expertise', sql.NVarChar(500), expertise || null)
         .input('LinkedInURL', sql.VarChar(500), linkedInURL || null)
         .query(`INSERT INTO SpeakerProfiles (UserID, Bio, Expertise, LinkedInURL) VALUES (@UserID, @Bio, @Expertise, @LinkedInURL)`);
-
-      // Gửi email mời speaker set mật khẩu
-      // sendSpeakerInviteEmail(email, fullName, tempToken).catch(console.error);
     }
 
-    // Speaker mới tạo có ApprovalStatus = 'Pending' — cần admin duyệt trước khi hiển thị
-    // Lưu vào bảng trung gian hoặc trả speakerId về để Organizer gắn vào event
     return createdResponse(res, { speakerId, status: 'PendingAdminApproval' },
       'Đã tạo tài khoản diễn giả. Tài khoản cần được Admin phê duyệt trước khi kích hoạt.');
   } catch (error) {
@@ -520,7 +549,7 @@ const createSpeaker = async (req, res) => {
 const approveSpeaker = async (req, res) => {
   try {
     const { speakerId } = req.params;
-    const { action, rejectionReason } = req.body; // action: 'approve' | 'reject'
+    const { action, rejectionReason } = req.body; 
     const pool = getPool();
 
     const result = await pool.request()
@@ -535,7 +564,6 @@ const approveSpeaker = async (req, res) => {
         .input('UserID', sql.Int, parseInt(speakerId))
         .query(`UPDATE Users SET IsActive = 1, UpdatedAt = GETDATE() WHERE UserID = @UserID`);
 
-      // Gửi email thông báo + link set mật khẩu
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       await pool.request()
@@ -582,7 +610,6 @@ const approveOrganizer = async (req, res) => {
         .input('AdminID', sql.Int, req.user.UserID)
         .query(`UPDATE OrganizerProfiles SET ApprovalStatus='Approved', ApprovedBy=@AdminID, ApprovedAt=GETDATE(), UpdatedAt=GETDATE() WHERE OrganizerProfileID=@ID`);
 
-      // Notify organizer
       await pool.request()
         .input('UserID', sql.Int, org.UserID)
         .input('Title', sql.NVarChar(300), '✅ Tài khoản Ban tổ chức đã được duyệt!')
@@ -702,10 +729,77 @@ const getAllOrganizers = async (req, res) => {
   }
 };
 
+// ─── SETTINGS (Update Email Notifications) ──────────────────
+const updateSettings = async (req, res) => {
+  try {
+    const userId = req.user.UserID;
+    const { emailNotifs } = req.body;
+
+    const pool = getPool();
+    await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('EmailNotifs', sql.Bit, emailNotifs === true ? 1 : 0)
+      .query(`
+        UPDATE Users 
+        SET EmailNotifs = @EmailNotifs
+        WHERE UserID = @UserID
+      `);
+
+    return successResponse(res, null, 'Cập nhật cài đặt thành công');
+  } catch (error) {
+    console.error('Update settings error:', error);
+    return errorResponse(res, 'Lỗi máy chủ');
+  }
+};
+
+// ─── DELETE ACCOUNT (Soft Delete) ───────────────────────────
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.UserID;
+    const pool = getPool();
+
+    // Soft delete: Disable active flag, rename email to free it up
+    const deletedEmail = `deleted_${userId}_${Date.now()}@ems.edu.vn`;
+    const deletedName = `Người dùng đã xóa`;
+
+    await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('Email', sql.VarChar(255), deletedEmail)
+      .input('FullName', sql.NVarChar(150), deletedName)
+      .query(`
+        UPDATE Users 
+        SET IsActive = 0, 
+            Email = @Email, 
+            FullName = @FullName
+        WHERE UserID = @UserID
+      `);
+
+    return successResponse(res, null, 'Tài khoản đã được xóa thành công');
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return errorResponse(res, 'Lỗi máy chủ');
+  }
+};
+
 module.exports = {
-  register, verifyEmail, resendVerification,
-  login, refreshToken, logout, getMe,
-  forgotPassword, resetPassword, changePassword,
-  createSpeaker, approveSpeaker,
-  approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
+  register,
+  verifyEmail,
+  resendVerification,
+  login,
+  refreshToken,
+  logout,
+  getMe,
+  updateMe,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  createSpeaker,
+  approveSpeaker,
+  approveOrganizer,
+  getPendingOrganizers,
+  getAllOrganizers,
+  getPendingSpeakers,
+  getAllSpeakers,
+  updateSettings,
+  deleteAccount,
 };

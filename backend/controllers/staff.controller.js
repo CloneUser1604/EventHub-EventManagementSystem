@@ -317,9 +317,10 @@ const participantCheckinWithOTP = async (req, res) => {
       .input('EventID', sql.Int, eventId)
       .input('ParticipantID', sql.Int, participantId)
       .query(`
-        SELECT r.RegistrationID, r.Status, qt.OTPCode, qt.IsUsed
+        SELECT r.RegistrationID, r.Status, qt.OTPCode, qt.IsUsed, e.StartDate, e.EndDate
         FROM Registrations r
         JOIN QRTickets qt ON r.RegistrationID = qt.RegistrationID
+        JOIN Events e ON r.EventID = e.EventID
         WHERE r.EventID = @EventID AND r.ParticipantID = @ParticipantID
       `);
     
@@ -328,6 +329,18 @@ const participantCheckinWithOTP = async (req, res) => {
     }
 
     const reg = regRes.recordset[0];
+
+    const now = new Date();
+    const startDate = new Date(reg.StartDate);
+    const endDate = new Date(reg.EndDate);
+
+    if (now < startDate) {
+      return res.status(400).json({ success: false, message: 'Sự kiện chưa diễn ra, không thể check-in' });
+    }
+    if (now > endDate) {
+      return res.status(400).json({ success: false, message: 'Sự kiện đã kết thúc, không thể check-in' });
+    }
+
     if (reg.Status !== 'Registered') {
       return res.status(400).json({ success: false, message: 'Đăng ký của bạn không hợp lệ' });
     }

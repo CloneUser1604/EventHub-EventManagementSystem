@@ -10,7 +10,7 @@ const getEvents = async (req, res) => {
     const {
       page = 1, limit = 12,
       search, categoryId, venueId, status, approvalStatus,
-      startDate, endDate, organizerId,
+      startDate, endDate, organizerId, timeStatus, isInternal,
       sortBy = 'StartDate', sortOrder = 'ASC',
     } = req.query;
 
@@ -27,8 +27,12 @@ const getEvents = async (req, res) => {
     if (isAdmin) {
       // Admin sees everything — optionally filter by status/approvalStatus
       if (status) {
-        conditions.push(`e.Status = @Status`);
-        params.push({ name: 'Status', type: sql.VarChar(20), value: status });
+        if (status === 'all_published_cancelled') {
+          conditions.push(`e.Status IN ('Published', 'Cancelled')`);
+        } else {
+          conditions.push(`e.Status = @Status`);
+          params.push({ name: 'Status', type: sql.VarChar(20), value: status });
+        }
       }
       if (approvalStatus) {
         conditions.push(`e.ApprovalStatus = @ApprovalStatus`);
@@ -36,9 +40,19 @@ const getEvents = async (req, res) => {
       }
     } else if (isOrganizer) {
       params.push({ name: 'OrgID', type: sql.Int, value: req.user.UserID });
-      conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
+      if (status === 'all_published_cancelled') {
+        conditions.push(`(e.Status IN ('Published', 'Cancelled') OR e.OrganizerID = @OrgID)`);
+      } else {
+        conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
+      }
     } else {
-      conditions.push(`e.Status = 'Published'`);
+      if (status === 'all_published_cancelled') {
+        conditions.push(`e.Status IN ('Published', 'Cancelled')`);
+      } else if (status === 'Cancelled') {
+        conditions.push(`e.Status = 'Cancelled'`);
+      } else {
+        conditions.push(`e.Status = 'Published'`);
+      }
     }
 
     if (search) {
@@ -61,6 +75,18 @@ const getEvents = async (req, res) => {
       conditions.push(`e.EndDate <= @EndDate`);
       params.push({ name: 'EndDate', type: sql.DateTime, value: new Date(endDate) });
     }
+    if (timeStatus === 'upcoming') {
+      conditions.push(`e.StartDate > GETDATE()`);
+    } else if (timeStatus === 'ongoing') {
+      conditions.push(`e.StartDate <= GETDATE() AND e.EndDate >= GETDATE()`);
+    } else if (timeStatus === 'past') {
+      conditions.push(`e.EndDate < GETDATE()`);
+    }
+    if (isInternal === 'true') {
+      conditions.push(`e.IsInternalOnly = 1`);
+    } else if (isInternal === 'false') {
+      conditions.push(`e.IsInternalOnly = 0`);
+    }
     if (organizerId && (isAdmin || isOrganizer)) {
       conditions.push(`e.OrganizerID = @OrganizerID`);
       params.push({ name: 'OrganizerID', type: sql.Int, value: parseInt(organizerId) });
@@ -68,7 +94,7 @@ const getEvents = async (req, res) => {
 
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
 
-    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt' };
+    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt', Rating: 'AverageRating', Participants: 'RegisteredCount' };
     const orderCol = validSortCols[sortBy] || 'e.StartDate';
     const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
@@ -92,12 +118,13 @@ const getEvents = async (req, res) => {
         SELECT
           e.EventID, e.Title, e.Description, e.CoverImageURL,
           e.StartDate, e.EndDate, e.RegistrationDeadline,
-          e.MaxParticipants, e.Status, e.ApprovalStatus,
+          e.MaxParticipants, e.IsInternalOnly, e.Status, e.ApprovalStatus,
           e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
           u.UserID AS OrganizerID, u.FullName AS OrganizerName,
           op.OrganizationName,
           c.CategoryID, c.Name AS CategoryName,
           v.VenueID, v.Name AS VenueName, v.Address AS VenueAddress,
+          (SELECT ISNULL(AVG(CAST(Rating AS FLOAT)), 0) FROM Feedbacks f WHERE f.EventID = e.EventID) AS AverageRating,
           (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered') AS RegisteredCount,
           (SELECT COUNT(*) FROM Sessions s WHERE s.EventID = e.EventID) AS SessionCount
         FROM Events e
@@ -151,7 +178,7 @@ const getEventById = async (req, res) => {
 
     const isOwner = req.user?.UserID === event.OrganizerID;
     const isAdmin = req.user?.Role === 'Admin';
-    if (!isAdmin && !isOwner && event.Status !== 'Published') {
+    if (!isAdmin && !isOwner && event.Status !== 'Published' && event.Status !== 'Cancelled') {
       return notFoundResponse(res, 'Không tìm thấy sự kiện');
     }
 
@@ -260,6 +287,23 @@ const createEvent = async (req, res) => {
       }
     }
 
+    if (venueId) {
+      const overlapCheck = await pool.request()
+        .input('VenueID', sql.Int, venueId)
+        .input('StartDate', sql.DateTime, new Date(startDate))
+        .input('EndDate', sql.DateTime, new Date(endDate))
+        .query(`
+          SELECT Title FROM Events 
+          WHERE VenueID = @VenueID 
+            AND ApprovalStatus = 'Approved'
+            AND (@StartDate < EndDate AND @EndDate > StartDate)
+        `);
+      
+      if (overlapCheck.recordset.length > 0) {
+        return errorResponse(res, `Địa điểm này đã được đặt cho sự kiện "${overlapCheck.recordset[0].Title}" trong khoảng thời gian bạn chọn. Vui lòng chọn địa điểm hoặc thời gian khác.`, 400);
+      }
+    }
+
     const insertResult = await pool.request()
       .input('OrganizerID', sql.Int, organizerId)
       .input('CategoryID', sql.Int, categoryId || null)
@@ -328,7 +372,7 @@ const createEvent = async (req, res) => {
     return createdResponse(res, { eventId: newEvent.EventID }, 'Tạo sự kiện thành công');
   } catch (error) {
     console.error('createEvent error:', error.message);
-    return errorResponse(res, 'Tạo sự kiện thất bại');
+    return res.status(500).json({ success: false, message: 'Tạo sự kiện thất bại: ' + error.message, stack: error.stack });
   }
 };
 
@@ -388,6 +432,25 @@ const updateEvent = async (req, res) => {
         if (sStart < sDate || sEnd > eDate) {
           return errorResponse(res, `Thời gian của phiên "${s.title || 'Không tên'}" phải nằm trong thời gian diễn ra sự kiện`, 400);
         }
+      }
+    }
+
+    if (venueId !== undefined && venueId !== null) {
+      const overlapCheck = await pool.request()
+        .input('VenueID', sql.Int, venueId)
+        .input('StartDate', sql.DateTime, sDate)
+        .input('EndDate', sql.DateTime, eDate)
+        .input('EventID', sql.Int, parseInt(id))
+        .query(`
+          SELECT Title FROM Events 
+          WHERE VenueID = @VenueID 
+            AND EventID != @EventID
+            AND ApprovalStatus = 'Approved'
+            AND (@StartDate < EndDate AND @EndDate > StartDate)
+        `);
+      
+      if (overlapCheck.recordset.length > 0) {
+        return errorResponse(res, `Địa điểm này đã được đặt cho sự kiện "${overlapCheck.recordset[0].Title}" trong khoảng thời gian bạn chọn. Vui lòng chọn địa điểm hoặc thời gian khác.`, 400);
       }
     }
 
@@ -523,7 +586,7 @@ const updateEvent = async (req, res) => {
     return successResponse(res, null, 'Cập nhật sự kiện thành công');
   } catch (error) {
     console.error('updateEvent error:', error.message);
-    return errorResponse(res, 'Cập nhật sự kiện thất bại');
+    return res.status(500).json({ success: false, message: 'Cập nhật sự kiện thất bại: ' + error.message, stack: error.stack });
   }
 };
 
@@ -709,23 +772,26 @@ const getVenues = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const { timeRange = 'month' } = req.query; 
-    const formatStr = timeRange === 'day' ? 'yyyy-MM-dd' : 'yyyy-MM';
-    const dateLimit = timeRange === 'day' ? 'DATEADD(day, -30, GETDATE())' : 'DATEADD(month, -6, GETDATE())';
+    const formatStr = (timeRange === 'day' || timeRange === 'week') ? 'yyyy-MM-dd' : 'yyyy-MM';
+    let dateLimit = 'DATEADD(month, -6, GETDATE())';
+    if (timeRange === 'day') dateLimit = 'DATEADD(day, -30, GETDATE())';
+    if (timeRange === 'week') dateLimit = 'DATEADD(day, -7, GETDATE())';
 
     const pool = getPool();
     const stats = await pool.request().query(`
       SELECT
         (SELECT COUNT(*) FROM Events) AS TotalEvents,
-        (SELECT COUNT(*) FROM Events WHERE Status='Published') AS PublishedEvents,
+        (SELECT COUNT(*) FROM Events WHERE Status='Published' AND EndDate >= GETDATE()) AS PublishedEvents,
         (SELECT COUNT(*) FROM Events WHERE ApprovalStatus='Pending') AS PendingApproval,
-        (SELECT COUNT(*) FROM Events WHERE Status='Completed') AS CompletedEvents,
+        (SELECT COUNT(*) FROM Events WHERE Status='Completed' OR (Status='Published' AND EndDate < GETDATE())) AS CompletedEvents,
         (SELECT COUNT(*) FROM Users WHERE Role='Participant') AS TotalParticipants,
         (SELECT COUNT(*) FROM Users WHERE Role='Organizer') AS TotalOrganizers,
+        (SELECT COUNT(*) FROM Users WHERE Role='Speaker') AS TotalSpeakers,
         (SELECT COUNT(*) FROM Registrations WHERE Status='Registered') AS TotalRegistrations,
         (SELECT COUNT(*) FROM Events WHERE StartDate>=GETDATE() AND Status='Published') AS UpcomingEvents
     `);
     const recentEvents = await pool.request().query(`
-      SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, u.FullName AS OrganizerName
+      SELECT TOP 5 e.EventID, e.Title, e.Status, e.ApprovalStatus, e.StartDate, e.EndDate, u.FullName AS OrganizerName
       FROM Events e JOIN Users u ON e.OrganizerID=u.UserID ORDER BY e.CreatedAt DESC
     `);
 

@@ -12,10 +12,9 @@ import {
   Pagination,
   Tag,
   Typography,
-  Drawer,
   Switch,
 } from "antd";
-import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
+import {SearchOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
@@ -42,17 +41,16 @@ const EventListPage = () => {
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId") || "",
     venueId: "",
-    timeStatus: "",
+    timeStatus: searchParams.get("timeStatus") || "upcoming",
     isInternal: "",
     startDate: "",
     endDate: "",
     page: 1,
     limit: 6,
-    sortBy: "StartDate",
-    sortOrder: "DESC",
+    sortBy: searchParams.get("sortBy") || "StartDate",
+    sortOrder: searchParams.get("sortOrder") || "ASC",
     status: "all_published_cancelled",
   });
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
 
@@ -107,7 +105,7 @@ const EventListPage = () => {
         <Select
           value={filters.categoryId || undefined}
           onChange={(v) => updateFilter("categoryId", v || "")}
-          placeholder={t('browse.allCategories')}
+          placeholder="-- Chọn lĩnh vực --"
           style={{width: "100%"}}
           dropdownStyle={{fontFamily: "'Inter', sans-serif"}}
           className="category-filter"
@@ -127,7 +125,7 @@ const EventListPage = () => {
         <Select
           value={filters.venueId || undefined}
           onChange={(v) => updateFilter("venueId", v || "")}
-          placeholder={t('browse.allVenues')}
+          placeholder="-- Chọn địa điểm --"
           style={{width: "100%"}}
           allowClear
         >
@@ -145,7 +143,7 @@ const EventListPage = () => {
         <Select
           value={filters.isInternal || undefined}
           onChange={(v) => updateFilter("isInternal", v || "")}
-          placeholder="Tất cả đối tượng"
+          placeholder="-- Chọn đối tượng --"
           style={{width: "100%"}}
           allowClear
         >
@@ -160,7 +158,7 @@ const EventListPage = () => {
         <Select
           value={filters.timeStatus || undefined}
           onChange={(v) => updateFilter("timeStatus", v || "")}
-          placeholder="Tất cả trạng thái"
+          placeholder="-- Chọn trạng thái --"
           style={{width: "100%"}}
           allowClear
         >
@@ -173,18 +171,34 @@ const EventListPage = () => {
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
           {t('browse.time')}
         </Text>
-        <RangePicker
-          style={{width: "100%"}}
-          format="DD/MM/YYYY"
-          onChange={(dates) => {
-            setFilters((f) => ({
-              ...f,
-              startDate: dates?.[0]?.toISOString() || "",
-              endDate: dates?.[1]?.toISOString() || "",
-              page: 1,
-            }));
-          }}
-        />
+        <div style={{display: "flex", flexDirection: "column", gap: 8}}>
+          <DatePicker
+            style={{width: "100%"}}
+            format="DD/MM/YYYY"
+            placeholder="Từ ngày"
+            value={filters.startDate ? dayjs(filters.startDate) : null}
+            onChange={(date) => {
+              setFilters((f) => ({
+                ...f,
+                startDate: date ? date.toISOString() : "",
+                page: 1,
+              }));
+            }}
+          />
+          <DatePicker
+            style={{width: "100%"}}
+            format="DD/MM/YYYY"
+            placeholder="Đến ngày"
+            value={filters.endDate ? dayjs(filters.endDate) : null}
+            onChange={(date) => {
+              setFilters((f) => ({
+                ...f,
+                endDate: date ? date.toISOString() : "",
+                page: 1,
+              }));
+            }}
+          />
+        </div>
       </div>
       <div>
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
@@ -198,8 +212,8 @@ const EventListPage = () => {
           }}
           style={{width: "100%"}}
         >
-          <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
           <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
+          <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
           <Option value="Participants_DESC">{t('browse.sortParticipantsDesc')}</Option>
           <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
           <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
@@ -247,7 +261,7 @@ const EventListPage = () => {
               placeholder={t('browse.search')}
               value={filters.search}
               onChange={(e) =>
-                setFilters((f) => ({...f, search: e.target.value}))
+                setFilters((f) => ({...f, search: e.target.value, page: 1}))
               }
               onPressEnter={() => fetchEvents({...filters})}
               style={{flex: 1, borderRadius: '8px 0 0 8px'}}
@@ -263,73 +277,6 @@ const EventListPage = () => {
             />
           </div>
 
-          {/* Active filters */}
-          {hasFilters && (
-            <div
-              style={{display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap"}}
-            >
-              {filters.categoryId && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("categoryId", "")}
-                  color="blue"
-                >
-                  {(() => {
-                    const c = categories.find((c) => String(c.CategoryID) === filters.categoryId);
-                    return c ? (t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name) : "";
-                  })()}
-                </Tag>
-              )}
-              {filters.venueId && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("venueId", "")}
-                  color="purple"
-                >
-                  {
-                    venues.find((v) => String(v.VenueID) === filters.venueId)
-                      ?.Name
-                  }
-                </Tag>
-              )}
-              {filters.startDate && (
-                <Tag
-                  closable
-                  onClose={() =>
-                    setFilters((f) => ({
-                      ...f,
-                      startDate: "",
-                      endDate: "",
-                      page: 1,
-                    }))
-                  }
-                  color="cyan"
-                >
-                  {filters.startDate && filters.endDate 
-                    ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
-                    : t('browse.byDate')}
-                </Tag>
-              )}
-              {filters.timeStatus && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("timeStatus", "")}
-                  color="orange"
-                >
-                  {filters.timeStatus === 'upcoming' ? 'Sắp diễn ra' : filters.timeStatus === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
-                </Tag>
-              )}
-              {filters.isInternal && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("isInternal", "")}
-                  color="magenta"
-                >
-                  {filters.isInternal === 'true' ? 'Sinh viên trường' : 'Tất cả mọi người'}
-                </Tag>
-              )}
-            </div>
-          )}
         </div>
         <style>{`
           .category-filter .ant-select-selector {
@@ -436,21 +383,6 @@ const EventListPage = () => {
         </Row>
       </div>
 
-      {/* Mobile filter drawer */}
-      <Drawer
-        title={t('browse.filterTitle')}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        placement="right"
-        width={300}
-        footer={
-          <Button type="primary" block onClick={() => setDrawerOpen(false)}>
-            {t('browse.apply')}
-          </Button>
-        }
-      >
-        <FilterPanel />
-      </Drawer>
     </MainLayout>
   );
 };

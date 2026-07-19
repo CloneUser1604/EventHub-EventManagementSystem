@@ -255,7 +255,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
     dayjs().isAfter(dayjs(event.RegistrationDeadline));
   const canRegister =
     isAuthenticated &&
-    (user?.role === "Participant" || user?.role === "Speaker") &&
+    (user?.role === "Participant" || user?.role === "Speaker" || user?.role === "Staff") &&
     !myRegistration &&
     !isFull &&
     !deadlinePassed &&
@@ -719,7 +719,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                           fontWeight: 600,
                         }}
                       >
-                        {event.MaxParticipants - (event.RegisteredCount || 0)}{" "}
+                        {Math.max(0, event.MaxParticipants - (event.RegisteredCount || 0))}{" "}
                         {t('eventDetail.spotsLeft')}
                       </span>{" "}
                       / {event.MaxParticipants}

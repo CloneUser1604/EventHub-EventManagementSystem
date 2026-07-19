@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag } from 'antd';
-import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined } from '@ant-design/icons';
+import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
 import { eventService } from '../../services/event.service';
@@ -30,6 +30,13 @@ const buildImgUrl = (url) => {
   }
   // Relative path
   return `${BACKEND_BASE}/${url.replace(/\\/g, '/')}`;
+};
+
+// Check if URL is a video
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  const ext = url.split('?')[0].split('.').pop().toLowerCase();
+  return ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext);
 };
 
 // Parse ImageURL: returns array of string URLs
@@ -67,12 +74,20 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
           const isLast = !showAll && i === maxVisible - 1 && hiddenCount > 0;
           return (
             <div key={i} style={{ position: 'relative', paddingBottom: '75%', overflow: 'hidden', borderRadius: 8, cursor: 'pointer', backgroundColor: '#f3f4f6' }}>
-              <img
-                src={buildImgUrl(url)}
-                alt={`img-${i}`}
-                onClick={() => setLightbox(i)}
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
-              />
+              {isVideoUrl(url) ? (
+                <video
+                  src={buildImgUrl(url)}
+                  onClick={() => setLightbox(i)}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+                />
+              ) : (
+                <img
+                  src={buildImgUrl(url)}
+                  alt={`img-${i}`}
+                  onClick={() => setLightbox(i)}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+                />
+              )}
               {isLast && (
                 <div
                   onClick={(e) => {
@@ -110,21 +125,39 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
       >
         {lightbox !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <img
-              src={buildImgUrl(images[lightbox])}
-              alt="full"
-              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }}
-            />
+            {isVideoUrl(images[lightbox]) ? (
+              <video
+                src={buildImgUrl(images[lightbox])}
+                controls
+                autoPlay
+                style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }}
+              />
+            ) : (
+              <img
+                src={buildImgUrl(images[lightbox])}
+                alt="full"
+                style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }}
+              />
+            )}
             {images.length > 1 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {images.map((url, i) => (
-                  <img
-                    key={i}
-                    src={buildImgUrl(url)}
-                    alt={`thumb-${i}`}
-                    onClick={() => setLightbox(i)}
-                    style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: i === lightbox ? '2px solid #6366f1' : '2px solid transparent', opacity: i === lightbox ? 1 : 0.7 }}
-                  />
+                  isVideoUrl(url) ? (
+                    <video
+                      key={i}
+                      src={buildImgUrl(url)}
+                      onClick={() => setLightbox(i)}
+                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: i === lightbox ? '2px solid #6366f1' : '2px solid transparent', opacity: i === lightbox ? 1 : 0.7 }}
+                    />
+                  ) : (
+                    <img
+                      key={i}
+                      src={buildImgUrl(url)}
+                      alt={`thumb-${i}`}
+                      onClick={() => setLightbox(i)}
+                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: i === lightbox ? '2px solid #6366f1' : '2px solid transparent', opacity: i === lightbox ? 1 : 0.7 }}
+                    />
+                  )
                 ))}
               </div>
             )}
@@ -164,7 +197,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [content, setContent] = useState('');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [fileList, setFileList] = useState([]);
+  const [videoList, setVideoList] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [previewVideoUrls, setPreviewVideoUrls] = useState([]);
   const [showPoll, setShowPoll] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
@@ -177,11 +212,13 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [detailBlog, setDetailBlog] = useState(null);
   const [commentInput, setCommentInput] = useState('');
   const [commentImageFiles, setCommentImageFiles] = useState([]);
+  const [commentVideoFiles, setCommentVideoFiles] = useState([]);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
   const [replyingToId, setReplyingToId] = useState(null);
   const [replyInput, setReplyInput] = useState('');
   const [replyImageFiles, setReplyImageFiles] = useState([]);
+  const [replyVideoFiles, setReplyVideoFiles] = useState([]);
   const [commentSort, setCommentSort] = useState('top');
   const [savedBlogs, setSavedBlogs] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -211,12 +248,6 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [reportCommentModalVisible, setReportCommentModalVisible] = useState(false);
   const [reportCommentId, setReportCommentId] = useState(null);
   
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
   
   const reportReasons = [
     'Spam hoặc quảng cáo rác',
@@ -524,6 +555,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       if (selectedEvent) formData.append('eventId', selectedEvent);
       
       fileList.forEach(f => formData.append('images', f.originFileObj || f));
+      videoList.forEach(f => formData.append('images', f.originFileObj || f));
 
       if (showPoll) {
         formData.append('pollQuestion', pollQuestion.trim());
@@ -540,7 +572,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         setContent('');
         setSelectedEvent(null);
         setFileList([]);
+        setVideoList([]);
         setPreviewUrls([]);
+        setPreviewVideoUrls([]);
         setShowPoll(false);
         setPollQuestion('');
         setPollOptions(['', '']);
@@ -566,7 +600,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           const res = await blogService.deleteBlog(id);
           if (res.data?.success) {
             message.success(t('blog.deleteSuccess'));
-            fetchBlogs();
+            fetchBlogs(blogsSort, currentEventFilter);
           }
         } catch (error) {
           message.error(error.response?.data?.message || t('blog.deleteError'));
@@ -731,16 +765,18 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       message.warning('Vui lòng đăng nhập để bình luận');
       return;
     }
-    if (!commentInput.trim() && commentImageFiles.length === 0) return;
+    if (!commentInput.trim() && commentImageFiles.length === 0 && commentVideoFiles.length === 0) return;
     try {
       const formData = new FormData();
       if (commentInput.trim()) formData.append('content', commentInput);
       else formData.append('content', ' ');
       commentImageFiles.forEach(file => formData.append('images', file));
+      commentVideoFiles.forEach(file => formData.append('images', file));
 
       const res = await blogService.addComment(blogId, formData);
       setCommentInput('');
       setCommentImageFiles([]);
+      setCommentVideoFiles([]);
       setBlogs(prev => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: (b.CommentCount || 0) + 1 } : b));
       fetchComments(blogId, commentSort);
     } catch (e) {
@@ -750,17 +786,19 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
 
   const handleReplySubmit = async (blogId, parentId) => {
     if (!isAuthenticated) return message.warning('Vui lòng đăng nhập để bình luận');
-    if (!replyInput.trim() && replyImageFiles.length === 0) return;
+    if (!replyInput.trim() && replyImageFiles.length === 0 && replyVideoFiles.length === 0) return;
     try {
       const formData = new FormData();
       if (replyInput.trim()) formData.append('content', replyInput);
       else formData.append('content', ' ');
       formData.append('parentCommentId', parentId);
       replyImageFiles.forEach(file => formData.append('images', file));
+      replyVideoFiles.forEach(file => formData.append('images', file));
 
       await blogService.addComment(blogId, formData);
       setReplyInput('');
       setReplyImageFiles([]);
+      setReplyVideoFiles([]);
       setReplyingToId(null);
       setBlogs(prev => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: (b.CommentCount || 0) + 1 } : b));
       fetchComments(blogId, commentSort);
@@ -904,39 +942,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       `}</style>
       
       {!popupOnly && (
-      <div style={{ maxWidth: 1000, margin: isMobile ? '20px auto' : '40px auto', padding: isMobile ? '0 12px' : '0 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 40 }}>
+      <div style={{ maxWidth: 1000, margin: '40px auto', padding: '0 24px', display: 'flex', flexDirection: 'row', gap: 40 }}>
       
-      {/* Navigation (Sidebar on Desktop, Select on Mobile) */}
-      {isMobile ? (
-        <div style={{ position: 'sticky', top: 60, zIndex: 10, background: theme === 'dark' ? '#09090b' : '#f9fafb', padding: '10px 0', marginBottom: 12 }}>
-          <Select
-            value={activeView}
-            onChange={(val) => {
-              if (val === 'search') {
-                setActiveView('search');
-                setSearchQuery('');
-              } else if (val === 'feed') {
-                setCurrentEventFilter(null);
-                setActiveView('feed');
-                fetchBlogs(blogsSort, null);
-              } else {
-                setActiveView(val);
-              }
-            }}
-            style={{ width: '100%', fontWeight: 600 }}
-            size="large"
-          >
-            <Option value="feed">{t('blog.forYou')}</Option>
-            <Option value="search">{t('blog.search')}</Option>
-            <Option value="activity">
-              {t('blog.notifications')} 
-              {notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length > 0 && ` (${notifications.filter(n => !readNotificationIds.has(`${n.Type}_${n.ID}`)).length})`}
-            </Option>
-            <Option value="drafts">{t('blog.drafts')} {hasDraft ? ' (1)' : ''}</Option>
-            <Option value="saved">{t('blog.saved')}</Option>
-          </Select>
-        </div>
-      ) : (
         <div style={{ width: 220, display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 100, height: 'max-content', zIndex: 10 }}>
           <Button            icon={<HomeOutlined style={{ fontSize: 20, color: activeView === 'feed' && !currentEventFilter ? '#4f46e5' : '#374151' }} />} 
               onClick={() => {
@@ -1035,15 +1042,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
             >
               {t('blog.saved')}
             </Button>
-          </div>
         </div>
-      )}
+      </div>
       
-      {isMobile && (
-        <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 100 }}>
-          <Button type="primary" shape="circle" icon={<PlusOutlined />} size="large" onClick={() => setIsModalVisible(true)} style={{ width: 56, height: 56, backgroundColor: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }} />
-        </div>
-      )}
+      
+      
 
       {/* Main Content Area */}
       <div style={{ flex: 1, maxWidth: 620 }}>
@@ -1391,7 +1394,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         overflow: 'hidden'
       }}>
         
-        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', padding: isMobile ? '16px 12px' : '16px 24px', cursor: 'pointer', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }} onClick={() => { if(canPost) setIsModalVisible(true); }}>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', padding: '16px 24px', cursor: 'pointer', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }} onClick={() => { if(canPost) setIsModalVisible(true); }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
               <Avatar src={getAvatarUrl(user?.avatarURL || user?.AvatarURL)} icon={<UserOutlined />} size={40} />
@@ -1410,7 +1413,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           itemLayout="vertical"
           dataSource={blogs}
           renderItem={item => (
-            <div style={{ padding: isMobile ? '16px 12px' : '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }}>
+            <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }}>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Avatar src={getAvatarUrl(item.AuthorAvatar)} icon={<UserOutlined />} size={40} />
@@ -1657,14 +1660,27 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                 style={{ padding: 0, marginBottom: 12, resize: 'none', fontSize: 15 }}
               />
               
-              {previewUrls.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: previewUrls.length === 1 ? '1fr' : '1fr 1fr', gap: 8, paddingBottom: 12 }}>
-                  {previewUrls.map((url, index) => (
+              {(previewUrls.length > 0 || previewVideoUrls.length > 0) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12 }}>
+                  {previewUrls.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: previewUrls.length === 1 ? '1fr' : '1fr 1fr', gap: 8 }}>
+                      {previewUrls.map((url, index) => (
+                        <div key={index} style={{ position: 'relative' }}>
+                          <img src={url} alt="Preview" style={{ width: '100%', height: previewUrls.length === 1 ? 'auto' : 200, maxHeight: 400, borderRadius: 12, objectFit: 'cover' }} />
+                          <CloseCircleFilled 
+                            style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
+                            onClick={() => removeImage(index)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {previewVideoUrls.map((url, index) => (
                     <div key={index} style={{ position: 'relative' }}>
-                      <img src={url} alt="Preview" style={{ width: '100%', height: previewUrls.length === 1 ? 'auto' : 200, maxHeight: 400, borderRadius: 12, objectFit: 'cover' }} />
+                      <video src={url} controls style={{ width: '100%', maxHeight: 320, borderRadius: 12, objectFit: 'cover', background: '#000' }} />
                       <CloseCircleFilled 
                         style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
-                        onClick={() => removeImage(index)}
+                        onClick={() => { setVideoList(prev => prev.filter((_, i) => i !== index)); setPreviewVideoUrls(prev => prev.filter((_, i) => i !== index)); }}
                       />
                     </div>
                   ))}
@@ -1703,16 +1719,27 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
 
               <div style={{ display: 'flex', gap: 16, marginTop: 8, color: '#9ca3af' }}>
                 <Upload
-                  accept="image/*"
+                  accept="image/*,video/*"
                   showUploadList={false}
                   multiple
                   beforeUpload={(file) => {
-                    setFileList(prev => [...prev, file]);
-                    setPreviewUrls(prev => [...prev, URL.createObjectURL(file)]);
+                    const isVideo = file.type.startsWith('video/');
+                    if (isVideo) {
+                      const isUnder100MB = file.size / 1024 / 1024 < 100;
+                      if (!isUnder100MB) {
+                        message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB (video này: ${(file.size / 1024 / 1024).toFixed(1)}MB).`);
+                        return Upload.LIST_IGNORE;
+                      }
+                      setVideoList(prev => [...prev, file]);
+                      setPreviewVideoUrls(prev => [...prev, URL.createObjectURL(file)]);
+                    } else {
+                      setFileList(prev => [...prev, file]);
+                      setPreviewUrls(prev => [...prev, URL.createObjectURL(file)]);
+                    }
                     return false;
                   }}
                 >
-                  <PictureOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
+                  <PictureOutlined style={{ fontSize: 20, cursor: 'pointer' }} title="Thêm ảnh / video" />
                 </Upload>
                 <UnorderedListOutlined 
                   style={{ fontSize: 20, cursor: 'pointer', color: showPoll ? '#1890ff' : '#9ca3af' }} 
@@ -1905,11 +1932,24 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <Upload 
                         multiple
-                        beforeUpload={(file) => { setCommentImageFiles(prev => [...prev, file]); return false; }} 
+                        beforeUpload={(file) => {
+                          const isVideo = file.type.startsWith('video/');
+                          if (isVideo) {
+                            const isUnder100MB = file.size / 1024 / 1024 < 100;
+                            if (!isUnder100MB) {
+                              message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB (video này: ${(file.size / 1024 / 1024).toFixed(1)}MB).`);
+                              return Upload.LIST_IGNORE;
+                            }
+                            setCommentVideoFiles(prev => [...prev, file]);
+                          } else {
+                            setCommentImageFiles(prev => [...prev, file]);
+                          }
+                          return false;
+                        }} 
                         showUploadList={false} 
-                        accept="image/*"
+                        accept="image/*,video/*"
                       >
-                        <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} />
+                        <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} title="Thêm ảnh / video" />
                       </Upload>
                       <Input 
                         placeholder={t('blog.writeComment')}
@@ -1920,12 +1960,18 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}
                       />
                     </div>
-                    {commentImageFiles.length > 0 && (
+                    {(commentImageFiles.length > 0 || commentVideoFiles.length > 0) && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginLeft: 40 }}>
                         {commentImageFiles.map((file, idx) => (
                           <div key={idx} style={{ position: 'relative' }}>
                             <img src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
                             <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setCommentImageFiles(prev => prev.filter((_, i) => i !== idx))} />
+                          </div>
+                        ))}
+                        {commentVideoFiles.map((file, idx) => (
+                          <div key={`v${idx}`} style={{ position: 'relative' }}>
+                            <video src={URL.createObjectURL(file)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0', background: '#000' }} />
+                            <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setCommentVideoFiles(prev => prev.filter((_, i) => i !== idx))} />
                           </div>
                         ))}
                       </div>
@@ -2076,11 +2122,24 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                   <Upload 
                                     multiple
-                                    beforeUpload={(file) => { setReplyImageFiles(prev => [...prev, file]); return false; }} 
+                                    beforeUpload={(file) => {
+                                      const isVideo = file.type.startsWith('video/');
+                                      if (isVideo) {
+                                        const isUnder100MB = file.size / 1024 / 1024 < 100;
+                                        if (!isUnder100MB) {
+                                          message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB (video này: ${(file.size / 1024 / 1024).toFixed(1)}MB).`);
+                                          return Upload.LIST_IGNORE;
+                                        }
+                                        setReplyVideoFiles(prev => [...prev, file]);
+                                      } else {
+                                        setReplyImageFiles(prev => [...prev, file]);
+                                      }
+                                      return false;
+                                    }} 
                                     showUploadList={false} 
-                                    accept="image/*"
+                                    accept="image/*,video/*"
                                   >
-                                    <Button type="text" shape="circle" size="small" icon={<PictureOutlined style={{ fontSize: 16, color: '#6b7280' }} />} />
+                                    <Button type="text" shape="circle" size="small" icon={<PictureOutlined style={{ fontSize: 16, color: '#6b7280' }} />} title="Thêm ảnh / video" />
                                   </Upload>
                                   <Input 
                                     autoFocus
@@ -2092,12 +2151,18 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                     style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '4px 12px', color: theme === 'dark' ? '#fff' : '#000' }}
                                   />
                                 </div>
-                                {replyImageFiles.length > 0 && (
+                                {(replyImageFiles.length > 0 || replyVideoFiles.length > 0) && (
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginLeft: 32 }}>
                                     {replyImageFiles.map((file, idx) => (
                                       <div key={idx} style={{ position: 'relative' }}>
                                         <img src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
                                         <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setReplyImageFiles(prev => prev.filter((_, i) => i !== idx))} />
+                                      </div>
+                                    ))}
+                                    {replyVideoFiles.map((file, idx) => (
+                                      <div key={`rv${idx}`} style={{ position: 'relative' }}>
+                                        <video src={URL.createObjectURL(file)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0', background: '#000' }} />
+                                        <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setReplyVideoFiles(prev => prev.filter((_, i) => i !== idx))} />
                                       </div>
                                     ))}
                                   </div>
@@ -2211,18 +2276,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         </div>
       </Modal>
 
-      {/* FAB New Post on Mobile */}
-      {isMobile && canPost && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }}>
-          <Button 
-            type="primary" 
-            shape="circle" 
-            icon={<PlusOutlined style={{ fontSize: 24 }} />} 
-            style={{ width: 56, height: 56, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', background: '#4f46e5' }}
-            onClick={() => setIsModalVisible(true)}
-          />
-        </div>
-      )}
+
     </>
   );
 

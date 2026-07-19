@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import { getImageUrl } from "../../utils/imageHelpers";
 import {
@@ -11,7 +11,6 @@ import {
   Select,
   Empty,
   Typography,
-  Carousel,
 } from "antd";
 import {
   SearchOutlined,
@@ -19,17 +18,15 @@ import {
   CalendarOutlined,
   TeamOutlined,
   TrophyOutlined,
-  LeftOutlined,
-  RightOutlined,
   EnvironmentOutlined,
   FireOutlined,
   SafetyCertificateOutlined,
   RocketOutlined,
-  CodeOutlined, 
-  BookOutlined, 
-  SmileOutlined, 
-  HeartOutlined, 
-  NotificationOutlined, 
+  CodeOutlined,
+  BookOutlined,
+  SmileOutlined,
+  HeartOutlined,
+  NotificationOutlined,
   AppstoreOutlined
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
@@ -160,7 +157,6 @@ const HomePage = () => {
   const {events, isLoading, categories, fetchEvents, fetchMeta} = useEventStore();
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("");
-  const carouselRef = useRef(null);
   const { theme } = useSettingStore();
   const { t } = useTranslation();
 
@@ -176,33 +172,22 @@ const HomePage = () => {
     fetchEvents({status: "Published", limit: 100, page: 1});
   }, []);
 
-  const canScroll = () => {
-    const w = window.innerWidth;
-    if (w >= 1024 && featuredEvents.length <= 3) return false;
-    if (w >= 768 && w < 1024 && featuredEvents.length <= 2) return false;
-    if (w < 768 && featuredEvents.length <= 1) return false;
-    return true;
-  };
-
-  const handleScrollLeft = () => {
-    if (canScroll()) carouselRef.current?.prev();
-  };
-  const handleScrollRight = () => {
-    if (canScroll()) carouselRef.current?.next();
-  };
-  const handleSearch = () => {
-    navigate(`/events?search=${encodeURIComponent(search)}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
-  };
-
+  // Top 3 upcoming events ranked by registration count
   const featuredEvents = [...events]
-    .filter((e) => dayjs(e.EndDate).isAfter(dayjs()))
+    .filter((e) => dayjs(e.StartDate).isAfter(dayjs()) && dayjs(e.EndDate).isAfter(dayjs()))
     .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
-    .slice(0, 5);
+    .slice(0, 3);
 
   const upcomingEvents = [...events]
     .filter((e) => dayjs(e.StartDate).isAfter(dayjs()))
     .sort((a, b) => dayjs(a.StartDate).valueOf() - dayjs(b.StartDate).valueOf())
-    .slice(0, 6);
+    .slice(0, 3);
+
+  // Bug #2 fix: guard against navigating with empty search
+  const handleSearch = () => {
+    if (!search.trim() && !selectedCat) return;
+    navigate(`/events?search=${encodeURIComponent(search.trim())}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
+  };
 
   return (
     <MainLayout>
@@ -475,54 +460,17 @@ const HomePage = () => {
                 {t('home.featuredSubtitle')}
               </Text>
             </div>
+            <Button type="link" onClick={() => navigate("/events?sortBy=Participants&sortOrder=DESC")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+              {t('home.allEvents')}
+            </Button>
           </div>
-
-          <div style={{ position: 'relative', margin: "0 -12px", transition: 'opacity 0.5s' }} className={featuredEventsVisible ? 'is-visible' : ''}>
-            <div>
-              <Button 
-                shape="circle" 
-                size="large"
-                icon={<LeftOutlined />} 
-                onClick={handleScrollLeft} 
-                style={{ position: 'absolute', top: '50%', left: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-              />
-              <Button 
-                shape="circle" 
-                size="large"
-                icon={<RightOutlined />} 
-                onClick={handleScrollRight} 
-                style={{ position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-              />
-            </div>
-            <style>{`
-              @media (min-width: 1024px) {
-                .slick-force-left-3 .slick-track { transform: translate3d(0, 0, 0) !important; }
-              }
-              @media (min-width: 768px) and (max-width: 1023px) {
-                .slick-force-left-2 .slick-track { transform: translate3d(0, 0, 0) !important; }
-              }
-              @media (max-width: 767px) {
-                .slick-force-left-1 .slick-track { transform: translate3d(0, 0, 0) !important; }
-              }
-            `}</style>
-            <Carousel
-              className={`${featuredEvents.length <= 3 ? 'slick-force-left-3' : ''} ${featuredEvents.length <= 2 ? 'slick-force-left-2' : ''} ${featuredEvents.length <= 1 ? 'slick-force-left-1' : ''}`}
-              ref={carouselRef} 
-              autoplay={featuredEvents.length > 3} 
-              autoplaySpeed={4000} 
-              slidesToShow={3} 
-              infinite={featuredEvents.length > 3} 
-              dots={false}
-              responsive={[
-                { breakpoint: 1024, settings: { slidesToShow: 2, infinite: featuredEvents.length > 2, autoplay: featuredEvents.length > 2 } },
-                { breakpoint: 768, settings: { slidesToShow: 1, infinite: featuredEvents.length > 1, autoplay: featuredEvents.length > 1 } },
-              ]}
-            >
-              {featuredEvents.map((event, index) => (
-                <div key={event.EventID}><FeaturedEventCard event={event} index={index} /></div>
-              ))}
-            </Carousel>
-          </div>
+          <Row gutter={[24, 24]} className={`motion-fade-up ${featuredEventsVisible ? 'is-visible' : ''}`}>
+            {featuredEvents.map((event, index) => (
+              <Col key={event.EventID} xs={24} md={8}>
+                <FeaturedEventCard event={event} index={index} />
+              </Col>
+            ))}
+          </Row>
         </section>
       )}
 
@@ -539,7 +487,7 @@ const HomePage = () => {
               {t('home.upcomingSubtitle')}
             </Text>
           </div>
-          <Button type="link" onClick={() => navigate("/events")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+          <Button type="link" onClick={() => navigate("/events?timeStatus=upcoming")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
             {t('home.allEvents')}
           </Button>
         </div>

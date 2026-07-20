@@ -64,7 +64,7 @@ export default function FeedbackSection({eventId}) {
 
   let displayFeedbacks = [...feedbacks];
   if (sortType === 'mine' && user) {
-    const mineIdx = displayFeedbacks.findIndex(f => f.ParticipantID == user.userId);
+    const mineIdx = displayFeedbacks.findIndex(f => user && String(f.ParticipantID) === String(user.userId));
     if (mineIdx > -1) {
       const mineItem = displayFeedbacks.splice(mineIdx, 1)[0];
       displayFeedbacks.unshift(mineItem);
@@ -130,7 +130,7 @@ export default function FeedbackSection({eventId}) {
             style={{ width: 180 }}
             options={[
               { value: 'latest', label: 'Mới nhất' },
-              ...(feedbacks.some(f => f.ParticipantID == user?.userId) ? [{ value: 'mine', label: 'Bình luận của bạn' }] : [])
+              ...(feedbacks.some(f => user && String(f.ParticipantID) === String(user?.userId)) ? [{ value: 'mine', label: 'Bình luận của bạn' }] : [])
             ]}
           />
         )}
@@ -156,28 +156,14 @@ export default function FeedbackSection({eventId}) {
           >
             Chưa có đánh giá nào cho sự kiện này.
           </div>
-          {(() => {
-            const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
-            return userFeedback ? (
-              <Button
-                type="default"
-                icon={<MessageOutlined />}
-                onClick={() => { setEditData(userFeedback); setModalOpen(true); }}
-                style={{borderRadius: 8, fontWeight: 600, height: 40, color: "#2563eb", borderColor: "#2563eb"}}
-              >
-                Sửa đánh giá của bạn
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                icon={<MessageOutlined />}
-                onClick={handleWriteFeedback}
-                style={{borderRadius: 8, fontWeight: 600, height: 40}}
-              >
-                Viết đánh giá đầu tiên
-              </Button>
-            );
-          })()}
+          <Button
+            type="primary"
+            icon={<MessageOutlined />}
+            onClick={handleWriteFeedback}
+            style={{borderRadius: 8, fontWeight: 600, height: 40}}
+          >
+            Viết đánh giá đầu tiên
+          </Button>
         </div>
       ) : (
         <>
@@ -197,7 +183,7 @@ export default function FeedbackSection({eventId}) {
 
           <div style={{display: "flex", gap: 16, flexWrap: "wrap"}}>
             {(() => {
-              const userFeedback = feedbacks.find(f => f.ParticipantID == user?.userId);
+              const userFeedback = feedbacks.find(f => user && String(f.ParticipantID) === String(user?.userId));
               return userFeedback ? (
                 <Button
                   type="default"

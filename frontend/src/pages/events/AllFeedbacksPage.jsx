@@ -83,7 +83,7 @@ export default function AllFeedbacksPage() {
 
   let displayFeedbacks = [...filteredFeedbacks];
   if (sortType === 'mine' && user) {
-    const mineIdx = displayFeedbacks.findIndex(f => f.ParticipantID == user.userId);
+    const mineIdx = displayFeedbacks.findIndex(f => user && String(f.ParticipantID) === String(user.userId));
     if (mineIdx > -1) {
       const mineItem = displayFeedbacks.splice(mineIdx, 1)[0];
       displayFeedbacks.unshift(mineItem);
@@ -370,7 +370,7 @@ export default function AllFeedbacksPage() {
                 <div style={{fontSize: "14px", color: "#64748b", fontWeight: 500}}>
                   Tìm thấy {filteredFeedbacks.length} kết quả
                 </div>
-                {feedbacks.some(f => f.ParticipantID == user?.userId) && (
+                {feedbacks.some(f => user && String(f.ParticipantID) === String(user?.userId)) && (
                   <Select 
                     value={sortType} 
                     onChange={setSortType}

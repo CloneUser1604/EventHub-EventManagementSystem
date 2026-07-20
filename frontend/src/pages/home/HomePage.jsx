@@ -1,5 +1,6 @@
-import React, {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
+import { getImageUrl } from "../../utils/imageHelpers";
 import {
   Input,
   Button,
@@ -10,7 +11,6 @@ import {
   Select,
   Empty,
   Typography,
-  Carousel,
 } from "antd";
 import {
   SearchOutlined,
@@ -18,12 +18,16 @@ import {
   CalendarOutlined,
   TeamOutlined,
   TrophyOutlined,
-  LeftOutlined,
-  RightOutlined,
   EnvironmentOutlined,
   FireOutlined,
   SafetyCertificateOutlined,
   RocketOutlined,
+  CodeOutlined,
+  BookOutlined,
+  SmileOutlined,
+  HeartOutlined,
+  NotificationOutlined,
+  AppstoreOutlined
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
@@ -59,6 +63,18 @@ const Counter = ({target, suffix = ""}) => {
   );
 };
 
+const getCategoryIcon = (categoryName) => {
+  const name = (categoryName || '').toLowerCase();
+  if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return <CodeOutlined />;
+  if (name.includes('học thuật') || name.includes('academic')) return <BookOutlined />;
+  if (name.includes('hướng nghiệp') || name.includes('career')) return <RocketOutlined />;
+  if (name.includes('kỹ năng') || name.includes('skill')) return <SmileOutlined />;
+  if (name.includes('thể thao') || name.includes('sport')) return <TrophyOutlined />;
+  if (name.includes('tình nguyện') || name.includes('volunteer')) return <HeartOutlined />;
+  if (name.includes('văn hóa') || name.includes('nghệ thuật') || name.includes('art')) return <NotificationOutlined />;
+  return <AppstoreOutlined />;
+};
+
 // ─── Custom Featured Card ──────────────────────────────────────
 const FeaturedEventCard = ({ event, index }) => {
   const navigate = useNavigate();
@@ -78,7 +94,7 @@ const FeaturedEventCard = ({ event, index }) => {
       }}
     >
       <img
-        src={event.CoverImageURL || "https://images.unsplash.com/photo-1540575467063-178a50c2df87"}
+        src={event.CoverImageURL ? getImageUrl(event.CoverImageURL) : "https://images.unsplash.com/photo-1540575467063-178a50c2df87"}
         alt={event.Title}
         className="featured-card-img"
         style={{
@@ -125,21 +141,22 @@ const FeaturedEventCard = ({ event, index }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <CalendarOutlined style={{ color: "#F9FAFB" }} /> {dayjs(event.StartDate).format("DD/MM - HH:mm")}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <EnvironmentOutlined style={{ color: "#F9FAFB" }} /> {event.VenueName?.split(" ")[0] || "Online"}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+            <EnvironmentOutlined style={{ color: "#F9FAFB", flexShrink: 0 }} /> 
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {event.VenueName || "Online"}
+            </span>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
 const HomePage = () => {
   const navigate = useNavigate();
   const {events, isLoading, categories, fetchEvents, fetchMeta} = useEventStore();
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("");
-  const carouselRef = useRef(null);
   const { theme } = useSettingStore();
   const { t } = useTranslation();
 
@@ -155,21 +172,22 @@ const HomePage = () => {
     fetchEvents({status: "Published", limit: 100, page: 1});
   }, []);
 
-  const handleScrollLeft = () => carouselRef.current?.prev();
-  const handleScrollRight = () => carouselRef.current?.next();
-  const handleSearch = () => {
-    navigate(`/events?search=${encodeURIComponent(search)}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
-  };
-
+  // Top 3 upcoming events ranked by registration count
   const featuredEvents = [...events]
-    .filter((e) => dayjs(e.EndDate).isAfter(dayjs()))
+    .filter((e) => dayjs(e.StartDate).isAfter(dayjs()) && dayjs(e.EndDate).isAfter(dayjs()))
     .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
-    .slice(0, 5);
+    .slice(0, 3);
 
   const upcomingEvents = [...events]
     .filter((e) => dayjs(e.StartDate).isAfter(dayjs()))
     .sort((a, b) => dayjs(a.StartDate).valueOf() - dayjs(b.StartDate).valueOf())
-    .slice(0, 6);
+    .slice(0, 3);
+
+  // Bug #2 fix: guard against navigating with empty search
+  const handleSearch = () => {
+    if (!search.trim() && !selectedCat) return;
+    navigate(`/events?search=${encodeURIComponent(search.trim())}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
+  };
 
   return (
     <MainLayout>
@@ -279,6 +297,66 @@ const HomePage = () => {
       {/* ══════════════════════════════════════════════════
           ABOUT SECTION
       ══════════════════════════════════════════════════ */}
+      <section style={{ padding: '40px 24px 0', maxWidth: 1200, margin: '0 auto', overflow: 'hidden' }}>
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+          .category-tag-hover, .category-tag-hover > * {
+            white-space: nowrap !important;
+            overflow: visible !important;
+          }
+        `}</style>
+        <div 
+          className="hide-scrollbar" 
+          style={{ 
+            display: 'flex', 
+            gap: 10, 
+            flexWrap: 'nowrap', 
+            justifyContent: 'flex-start', 
+            overflowX: 'auto',
+            paddingBottom: 8, // for scrollbar space if visible
+            paddingTop: 10, // for hover scale and translateY space
+            paddingLeft: 4, // prevent left edge box-shadow clipping
+            paddingRight: 4,
+            marginLeft: -4, // offset padding
+            marginRight: -4
+          }}
+        >
+          <div
+            className="category-tag-hover"
+            onClick={() => navigate('/events')}
+            style={{ 
+              cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
+              background: '#1a2744', color: 'white', border: 'none', fontWeight: 600, 
+              flexShrink: 0, whiteSpace: 'nowrap', width: 'max-content', display: 'inline-flex', alignItems: 'center' 
+            }}
+          >
+            🔥 Tất cả
+          </div>
+          {categories.map((c) => (
+            <div
+              className="category-tag-hover"
+              key={c.CategoryID}
+              onClick={() => navigate(`/events?categoryId=${c.CategoryID}`)}
+              style={{ 
+                cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
+                fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', 
+                color: '#374151', flexShrink: 0, whiteSpace: 'nowrap', width: 'max-content', display: 'inline-flex', alignItems: 'center', gap: 6 
+              }}
+            >
+              {getCategoryIcon(c.Name)}
+              {c.Name}
+            </div>
+          ))}
+          <div style={{ width: 1, flexShrink: 0 }}></div>
+        </div>
+      </section>
+
       <section ref={aboutRef} style={{ padding: "100px 24px", background: theme === 'dark' ? '#121212' : '#ffffff' }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <Row gutter={[48, 48]} align="middle">
@@ -382,35 +460,17 @@ const HomePage = () => {
                 {t('home.featuredSubtitle')}
               </Text>
             </div>
+            <Button type="link" onClick={() => navigate("/events?sortBy=Participants&sortOrder=DESC")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+              {t('home.allEvents')}
+            </Button>
           </div>
-
-          <div style={{ position: 'relative', margin: "0 -12px", transition: 'opacity 0.5s' }} className={featuredEventsVisible ? 'is-visible' : ''}>
-            <Button 
-              shape="circle" 
-              size="large"
-              icon={<LeftOutlined />} 
-              onClick={handleScrollLeft} 
-              style={{ position: 'absolute', top: '50%', left: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-            />
-            <Button 
-              shape="circle" 
-              size="large"
-              icon={<RightOutlined />} 
-              onClick={handleScrollRight} 
-              style={{ position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)', zIndex: 10, border: '1px solid var(--whisper-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
-            />
-            <Carousel
-              ref={carouselRef} autoplay autoplaySpeed={4000} slidesToShow={3} infinite={true} dots={false}
-              responsive={[
-                { breakpoint: 1024, settings: { slidesToShow: 2 } },
-                { breakpoint: 768, settings: { slidesToShow: 1 } },
-              ]}
-            >
-              {featuredEvents.map((event, index) => (
-                <div key={event.EventID}><FeaturedEventCard event={event} index={index} /></div>
-              ))}
-            </Carousel>
-          </div>
+          <Row gutter={[24, 24]} className={`motion-fade-up ${featuredEventsVisible ? 'is-visible' : ''}`}>
+            {featuredEvents.map((event, index) => (
+              <Col key={event.EventID} xs={24} md={8}>
+                <FeaturedEventCard event={event} index={index} />
+              </Col>
+            ))}
+          </Row>
         </section>
       )}
 
@@ -427,7 +487,7 @@ const HomePage = () => {
               {t('home.upcomingSubtitle')}
             </Text>
           </div>
-          <Button type="link" onClick={() => navigate("/events")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+          <Button type="link" onClick={() => navigate("/events?timeStatus=upcoming")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
             {t('home.allEvents')}
           </Button>
         </div>

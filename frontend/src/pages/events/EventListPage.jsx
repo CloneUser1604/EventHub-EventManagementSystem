@@ -12,10 +12,9 @@ import {
   Pagination,
   Tag,
   Typography,
-  Drawer,
   Switch,
 } from "antd";
-import {SearchOutlined, FilterOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
+import {SearchOutlined, CloseOutlined, HeartFilled} from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import EventCard from "../../components/events/EventCard";
 import useEventStore from "../../store/eventStore";
@@ -42,15 +41,16 @@ const EventListPage = () => {
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId") || "",
     venueId: "",
+    timeStatus: searchParams.get("timeStatus") || "upcoming",
+    isInternal: "",
     startDate: "",
     endDate: "",
     page: 1,
     limit: 6,
-    sortBy: "StartDate",
-    sortOrder: "ASC",
-    status: "Published",
+    sortBy: searchParams.get("sortBy") || "StartDate",
+    sortOrder: searchParams.get("sortOrder") || "ASC",
+    status: "all_published_cancelled",
   });
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
 
@@ -61,7 +61,7 @@ const EventListPage = () => {
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
-    params.status = "Published";
+    params.status = "all_published_cancelled";
     fetchEvents(params);
   }, [filters]);
 
@@ -73,6 +73,8 @@ const EventListPage = () => {
       search: "",
       categoryId: "",
       venueId: "",
+      timeStatus: "",
+      isInternal: "",
       startDate: "",
       endDate: "",
       page: 1,
@@ -81,6 +83,8 @@ const EventListPage = () => {
     filters.search ||
     filters.categoryId ||
     filters.venueId ||
+    filters.timeStatus ||
+    filters.isInternal ||
     filters.startDate;
 
   const FilterPanel = () => (
@@ -101,7 +105,7 @@ const EventListPage = () => {
         <Select
           value={filters.categoryId || undefined}
           onChange={(v) => updateFilter("categoryId", v || "")}
-          placeholder={t('browse.allCategories')}
+          placeholder="-- Chọn lĩnh vực --"
           style={{width: "100%"}}
           dropdownStyle={{fontFamily: "'Inter', sans-serif"}}
           className="category-filter"
@@ -121,7 +125,7 @@ const EventListPage = () => {
         <Select
           value={filters.venueId || undefined}
           onChange={(v) => updateFilter("venueId", v || "")}
-          placeholder={t('browse.allVenues')}
+          placeholder="-- Chọn địa điểm --"
           style={{width: "100%"}}
           allowClear
         >
@@ -134,20 +138,67 @@ const EventListPage = () => {
       </div>
       <div>
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Đối tượng tham gia
+        </Text>
+        <Select
+          value={filters.isInternal || undefined}
+          onChange={(v) => updateFilter("isInternal", v || "")}
+          placeholder="-- Chọn đối tượng --"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="true">Sinh viên trường</Option>
+          <Option value="false">Tất cả mọi người</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
+          Trạng thái sự kiện
+        </Text>
+        <Select
+          value={filters.timeStatus || undefined}
+          onChange={(v) => updateFilter("timeStatus", v || "")}
+          placeholder="-- Chọn trạng thái --"
+          style={{width: "100%"}}
+          allowClear
+        >
+          <Option value="upcoming">Sắp diễn ra</Option>
+          <Option value="ongoing">Đang diễn ra</Option>
+          <Option value="past">Đã kết thúc</Option>
+        </Select>
+      </div>
+      <div>
+        <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
           {t('browse.time')}
         </Text>
-        <RangePicker
-          style={{width: "100%"}}
-          format="DD/MM/YYYY"
-          onChange={(dates) => {
-            setFilters((f) => ({
-              ...f,
-              startDate: dates?.[0]?.toISOString() || "",
-              endDate: dates?.[1]?.toISOString() || "",
-              page: 1,
-            }));
-          }}
-        />
+        <div style={{display: "flex", flexDirection: "column", gap: 8}}>
+          <DatePicker
+            style={{width: "100%"}}
+            format="DD/MM/YYYY"
+            placeholder="Từ ngày"
+            value={filters.startDate ? dayjs(filters.startDate) : null}
+            onChange={(date) => {
+              setFilters((f) => ({
+                ...f,
+                startDate: date ? date.toISOString() : "",
+                page: 1,
+              }));
+            }}
+          />
+          <DatePicker
+            style={{width: "100%"}}
+            format="DD/MM/YYYY"
+            placeholder="Đến ngày"
+            value={filters.endDate ? dayjs(filters.endDate) : null}
+            onChange={(date) => {
+              setFilters((f) => ({
+                ...f,
+                endDate: date ? date.toISOString() : "",
+                page: 1,
+              }));
+            }}
+          />
+        </div>
       </div>
       <div>
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>
@@ -163,7 +214,7 @@ const EventListPage = () => {
         >
           <Option value="StartDate_ASC">{t('browse.sortDateAsc')}</Option>
           <Option value="StartDate_DESC">{t('browse.sortDateDesc')}</Option>
-          <Option value="CreatedAt_DESC">{t('browse.sortNewest')}</Option>
+          <Option value="Participants_DESC">{t('browse.sortParticipantsDesc')}</Option>
           <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
           <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
         </Select>
@@ -204,68 +255,28 @@ const EventListPage = () => {
           >
             🔍 {t('browse.title')}
           </Title>
-          <div style={{display: "flex", gap: 12, maxWidth: 350}}>
-            <Input.Search
+          <div style={{display: "flex", maxWidth: 400}}>
+            <Input
+              size="large"
               placeholder={t('browse.search')}
               value={filters.search}
               onChange={(e) =>
-                setFilters((f) => ({...f, search: e.target.value}))
+                setFilters((f) => ({...f, search: e.target.value, page: 1}))
               }
-              onSearch={() => fetchEvents({...filters})}
-              style={{flex: 1, borderRadius: 10}}
+              onPressEnter={() => fetchEvents({...filters})}
+              style={{flex: 1, borderRadius: '8px 0 0 8px'}}
               allowClear
+            />
+            <Button 
+              className="custom-search-btn"
+              type="primary" 
+              size="large" 
+              icon={<SearchOutlined />} 
+              onClick={() => fetchEvents({...filters})}
+              style={{ borderRadius: '0 8px 8px 0', border: 'none' }}
             />
           </div>
 
-          {/* Active filters */}
-          {hasFilters && (
-            <div
-              style={{display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap"}}
-            >
-              {filters.categoryId && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("categoryId", "")}
-                  color="blue"
-                >
-                  {(() => {
-                    const c = categories.find((c) => String(c.CategoryID) === filters.categoryId);
-                    return c ? (t(`categories.${c.Name}`) !== `categories.${c.Name}` ? t(`categories.${c.Name}`) : c.Name) : "";
-                  })()}
-                </Tag>
-              )}
-              {filters.venueId && (
-                <Tag
-                  closable
-                  onClose={() => updateFilter("venueId", "")}
-                  color="purple"
-                >
-                  {
-                    venues.find((v) => String(v.VenueID) === filters.venueId)
-                      ?.Name
-                  }
-                </Tag>
-              )}
-              {filters.startDate && (
-                <Tag
-                  closable
-                  onClose={() =>
-                    setFilters((f) => ({
-                      ...f,
-                      startDate: "",
-                      endDate: "",
-                      page: 1,
-                    }))
-                  }
-                  color="cyan"
-                >
-                  {filters.startDate && filters.endDate 
-                    ? `${dayjs(filters.startDate).format("DD/MM/YYYY")} - ${dayjs(filters.endDate).format("DD/MM/YYYY")}`
-                    : t('browse.byDate')}
-                </Tag>
-              )}
-            </div>
-          )}
         </div>
         <style>{`
           .category-filter .ant-select-selector {
@@ -278,6 +289,13 @@ const EventListPage = () => {
           .category-filter .ant-select-selection-placeholder {
             color: #166534 !important;
             opacity: 0.7;
+          }
+          .category-filter .ant-select-selection-item {
+            color: #166534 !important;
+          }
+          .custom-search-btn {
+            background-color: #f97316 !important;
+            color: #ffffff !important;
           }
           body {
             font-family: 'DM Sans', sans-serif !important;
@@ -365,21 +383,6 @@ const EventListPage = () => {
         </Row>
       </div>
 
-      {/* Mobile filter drawer */}
-      <Drawer
-        title={t('browse.filterTitle')}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        placement="right"
-        width={300}
-        footer={
-          <Button type="primary" block onClick={() => setDrawerOpen(false)}>
-            {t('browse.apply')}
-          </Button>
-        }
-      >
-        <FilterPanel />
-      </Drawer>
     </MainLayout>
   );
 };

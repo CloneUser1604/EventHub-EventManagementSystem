@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Typography, Card, Row, Col, Table, Button, Tag, Space, message, Avatar, Spin, Tooltip } from 'antd';
+import { Layout, Menu, Typography, Card, Row, Col, Table, Button, Tag, message, Avatar, Spin, Modal, Form, Input } from 'antd';
 import { 
-  AppstoreOutlined, TeamOutlined, UserOutlined, EditOutlined, 
-  LeftOutlined, IdcardOutlined, ArrowRightOutlined
+  AppstoreOutlined, TeamOutlined, EditOutlined, 
+  LeftOutlined, IdcardOutlined, NotificationOutlined, SendOutlined
 } from '@ant-design/icons';
 import MainLayout from '../../components/layout/MainLayout';
 import { eventService } from '../../services/event.service';
 import dayjs from 'dayjs';
 
-const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const EventDashboardPage = () => {
@@ -21,6 +21,11 @@ const EventDashboardPage = () => {
   const [participants, setParticipants] = useState([]);
   const [assignedStaffs, setAssignedStaffs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // States cho tính năng gửi thông báo
+  const [isNotifyModalVisible, setIsNotifyModalVisible] = useState(false);
+  const [sendingNotify, setSendingNotify] = useState(false);
+  const [notifyForm] = Form.useForm();
 
   useEffect(() => { loadData(); }, [id]);
 
@@ -36,13 +41,43 @@ const EventDashboardPage = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
         }).then(r => r.json())
       ]);
-      setEvent(evtRes.data.data);
+      setEvent(evtRes.data.data || evtRes.data);
       setParticipants(partRes.data || []);
       setAssignedStaffs(staffRes.data || []);
     } catch (err) {
       message.error('Lỗi tải dữ liệu Dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendNotification = async (values) => {
+    if (participants.length === 0) {
+      return message.warning('Chưa có ai đăng ký tham gia sự kiện này!');
+    }
+    
+    setSendingNotify(true);
+    try {
+      const res = await fetch(`${API_BASE}/events/${id}/notify-participants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(values)
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success(data.message || 'Đã gửi thông báo thành công!');
+        setIsNotifyModalVisible(false);
+        notifyForm.resetFields();
+      } else {
+        message.error(data.message || 'Lỗi khi gửi thông báo');
+      }
+    } catch (err) {
+      message.error('Lỗi kết nối máy chủ');
+    } finally {
+      setSendingNotify(false);
     }
   };
 
@@ -60,12 +95,7 @@ const EventDashboardPage = () => {
       </div>
     )},
     { title: 'Mã vé', dataIndex: 'RegistrationID', render: v => `EMS-${v}` },
-    { title: 'Trạng thái', dataIndex: 'Status', render: s => <Tag color="green">Đã đăng ký</Tag> },
-    { title: 'Vai trò', render: (_, r) => {
-        const role = r.Role || 'Participant';
-        const colors = { Admin: 'gold', Organizer: 'green', Speaker: 'volcano', Staff: 'purple', Participant: 'default' };
-        return <Tag color={colors[role] || 'default'}>{role}</Tag>;
-    }}
+    { title: 'Trạng thái', dataIndex: 'Status', render: () => <Tag color="green">Đã đăng ký</Tag> }
   ];
 
   const staffCols = [
@@ -79,7 +109,7 @@ const EventDashboardPage = () => {
       </div>
     )},
     { title: 'Chức vụ', render: (_, r) => <Tag color="purple">{r.Role || 'Staff'}</Tag> },
-    { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d).format('DD/MM/YYYY HH:mm') }
+    { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d?.replace('Z', '')).format('DD/MM/YYYY HH:mm') }
   ];
 
   return (
@@ -91,6 +121,17 @@ const EventDashboardPage = () => {
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Event Dashboard</Text>
             <Title level={2} style={{ color: 'white', margin: 0, fontFamily: "'Inter', sans-serif" }}>{event.Title}</Title>
           </div>
+          
+          {/* Nút gửi thông báo mới */}
+          <Button 
+            type="default" 
+            icon={<NotificationOutlined />} 
+            onClick={() => setIsNotifyModalVisible(true)}
+            style={{ borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+          >
+            Gửi thông báo ({participants.length})
+          </Button>
+
           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/organizer/events/${id}/edit`)} style={{ borderRadius: 8 }}>
             Chỉnh sửa sự kiện
           </Button>
@@ -122,7 +163,7 @@ const EventDashboardPage = () => {
                     <Card style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                       <div style={{ fontSize: 13, color: '#64748b' }}>Tổng đăng ký</div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', fontFamily: "'Inter', sans-serif" }}>
-                        {event.RegisteredCount} <span style={{ fontSize: 14, color: '#94a3b8' }}>/ {event.MaxParticipants || '∞'}</span>
+                        {event.RegisteredCount || participants.length} <span style={{ fontSize: 14, color: '#94a3b8' }}>/ {event.MaxParticipants || '∞'}</span>
                       </div>
                     </Card>
                   </Col>
@@ -170,6 +211,49 @@ const EventDashboardPage = () => {
           </Col>
         </Row>
       </div>
+
+      {/* Modal soạn thông báo */}
+      <Modal
+        title={<div><NotificationOutlined style={{ color: '#2563eb', marginRight: 8 }} /> Soạn thông báo cho người tham dự</div>}
+        open={isNotifyModalVisible}
+        onCancel={() => !sendingNotify && setIsNotifyModalVisible(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <div style={{ marginBottom: 16, padding: '12px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8 }}>
+          <Text type="secondary">
+            Thông báo này sẽ được gửi trực tiếp đến <b>{participants.length}</b> người dùng đã đăng ký tham gia sự kiện.
+          </Text>
+        </div>
+
+        <Form form={notifyForm} layout="vertical" onFinish={handleSendNotification}>
+          <Form.Item 
+            name="title" 
+            label="Tiêu đề thông báo" 
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề!' }]}
+          >
+            <Input placeholder="VD: Thay đổi phòng tổ chức sự kiện..." />
+          </Form.Item>
+
+          <Form.Item 
+            name="message" 
+            label="Nội dung" 
+            rules={[{ required: true, message: 'Vui lòng nhập nội dung!' }]}
+          >
+            <TextArea rows={5} placeholder="Nhập chi tiết nội dung muốn thông báo đến người tham gia..." />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Button onClick={() => setIsNotifyModalVisible(false)} style={{ marginRight: 8 }} disabled={sendingNotify}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" loading={sendingNotify} icon={<SendOutlined />}>
+              Gửi thông báo
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
     </MainLayout>
   );
 };

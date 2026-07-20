@@ -15,22 +15,19 @@ const register = async (req, res) => {
   try {
     const { fullName, email, password, role = 'Participant', phone, organizationName, university } = req.body;
 
-    // Hard-block bất kỳ role nào ngoài 2 role được phép
     if (!['Participant', 'Organizer'].includes(role)) {
       return errorResponse(res, 'Chỉ được đăng ký với vai trò: Người tham dự hoặc Ban tổ chức', 400);
     }
 
     const pool = getPool();
 
-    // Check existing email
     const existing = await pool.request()
       .input('Email', sql.VarChar(255), email)
       .query('SELECT UserID FROM Users WHERE Email = @Email');
     if (existing.recordset.length > 0) return conflictResponse(res, 'Email đã được sử dụng');
 
-    // Organizer phải upload ít nhất 1 file
     if (role === 'Organizer') {
-      const files = req.files; // từ multer upload.fields([{ name: 'documents' }])
+      const files = req.files;
       if (!files || !files['documents'] || files['documents'].length === 0) {
         return errorResponse(res, 'Ban tổ chức cần upload ít nhất 1 tài liệu xác minh', 400);
       }
@@ -53,10 +50,8 @@ const register = async (req, res) => {
 
     const newUser = insertResult.recordset[0];
 
-    // Tạo OrganizerProfile + lưu danh sách file đã upload
     if (role === 'Organizer') {
       const uploadedFiles = req.files['documents'];
-      // Lưu paths các file dưới dạng JSON string vào cột DocumentURL
       const filePaths = uploadedFiles.map(f => f.filename);
       const documentJSON = JSON.stringify(filePaths);
 
@@ -69,7 +64,6 @@ const register = async (req, res) => {
           VALUES (@UserID, @OrganizationName, @DocumentURL, 'Pending')
         `);
 
-      // Notify all admins immediately
       const admins = await pool.request()
         .query(`SELECT UserID FROM Users WHERE Role = 'Admin' AND IsActive = 1`);
       for (const admin of admins.recordset) {
@@ -90,7 +84,6 @@ const register = async (req, res) => {
         : 'Đăng ký thành công! Bạn có thể đăng nhập ngay.'
     );
   } catch (error) {
-    // Xoá file đã upload nếu có lỗi
     if (req.files?.documents) {
       req.files.documents.forEach(f => {
         fs.unlink(f.path, () => {});
@@ -101,7 +94,7 @@ const register = async (req, res) => {
   }
 };
 
-// ─── VERIFY EMAIL (disabled — no email verification needed) ───
+// ─── VERIFY EMAIL ─────────────────────────────────────────────
 const verifyEmail = async (req, res) => {
   return successResponse(res, null, 'Xác thực email không cần thiết. Tài khoản đã được kích hoạt.');
 };
@@ -326,17 +319,20 @@ const getMe = async (req, res) => {
       if (user.role === 'Organizer') {
         const orgEvents = await pool.request()
           .input('UserID', sql.Int, exactUserId)
-          .query(`SELECT EventID AS id, Title AS title, StartDate AS startDate, Status AS status 
-                  FROM Events WHERE OrganizerID = @UserID ORDER BY StartDate DESC`);
+          .query(`SELECT e.EventID AS id, e.Title AS title, e.StartDate AS startDate, e.Status AS status, v.Name AS VenueName
+                  FROM Events e 
+                  LEFT JOIN Venues v ON e.VenueID = v.VenueID 
+                  WHERE e.OrganizerID = @UserID ORDER BY e.StartDate DESC`);
         user.events.organized = orgEvents.recordset || [];
         user.stats.organized = user.events.organized.length;
       } else {
         const regEvents = await pool.request()
           .input('UserID', sql.Int, exactUserId)
           .query(`
-            SELECT e.EventID AS id, e.Title AS title, e.StartDate AS startDate, r.Status AS status
+            SELECT e.EventID AS id, e.Title AS title, e.StartDate AS startDate, r.Status AS status, v.Name AS VenueName
             FROM Events e
             JOIN Registrations r ON e.EventID = r.EventID
+            LEFT JOIN Venues v ON e.VenueID = v.VenueID
             WHERE r.ParticipantID = @UserID
             ORDER BY e.StartDate DESC
           `);
@@ -357,20 +353,18 @@ const getMe = async (req, res) => {
   }
 };
 
-// ─── UPDATE ME (ĐÃ THÊM MỚI ĐỂ HỖ TRỢ ĐỔI THÔNG TIN / TRƯỜNG ĐH) ───
+// ─── UPDATE ME ────────────────────────────────────────────────
 const updateMe = async (req, res) => {
   try {
     const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
     const { fullName, phone, university, avatarURL } = req.body;
     const pool = getPool();
 
-    // 1. Lọc URL ảnh nếu có up file
     let finalAvatarURL = avatarURL || null;
     if (req.files && req.files['avatar'] && req.files['avatar'].length > 0) {
       finalAvatarURL = req.files['avatar'][0].filename;
     }
 
-    // 2. Cập nhật thông tin User cơ bản (Bao gồm trường University)
     await pool.request()
       .input('UserID', sql.Int, exactUserId)
       .input('FullName', sql.NVarChar(150), fullName)
@@ -383,7 +377,6 @@ const updateMe = async (req, res) => {
         WHERE UserID = @UserID
       `);
 
-    // 3. Nếu là Organizer và có tải lại Giấy phép, reset trạng thái duyệt
     if (req.user.Role === 'Organizer' && req.files && req.files['documents'] && req.files['documents'].length > 0) {
       const filePaths = req.files['documents'].map(f => f.filename);
       const documentJSON = JSON.stringify(filePaths);
@@ -511,7 +504,7 @@ const createSpeaker = async (req, res) => {
       }
     } else {
       const tempToken = crypto.randomBytes(32).toString('hex');
-      const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 ngày
+      const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       const insertResult = await pool.request()
         .input('FullName', sql.NVarChar(150), fullName)
@@ -758,7 +751,6 @@ const deleteAccount = async (req, res) => {
     const userId = req.user.UserID;
     const pool = getPool();
 
-    // Soft delete: Disable active flag, rename email to free it up
     const deletedEmail = `deleted_${userId}_${Date.now()}@ems.edu.vn`;
     const deletedName = `Người dùng đã xóa`;
 

@@ -129,10 +129,10 @@ const UserProfile = () => {
                       <div key={idx} className="event-item">
                         <div className="event-info">
                           <h4>{event.Title || event.title}</h4>
-                          <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
+                          {/* ĐÃ SỬA: Lấy đúng biến VenueName trả về từ Backend */}
+                          <p>📍 {event.VenueName || event.Location || event.location || 'Đang cập nhật'}</p>
                           <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
                         </div>
-                        {/* ĐÃ SỬA: Thay thế class tĩnh thành style màu động */}
                         <span className="status-badge" style={getBadgeStyle(statusText)}>
                           {statusText}
                         </span>
@@ -145,7 +145,7 @@ const UserProfile = () => {
           ) : (
             <>
               <div className="profile-section" style={{ marginBottom: '32px' }}>
-                <h3 className="section-title">Sự kiện sắp diễn ra (Đã đăng ký)</h3>
+                <h3 className="section-title">Sự kiện đã đăng ký</h3>
                 <div className="event-list">
                   {registeredEvents.length > 0 ? (
                     registeredEvents.map((event, idx) => (
@@ -158,10 +158,10 @@ const UserProfile = () => {
                       >
                         <div className="event-info">
                           <h4>{event.Title || event.title}</h4>
-                          <p>📍 {event.Location || event.location || 'Đang cập nhật'}</p>
+                          <p>📍 {event.VenueName || event.Location || event.location || 'Đang cập nhật'}</p>
                           <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
                         </div>
-                        <span className="status-badge registered">Đã đặt chỗ</span>
+                        <span className="status-badge registered">Đã đăng ký</span>
                       </div>
                     ))
                   ) : <p className="no-data">Bạn chưa đăng ký sự kiện nào.</p>}
@@ -176,7 +176,8 @@ const UserProfile = () => {
                       <div key={idx} className="event-item">
                         <div className="event-info">
                           <h4>{event.Title || event.title}</h4>
-                          <p>📍 {event.Location || event.location || 'Trực tuyến'}</p>
+                          {/* ĐÃ SỬA: Lấy đúng biến VenueName trả về từ Backend */}
+                          <p>📍 {event.VenueName || event.Location || event.location || 'Trực tuyến'}</p>
                           <p>🕒 {formatEventDate(event.StartDate || event.startDate)}</p>
                         </div>
                         <span className="status-badge attended">Đã tham gia</span>

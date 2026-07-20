@@ -116,7 +116,7 @@ export default function FeedbackModal({open, onClose, eventId, onSuccess, initia
       onSuccess(); // Báo cho component cha load lại dữ liệu
       handleClose();
     } catch (error) {
-      message.error(error.message);
+      message.error(error.response?.data?.message || error.message || "Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

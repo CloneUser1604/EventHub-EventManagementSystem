@@ -95,12 +95,13 @@ const blogStorage = multer.diskStorage({
 
 const uploadBlog = multer({
   storage: blogStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB / file
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB / file (to support videos)
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Chỉ chấp nhận file ảnh cho bài viết'), false);
+    const allowedImages = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const allowedVideos = ['.mp4', '.mov', '.webm', '.avi', '.mkv'];
+    if ([...allowedImages, ...allowedVideos].includes(ext)) cb(null, true);
+    else cb(new Error('Chỉ chấp nhận file ảnh hoặc video cho bài viết'), false);
   }
 });
 

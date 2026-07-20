@@ -69,6 +69,7 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           {/* Overlays */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            {/* Removed top-left InternalOnly tag because it's already shown in the body */}
             {event.CategoryName && (
               <Tag style={{ margin: 0, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', color: 'white', fontWeight: 500, padding: '2px 8px' }}>
                 {getCategoryStyle(event.CategoryName).icon} <span style={{ marginLeft: 4 }}>{t(`categories.${event.CategoryName}`) !== `categories.${event.CategoryName}` ? t(`categories.${event.CategoryName}`) : event.CategoryName}</span>
@@ -83,7 +84,9 @@ const EventCard = ({ event, showStatus = false, index = 0 }) => {
           
           {/* Top Right Badges */}
           <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            {isPast ? (
+            {event.Status === 'Cancelled' ? (
+              <div style={{ background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{status.label}</div>
+            ) : isPast ? (
               <div style={{ background: '#4b5563', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{t('eventCard.ended')}</div>
             ) : isOngoing ? (
               <div style={{ background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>

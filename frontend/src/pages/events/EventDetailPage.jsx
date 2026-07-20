@@ -255,7 +255,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
     dayjs().isAfter(dayjs(event.RegistrationDeadline));
   const canRegister =
     isAuthenticated &&
-    (user?.role === "Participant" || user?.role === "Speaker") &&
+    (user?.role === "Participant" || user?.role === "Speaker" || user?.role === "Staff") &&
     !myRegistration &&
     !isFull &&
     !deadlinePassed &&
@@ -658,27 +658,31 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
               <div style={{marginBottom: 20}}>
                 <Tag
                   color={
-                    event.Status !== "Published"
-                      ? "default"
-                      : isPast
+                    event.Status === "Cancelled"
+                      ? "red"
+                      : event.Status !== "Published"
                         ? "default"
-                        : deadlinePassed
-                          ? "red"
-                          : isFull
-                            ? "orange"
-                            : "green"
+                        : isPast
+                          ? "default"
+                          : deadlinePassed
+                            ? "red"
+                            : isFull
+                              ? "orange"
+                              : "green"
                   }
                   style={{borderRadius: 6, fontWeight: 600, marginBottom: 12}}
                 >
-                  {event.Status !== "Published"
-                    ? event.Status
-                    : isPast
-                      ? t('eventDetail.badgeEnded')
-                      : deadlinePassed
-                        ? t('eventDetail.badgeClosed')
-                        : isFull
-                          ? t('eventDetail.badgeFull')
-                          : t('eventDetail.badgeOpened')}
+                  {event.Status === "Cancelled"
+                    ? "🔴 Đã huỷ"
+                    : event.Status !== "Published"
+                      ? event.Status
+                      : isPast
+                        ? t('eventDetail.badgeEnded')
+                        : deadlinePassed
+                          ? t('eventDetail.badgeClosed')
+                          : isFull
+                            ? t('eventDetail.badgeFull')
+                            : t('eventDetail.badgeOpened')}
                 </Tag>
                 <div
                   style={{
@@ -715,7 +719,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                           fontWeight: 600,
                         }}
                       >
-                        {event.MaxParticipants - (event.RegisteredCount || 0)}{" "}
+                        {Math.max(0, event.MaxParticipants - (event.RegisteredCount || 0))}{" "}
                         {t('eventDetail.spotsLeft')}
                       </span>{" "}
                       / {event.MaxParticipants}
@@ -828,7 +832,8 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       message={t('eventDetail.eventEndedAlert')}
                       type="info"
                       showIcon
-                      style={{borderRadius: 10, marginBottom: 12}}
+                      icon={<ClockCircleOutlined style={{color: '#6b7280'}} />}
+                      style={{borderRadius: 10, marginBottom: 12, backgroundColor: '#f3f4f6', borderColor: '#e5e7eb', color: '#374151'}}
                     />
                   ) : isFull ? (
                     <Alert

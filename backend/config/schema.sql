@@ -7,6 +7,11 @@
 IF OBJECT_ID('EventSponsors', 'U') IS NOT NULL DROP TABLE EventSponsors;
 IF OBJECT_ID('Sponsors', 'U') IS NOT NULL DROP TABLE Sponsors;
 IF OBJECT_ID('Notifications', 'U') IS NOT NULL DROP TABLE Notifications;
+IF OBJECT_ID('BlogCommentLikes', 'U') IS NOT NULL DROP TABLE BlogCommentLikes;
+IF OBJECT_ID('BlogComments', 'U') IS NOT NULL DROP TABLE BlogComments;
+IF OBJECT_ID('BlogLikes', 'U') IS NOT NULL DROP TABLE BlogLikes;
+IF OBJECT_ID('BlogPollVotes', 'U') IS NOT NULL DROP TABLE BlogPollVotes;
+IF OBJECT_ID('SavedBlogs', 'U') IS NOT NULL DROP TABLE SavedBlogs;
 IF OBJECT_ID('Blogs', 'U') IS NOT NULL DROP TABLE Blogs;
 IF OBJECT_ID('SurveyResponses', 'U') IS NOT NULL DROP TABLE SurveyResponses;
 IF OBJECT_ID('SurveyQuestions', 'U') IS NOT NULL DROP TABLE SurveyQuestions;
@@ -290,10 +295,80 @@ CREATE TABLE Blogs (
   Title       NVARCHAR(300)  NOT NULL,
   Content     NVARCHAR(MAX)  NOT NULL,
   CoverURL    VARCHAR(500)   NULL,
+  Images      NVARCHAR(MAX)  NULL,
+  PollQuestion NVARCHAR(500) NULL,
+  PollOptions NVARCHAR(MAX)  NULL,
   IsPublished BIT            NOT NULL DEFAULT 0,
   PublishedAt DATETIME       NULL,
+  IsReported  BIT            NOT NULL DEFAULT 0,
+  ReportReason NVARCHAR(MAX) NULL,
+  ReportedAt  DATETIME       NULL,
+  ReportedBy  INT            NULL REFERENCES Users(UserID),
   CreatedAt   DATETIME       NOT NULL DEFAULT GETDATE(),
   UpdatedAt   DATETIME       NOT NULL DEFAULT GETDATE()
+);
+
+-- ============================================================
+-- 17a. BLOG LIKES
+-- ============================================================
+CREATE TABLE BlogLikes (
+  LikeID      INT IDENTITY(1,1) PRIMARY KEY,
+  BlogID      INT NOT NULL REFERENCES Blogs(BlogID) ON DELETE CASCADE,
+  UserID      INT NOT NULL REFERENCES Users(UserID),
+  CreatedAt   DATETIME DEFAULT GETDATE(),
+  UNIQUE(BlogID, UserID)
+);
+
+-- ============================================================
+-- 17b. BLOG COMMENTS
+-- ============================================================
+CREATE TABLE BlogComments (
+  CommentID       INT IDENTITY(1,1) PRIMARY KEY,
+  BlogID          INT NOT NULL REFERENCES Blogs(BlogID) ON DELETE CASCADE,
+  UserID          INT NOT NULL REFERENCES Users(UserID),
+  Content         NVARCHAR(MAX) NOT NULL,
+  ImageURL        NVARCHAR(MAX) NULL,
+  ParentCommentID INT NULL REFERENCES BlogComments(CommentID),
+  IsReported      BIT NOT NULL DEFAULT 0,
+  ReportReason    NVARCHAR(MAX) NULL,
+  ReportedAt      DATETIME NULL,
+  ReportedBy      INT NULL REFERENCES Users(UserID),
+  CreatedAt       DATETIME DEFAULT GETDATE(),
+  UpdatedAt       DATETIME DEFAULT GETDATE()
+);
+
+-- ============================================================
+-- 17c. BLOG COMMENT LIKES
+-- ============================================================
+CREATE TABLE BlogCommentLikes (
+  LikeID      INT IDENTITY(1,1) PRIMARY KEY,
+  CommentID   INT NOT NULL REFERENCES BlogComments(CommentID) ON DELETE CASCADE,
+  UserID      INT NOT NULL REFERENCES Users(UserID),
+  CreatedAt   DATETIME DEFAULT GETDATE(),
+  UNIQUE(CommentID, UserID)
+);
+
+-- ============================================================
+-- 17d. BLOG POLL VOTES
+-- ============================================================
+CREATE TABLE BlogPollVotes (
+  VoteID      INT IDENTITY(1,1) PRIMARY KEY,
+  BlogID      INT NOT NULL REFERENCES Blogs(BlogID) ON DELETE CASCADE,
+  UserID      INT NOT NULL REFERENCES Users(UserID),
+  OptionIndex INT NOT NULL,
+  CreatedAt   DATETIME DEFAULT GETDATE(),
+  UNIQUE(BlogID, UserID)
+);
+
+-- ============================================================
+-- 17e. SAVED BLOGS
+-- ============================================================
+CREATE TABLE SavedBlogs (
+  SaveID      INT IDENTITY(1,1) PRIMARY KEY,
+  BlogID      INT NOT NULL REFERENCES Blogs(BlogID) ON DELETE CASCADE,
+  UserID      INT NOT NULL REFERENCES Users(UserID),
+  CreatedAt   DATETIME DEFAULT GETDATE(),
+  UNIQUE(BlogID, UserID)
 );
 
 -- ============================================================
@@ -321,6 +396,13 @@ CREATE TABLE Feedbacks (
   ParticipantID INT NOT NULL REFERENCES Users(UserID),
   Rating        INT NOT NULL CHECK (Rating >= 1 AND Rating <= 5),
   Comment       NVARCHAR(MAX) NULL,
+  MediaURLs     NVARCHAR(MAX) NULL,
+  Reply         NVARCHAR(MAX) NULL,
+  RepliedAt     DATETIME NULL,
+  IsReported    BIT NOT NULL DEFAULT 0,
+  ReportReason  NVARCHAR(MAX) NULL,
+  ReportedAt    DATETIME NULL,
+  ReportedBy    INT NULL REFERENCES Users(UserID),
   CreatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
   UpdatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
   UNIQUE (EventID, ParticipantID)

@@ -122,7 +122,7 @@ const EventDashboardPage = () => {
             <Title level={2} style={{ color: 'white', margin: 0, fontFamily: "'Inter', sans-serif" }}>{event.Title}</Title>
           </div>
           
-          {/* Nút gửi thông báo mới */}
+          {/* Nút gửi thông báo */}
           <Button 
             type="default" 
             icon={<NotificationOutlined />} 

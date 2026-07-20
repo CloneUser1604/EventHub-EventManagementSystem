@@ -205,19 +205,30 @@ const MainLayout = ({ children }) => {
                   title={
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       
-                      {/* Thẻ thông báo hệ thống (Màu đỏ/cam) */}
-                      {n.Type === 'General' && n.RelatedType === 'System' && (
-                        <div>
-                          <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ HỆ THỐNG</Tag>
-                        </div>
-                      )}
+                      {/* Thẻ thông báo từ Admin (Màu đỏ/cam) */}
+{n.Type === 'General' && n.RelatedType === 'System' && (
+  <div>
+    <Tag color="volcano" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>
+      THÔNG BÁO TỪ HỆ THỐNG
+    </Tag>
+  </div>
+)}
 
-                      {/* ĐÃ SỬA: Thẻ thông báo từ BTC (Màu xanh dương) - Dựa vào RelatedType */}
-                      {n.RelatedType === 'Event' && (
-                        <div>
-                          <Tag color="blue" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>THÔNG BÁO TỪ BAN TỔ CHỨC</Tag>
-                        </div>
-                      )}
+{/* Thẻ thông báo liên quan đến Sự kiện (Phân loại Hệ thống & BTC) */}
+{n.RelatedType === 'Event' && (
+  <div>
+    {['EventApproval', 'Registration', 'CheckIn', 'OTP'].includes(n.Type) ? (
+      <Tag color="green" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>
+        HỆ THỐNG
+      </Tag>
+    ) : (
+      /* Còn lại (General, EventUpdate...) là do BTC tự gửi */
+      <Tag color="blue" style={{ borderRadius: 10, border: 'none', margin: 0, padding: '0 8px', fontWeight: 600 }}>
+        THÔNG BÁO TỪ BAN TỔ CHỨC
+      </Tag>
+    )}
+  </div>
+)}
                       
                       <Text style={{ fontSize: 14, fontWeight: n.IsRead ? 400 : 600, color: theme === 'dark' ? '#fff' : '#000' }}>
                         {/* ĐÃ SỬA: Tự động lọc bỏ mẩu tin 📢 [BTC Sự kiện...] ở đầu title cho đẹp mắt */}

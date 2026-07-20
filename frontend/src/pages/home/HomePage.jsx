@@ -373,7 +373,7 @@ const HomePage = () => {
       ══════════════════════════════════════════════════ */}
       {featuredEvents.length > 0 && (
         <section ref={featuredEventsRef} style={{padding: "100px 24px", maxWidth: 1200, margin: "0 auto"}}>
-          <div className={`motion-fade-up ${featuredEventsVisible ? 'is-visible' : ''}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+          <div className={featuredEventsVisible ? 'is-visible' : ''} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
             <div>
               <Title level={2} style={{ fontFamily: "'Geist', sans-serif", fontSize: 36, fontWeight: 800, margin: 0, color: theme === 'dark' ? '#fff' : '#18181b' }}>
                 {t('home.featured')} <span style={{color: "#f27024"}}>★</span>
@@ -418,7 +418,7 @@ const HomePage = () => {
           UPCOMING EVENTS
       ══════════════════════════════════════════════════ */}
       <section ref={upcomingEventsRef} style={{padding: "50px 24px 100px", maxWidth: 1200, margin: "0 auto", borderTop: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`}}>
-        <div className={`motion-fade-up ${upcomingEventsVisible ? 'is-visible' : ''}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40, marginTop: 50 }}>
+        <div className={upcomingEventsVisible ? 'is-visible' : ''} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40, marginTop: 50 }}>
           <div>
             <Title level={2} style={{ margin: 0, fontFamily: "'Geist', sans-serif", fontSize: 32, color: theme === 'dark' ? '#fff' : '#18181b' }}>
               📅 {t('home.upcoming')}

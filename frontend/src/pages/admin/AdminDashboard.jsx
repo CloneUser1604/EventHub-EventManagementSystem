@@ -9,7 +9,7 @@ import {
   CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
   TeamOutlined, CalendarOutlined, UserOutlined, TrophyOutlined,
   ExclamationCircleOutlined, DownloadOutlined, AppstoreOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined, EnvironmentOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, LogoutOutlined, ArrowLeftOutlined, EnvironmentOutlined, BellOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import useAuthStore from '../../store/authStore';
 import { adminService } from '../../services/admin.service';
@@ -100,6 +100,9 @@ const AdminDashboard = () => {
   const [broadcastForm] = Form.useForm();
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+
+  // States quản lý thông báo sự kiện
+  const [eventNotifModal, setEventNotifModal] = useState({ open: false, event: null, data: [], loading: false });
   
   // Search states
   const [searchEvent, setSearchEvent] = useState('');
@@ -202,6 +205,62 @@ const AdminDashboard = () => {
       setLoading(false); 
     }
   };
+
+  /* ── Quản lý Thông báo sự kiện ── */
+  const loadEventNotifs = async (event) => {
+    setEventNotifModal({ open: true, event, data: [], loading: true });
+    try {
+      const res = await fetch(`${API_BASE}/admin/events/${event.EventID}/notifications`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      const resData = await res.json();
+      setEventNotifModal({ open: true, event, data: resData.data || [], loading: false });
+    } catch (e) {
+      message.error('Lỗi khi tải thông báo');
+      setEventNotifModal({ open: true, event, data: [], loading: false });
+    }
+  };
+
+  const handleRevokeNotif = async (title, msg) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/events/${eventNotifModal.event.EventID}/notifications`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        body: JSON.stringify({ title, message: msg })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success(data.message);
+        loadEventNotifs(eventNotifModal.event); // Tải lại danh sách
+      } else {
+        message.error(data.message);
+      }
+    } catch (e) {
+      message.error('Lỗi kết nối khi thu hồi');
+    }
+  };
+
+  const eventNotifCols = [
+    { 
+      title: 'Tiêu đề & Nội dung', 
+      render: (_, r) => (
+        <div>
+          <Text strong style={{ color: '#2563eb' }}>{r.Title.replace('📢 [BTC] ', '')}</Text>
+          <p style={{ margin: '4px 0', fontSize: 13, color: '#475569' }}>{r.Message}</p>
+        </div>
+      )
+    },
+    { title: 'Người nhận', dataIndex: 'ReceiverCount', width: 100, align: 'center', render: v => <Tag color="blue">{v} người</Tag> },
+    { title: 'Thời gian gửi', dataIndex: 'CreatedAt', width: 150, render: v => dayjs(v?.replace('Z', '')).format('DD/MM/YY HH:mm') },
+    { 
+      title: 'Thao tác', width: 100, align: 'center',
+      render: (_, r) => (
+        <Button danger size="small" icon={<DeleteOutlined />} onClick={() => confirm({ title: 'Thu hồi thông báo này?', content: 'Thông báo sẽ bị xóa khỏi tất cả hộp thư của người nhận.', onOk: () => handleRevokeNotif(r.Title, r.Message) })}>
+          Thu hồi
+        </Button>
+      )
+    }
+  ];
 
   /* ── Action Handlers ── */
   const handleOrgAction = async (profileId, action, reason = '') => {
@@ -422,14 +481,24 @@ const AdminDashboard = () => {
       }
     },
     {
-      title: 'Hành động', width: 260,
+      title: 'Hành động', width: 320,
       render: (_, r) => {
         const isApprovedNoChanges = (r.ApprovalStatus === 'Approved' || r.Status === 'Published' || r.Status === 'Completed') && !r.ProposedChanges;
         return (
-          <Space size={4}>
-            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewEvent(r.EventID)}>Xem</Button>
+          <Space size={8}>
+            <Button type="default" size="small" icon={<EyeOutlined />} onClick={() => handleViewEvent(r.EventID)}>Xem</Button>
             {isApprovedNoChanges ? (
-              <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('cancel_event', r.EventID, r.Title)}>Khóa sự kiện</Button>
+              <>
+                <Button 
+                  size="small" 
+                  icon={<BellOutlined />} 
+                  style={{ backgroundColor: '#ffffff', color: '#2563eb', borderColor: '#2563eb' }} 
+                  onClick={() => loadEventNotifs(r)}
+                >
+                  Quản lý Thông báo
+                </Button>
+                <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => openReject('cancel_event', r.EventID, r.Title)}>Khóa sự kiện</Button>
+              </>
             ) : (
               <>
                 {r.ProposedChanges && (
@@ -1184,6 +1253,24 @@ const AdminDashboard = () => {
           />
         </React.Suspense>
       )}
+
+      {/* Modal Quản lý Thông báo Sự kiện */}
+      <Modal
+        title={`Thông báo sự kiện: ${eventNotifModal.event?.Title}`}
+        width={700}
+        open={eventNotifModal.open}
+        onCancel={() => setEventNotifModal({ open: false, event: null, data: [], loading: false })}
+        footer={null}
+      >
+        <Table 
+          loading={eventNotifModal.loading}
+          dataSource={eventNotifModal.data} 
+          columns={eventNotifCols}
+          rowKey={(r) => r.Title + r.Message}
+          pagination={{ pageSize: 5 }}
+          locale={{ emptyText: 'Chưa có thông báo nào được gửi' }}
+        />
+      </Modal>
 
       {/* Broadcast Modal */}
       <Modal

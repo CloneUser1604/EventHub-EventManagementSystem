@@ -440,6 +440,61 @@ const getOrganizerStats = async (req, res) => {
   }
 };
 
+// ─── LẤY DANH SÁCH THÔNG BÁO CỦA SỰ KIỆN ───
+const getEventNotifications = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const pool = getPool();
+    
+    const result = await pool.request()
+      .input('EventID', sql.Int, eventId)
+      .query(`
+        SELECT 
+          Title, 
+          Message, 
+          MAX(CreatedAt) as CreatedAt, 
+          COUNT(NotificationID) as ReceiverCount
+        FROM Notifications
+        WHERE RelatedID = @EventID 
+          AND Type = 'General' 
+          AND Title LIKE N'📢 [[]BTC] %' 
+        GROUP BY Title, Message
+        ORDER BY MAX(CreatedAt) DESC
+      `);
+
+    return res.status(200).json({ success: true, data: result.recordset });
+  } catch (error) {
+    console.error('Get event notifications error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi khi lấy thông báo sự kiện' });
+  }
+};
+
+// ─── THU HỒI (XÓA) THÔNG BÁO SỰ KIỆN ─────────────────────────────
+const revokeEventNotification = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { title, message } = req.body;
+
+    const pool = getPool();
+    await pool.request()
+      .input('EventID', sql.Int, eventId)
+      .input('Title', sql.NVarChar(300), title)
+      .input('Message', sql.NVarChar(sql.MAX), message)
+      .query(`
+        DELETE FROM Notifications 
+        WHERE RelatedID = @EventID 
+          AND Type = 'General' 
+          AND Title = @Title 
+          AND Message = @Message
+      `);
+
+    return res.status(200).json({ success: true, message: 'Đã thu hồi thông báo thành công khỏi tất cả người nhận' });
+  } catch (error) {
+    console.error('Revoke notification error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi khi thu hồi thông báo' });
+  }
+};
+
 module.exports = {
   getPendingEvents,
   approveEvent,
@@ -448,5 +503,7 @@ module.exports = {
   getAllUsers,
   updateUserStatus,
   broadcastNotification,
-  getOrganizerStats
+  getOrganizerStats,
+  getEventNotifications,
+  revokeEventNotification 
 };

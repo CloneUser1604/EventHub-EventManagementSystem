@@ -76,7 +76,7 @@ const createBlog = async (req, res) => {
       return errorResponse(res, 'Vui lòng nhập tiêu đề, nội dung, ảnh/video hoặc bình chọn', 400);
     }
 
-    const newBlogId = await blogService.createBlogV2(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions);
+    const newBlogId = await blogService.createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions);
     return createdResponse(res, { BlogID: newBlogId }, 'Đăng bài viết thành công');
   } catch (error) {
     console.error('Error in createBlog:', error);
@@ -188,9 +188,10 @@ const toggleSaveBlog = async (req, res) => {
 // ─── GET SAVED BLOGS ──────────────────────────────────────────────
 const getSavedBlogs = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
     const userId = req.user.UserID || req.user.userId;
-    const blogs = await blogService.getSavedBlogs(userId);
-    return successResponse(res, blogs);
+    const result = await blogService.getSavedBlogs(userId, page, limit);
+    return successResponse(res, result);
   } catch (error) {
     console.error('Error getting saved blogs:', error);
     return errorResponse(res, 'Lỗi khi lấy bài viết đã lưu', 500);
@@ -274,6 +275,11 @@ const reportBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
+    
+    if (!reason || !reason.trim()) {
+      return errorResponse(res, 'Vui lòng nhập lý do báo cáo', 400);
+    }
+    
     const userId = req.user.UserID || req.user.userId;
 
     await blogService.reportBlog(id, reason, userId);

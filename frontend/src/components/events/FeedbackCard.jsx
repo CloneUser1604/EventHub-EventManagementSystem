@@ -14,7 +14,7 @@ export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId})
   const {user} = useAuthStore();
   const {selectedEvent} = useEventStore();
   
-  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [reportType, setReportType] = useState("");
@@ -58,7 +58,7 @@ export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId})
     try {
       await feedbackService.replyFeedback(selectedEvent?.EventID, item.FeedbackID, replyContent);
       message.success("Đã trả lời đánh giá.");
-      setReplyModalOpen(false);
+      setIsReplying(false);
       onSuccess();
     } catch (error) {
       message.error(error.message || "Lỗi khi trả lời.");
@@ -82,6 +82,11 @@ export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId})
       onSuccess();
     } catch (error) {
       message.error(error.message || "Lỗi báo cáo.");
+      // Close modal if already reported by someone else
+      if (error.message && error.message.includes("đã báo cáo")) {
+        setReportModalOpen(false);
+        onSuccess(); // Refresh to hide the button
+      }
     } finally {
       setLoading(false);
     }
@@ -144,7 +149,7 @@ export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId})
           )}
           {isOrganizer && !isParticipant && (
             <>
-              <Button type="text" size="small" icon={<MessageOutlined />} style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => { setReplyContent(item.Reply || ""); setReplyModalOpen(true); }}>
+              <Button type="text" size="small" icon={<MessageOutlined />} style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => { setReplyContent(item.Reply || ""); setIsReplying(!isReplying); }}>
                 {item.Reply ? "Sửa trả lời" : "Trả lời"}
               </Button>
               {!item.IsReported && <Button type="text" size="small" danger icon={<WarningOutlined />} style={{fontSize: 13, fontWeight: 500}} onClick={() => setReportModalOpen(true)}>Báo cáo</Button>}
@@ -185,9 +190,22 @@ export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId})
         </div>
       )}
 
-      <Modal title="Trả lời đánh giá" open={replyModalOpen} onCancel={() => setReplyModalOpen(false)} onOk={handleReply} confirmLoading={loading}>
-        <TextArea rows={4} placeholder="Nhập phản hồi của bạn..." value={replyContent} onChange={(e) => setReplyContent(e.target.value)} />
-      </Modal>
+      {isReplying && (
+        <div style={{marginTop: 16}}>
+          <TextArea 
+            rows={3} 
+            placeholder="Nhập phản hồi của bạn..." 
+            value={replyContent} 
+            onChange={(e) => setReplyContent(e.target.value)} 
+          />
+          <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8}}>
+            <Button size="small" onClick={() => setIsReplying(false)}>Hủy</Button>
+            <Button size="small" type="primary" onClick={handleReply} loading={loading}>
+              Gửi phản hồi
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal 
         title="Báo cáo đánh giá" 

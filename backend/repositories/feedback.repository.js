@@ -6,11 +6,11 @@ async getFeedbacksByEventId(eventId) {
     const pool = getPool();
     const result = await pool.request().input("eventId", sql.Int, eventId)
       .query(`
-        SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, f.UpdatedAt, f.MediaURLs, f.Reply, f.RepliedAt,
+        SELECT f.FeedbackID, f.ParticipantID, f.Rating, f.Comment, f.CreatedAt, f.UpdatedAt, f.MediaURLs, f.Reply, f.RepliedAt, f.ReplyUpdatedAt, f.IsReported, f.ReportedBy,
                u.FullName as UserName, u.AvatarURL
         FROM Feedbacks f
         INNER JOIN Users u ON f.ParticipantID = u.UserID
-        WHERE f.EventID = @eventId
+        WHERE f.EventID = @eventId AND f.Status = 'Active'
         ORDER BY f.CreatedAt DESC
       `);
     return result.recordset;
@@ -29,7 +29,7 @@ async getFeedbacksByEventId(eventId) {
             SUM(CASE WHEN Rating = 2 THEN 1 ELSE 0 END) as Star2,
             SUM(CASE WHEN Rating = 1 THEN 1 ELSE 0 END) as Star1
         FROM Feedbacks
-        WHERE EventID = @eventId
+        WHERE EventID = @eventId AND Status = 'Active'
       `);
     return statsResult.recordset[0] || {TotalReviews: 0, AverageRating: 0};
   }
@@ -53,12 +53,12 @@ async checkEventEligibility(eventId, userId) {
 
   async checkIfFeedbackExists(eventId, userId) {
     const pool = getPool();
-    const checkFeedbackQuery = `SELECT FeedbackID FROM Feedbacks WHERE EventID = @eventId AND ParticipantID = @userId`;
+    const checkFeedbackQuery = `SELECT FeedbackID, Status FROM Feedbacks WHERE EventID = @eventId AND ParticipantID = @userId`;
     const feedbackResult = await pool.request()
       .input("eventId", sql.Int, eventId)
       .input("userId", sql.Int, userId)
       .query(checkFeedbackQuery);
-    return feedbackResult.recordset.length > 0;
+    return feedbackResult.recordset[0] || null;
   }
 
   // ─── CREATE FEEDBACK ──────────────────────────────────────────────
@@ -83,7 +83,7 @@ async updateFeedback(eventId, userId, rating, comment, mediaURLs) {
     const updateQuery = `
       UPDATE Feedbacks 
       SET Rating = @rating, Comment = @comment, MediaURLs = @mediaURLs, UpdatedAt = GETDATE()
-      WHERE EventID = @eventId AND ParticipantID = @userId
+      WHERE EventID = @eventId AND ParticipantID = @userId AND Status = 'Active'
     `;
     await pool.request()
       .input("eventId", sql.Int, eventId)
@@ -127,6 +127,18 @@ async deleteFeedback(feedbackId, userId) {
 
   async reportFeedback(feedbackId, reason, userId) {
     const pool = getPool();
+    const check = await pool.request()
+      .input("feedbackId", sql.Int, feedbackId)
+      .query(`SELECT IsReported, ReportedBy FROM Feedbacks WHERE FeedbackID = @feedbackId`);
+
+    if (check.recordset.length > 0) {
+      if (check.recordset[0].IsReported && check.recordset[0].ReportedBy === userId) {
+        throw new Error('ALREADY_REPORTED: Bạn đã báo cáo đánh giá này rồi.');
+      } else if (check.recordset[0].IsReported) {
+        throw new Error('ALREADY_REPORTED: Đánh giá này đã bị báo cáo bởi người khác.');
+      }
+    }
+
     await pool.request()
       .input("feedbackId", sql.Int, feedbackId)
       .input("reason", sql.NVarChar, reason)
@@ -142,7 +154,7 @@ async deleteFeedback(feedbackId, userId) {
       JOIN Events e ON f.EventID = e.EventID
       JOIN Users u ON f.ParticipantID = u.UserID
       JOIN Users o ON f.ReportedBy = o.UserID
-      WHERE f.IsReported = 1
+      WHERE f.IsReported = 1 AND f.Status = 'Active'
       ORDER BY f.ReportedAt DESC
     `);
     return result.recordset;
@@ -152,7 +164,7 @@ async deleteFeedback(feedbackId, userId) {
     const pool = getPool();
     if (action === 'delete') {
       await pool.request().input("feedbackId", sql.Int, feedbackId)
-        .query(`DELETE FROM Feedbacks WHERE FeedbackID = @feedbackId`);
+        .query(`UPDATE Feedbacks SET Status = 'Deleted' WHERE FeedbackID = @feedbackId`);
     } else {
       await pool.request().input("feedbackId", sql.Int, feedbackId)
         .query(`UPDATE Feedbacks SET IsReported = 0, ReportReason = NULL, ReportedAt = NULL, ReportedBy = NULL WHERE FeedbackID = @feedbackId`);

@@ -77,6 +77,16 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return userSaves.recordset;
   }
 
+  async getUserBlogReports(blogIds, userId) {
+    const pool = getPool();
+    const userReports = await pool.request().input('UserID', sql.Int, userId).query(`
+      SELECT TargetID
+      FROM Reports
+      WHERE TargetType = 'Blog' AND TargetID IN (${blogIds}) AND ReporterID = @UserID
+    `);
+    return userReports.recordset;
+  }
+
   // ─── GET BLOG BY ID ──────────────────────────────────────────────
 async getBlogById(blogId) {
     const pool = getPool();
@@ -244,6 +254,24 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       `);
     return result.recordset[0];
   }
+
+  async getCommentParentId(commentId) {
+    const pool = getPool();
+    const result = await pool.request()
+      .input('CommentID', sql.Int, commentId)
+      .query(`SELECT ParentCommentID FROM BlogComments WHERE CommentID = @CommentID`);
+    return result.recordset[0]?.ParentCommentID;
+  }
+
+  async getUserCommentReports(commentIds, userId) {
+    const pool = getPool();
+    const userReports = await pool.request().input('UserID', sql.Int, userId).query(`
+      SELECT TargetID
+      FROM Reports
+      WHERE TargetType = 'BlogComment' AND TargetID IN (${commentIds}) AND ReporterID = @UserID
+    `);
+    return userReports.recordset;
+  }
   
   async getUserInfo(userId) {
     const pool = getPool();
@@ -278,10 +306,20 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query('INSERT INTO SavedBlogs (BlogID, UserID) VALUES (@BlogID, @UserID)');
   }
 
-  async getSavedBlogs(userId) {
+  async getSavedBlogsCount(userId) {
     const pool = getPool();
     const result = await pool.request()
       .input('UserID', sql.Int, userId)
+      .query(`SELECT COUNT(*) as count FROM SavedBlogs WHERE UserID = @UserID`);
+    return result.recordset[0].count;
+  }
+
+  async getSavedBlogs(userId, offset = 0, limit = 10) {
+    const pool = getPool();
+    const result = await pool.request()
+      .input('UserID', sql.Int, userId)
+      .input('Offset', sql.Int, offset)
+      .input('Limit', sql.Int, limit)
       .query(`
         SELECT b.*, u.FullName as AuthorName, u.AvatarURL as AuthorAvatar, u.Role as AuthorRole, e.Title as EventTitle,
                (SELECT COUNT(*) FROM BlogLikes WHERE BlogID = b.BlogID) AS LikeCount,
@@ -294,6 +332,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
         LEFT JOIN Events e ON b.EventID = e.EventID
         WHERE sb.UserID = @UserID
         ORDER BY sb.CreatedAt DESC
+        OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY
       `);
     return result.recordset;
   }
@@ -416,7 +455,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .input('id', sql.Int, blogId)
       .input('userId', sql.Int, userId)
       .query(`SELECT 1 FROM Reports WHERE TargetType = 'Blog' AND TargetID = @id AND ReporterID = @userId`);
-    if (check.recordset.length > 0) return;
+    if (check.recordset.length > 0) throw new Error('ALREADY_REPORTED: Bạn đã báo cáo bài viết này rồi.');
 
     await pool.request()
       .input('id', sql.Int, blogId)
@@ -491,7 +530,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .input('id', sql.Int, commentId)
       .input('userId', sql.Int, userId)
       .query(`SELECT 1 FROM Reports WHERE TargetType = 'BlogComment' AND TargetID = @id AND ReporterID = @userId`);
-    if (check.recordset.length > 0) return;
+    if (check.recordset.length > 0) throw new Error('ALREADY_REPORTED: Bạn đã báo cáo bình luận này rồi.');
 
     await pool.request()
       .input('id', sql.Int, commentId)

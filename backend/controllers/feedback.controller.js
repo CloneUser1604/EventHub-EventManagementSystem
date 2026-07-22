@@ -32,7 +32,13 @@ exports.createFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
     const rating = parseInt(req.body.rating, 10);
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({success: false, message: "Số sao đánh giá không hợp lệ."});
+    }
     const comment = req.body.comment || "";
+    if (comment.length > 1000) {
+      return res.status(400).json({success: false, message: "Đánh giá quá dài (tối đa 1000 ký tự)."});
+    }
     const mediaURLs = req.files ? req.files.map(f => `/uploads/feedbacks/${f.filename}`) : [];
     const userId = req.user.UserID;
 
@@ -55,7 +61,13 @@ exports.updateFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
     const rating = parseInt(req.body.rating, 10);
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({success: false, message: "Số sao đánh giá không hợp lệ."});
+    }
     const comment = req.body.comment || "";
+    if (comment.length > 1000) {
+      return res.status(400).json({success: false, message: "Đánh giá quá dài (tối đa 1000 ký tự)."});
+    }
     const existingMedia = req.body.existingMedia;
     const newFiles = req.files;
     const userId = req.user.UserID;
@@ -114,6 +126,7 @@ exports.reportFeedback = async (req, res) => {
   } catch (error) {
     const msg = error.message;
     if (msg.startsWith('FORBIDDEN')) return res.status(403).json({success: false, message: msg.split(': ')[1]});
+    if (msg.startsWith('ALREADY_REPORTED')) return res.status(400).json({success: false, message: msg.split(': ')[1]});
     res.status(500).json({success: false, message: "Lỗi server", error: error.message});
   }
 };

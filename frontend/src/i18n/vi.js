@@ -228,7 +228,7 @@ export const vi = {
     "interactions": "lượt tương tác",
     "postsDiscussing": "bài viết đang thảo luận",
     "you": "Bạn",
-    "communityOrTopic": "Cộng đồng hoặc chủ đề",
+    "communityOrTopic": "Sự kiện muốn thảo luận",
     "askAQuestion": "Hỏi một câu...",
     "pollOption": "Lựa chọn",
     "addOption": "Thêm lựa chọn",

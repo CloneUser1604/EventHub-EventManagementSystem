@@ -12,7 +12,7 @@ import {feedbackService} from "../../services/feedback.service";
 import dayjs from "dayjs";
 import useAuthStore from "../../store/authStore";
 
-export default function FeedbackSection({eventId}) {
+export default function FeedbackSection({eventId, adminFeedbackId}) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [feedbacks, setFeedbacks] = useState([]);
@@ -68,6 +68,14 @@ export default function FeedbackSection({eventId}) {
     if (mineIdx > -1) {
       const mineItem = displayFeedbacks.splice(mineIdx, 1)[0];
       displayFeedbacks.unshift(mineItem);
+    }
+  }
+
+  if (adminFeedbackId) {
+    const adminIdx = displayFeedbacks.findIndex(f => String(f.FeedbackID) === String(adminFeedbackId));
+    if (adminIdx > -1) {
+      const adminItem = displayFeedbacks.splice(adminIdx, 1)[0];
+      displayFeedbacks.unshift(adminItem);
     }
   }
 
@@ -177,7 +185,7 @@ export default function FeedbackSection({eventId}) {
             }}
           >
             {previewList.map((item) => (
-              <FeedbackCard key={item.FeedbackID} item={item} onEdit={(data) => { setEditData(data); setModalOpen(true); }} onSuccess={loadData} />
+              <FeedbackCard key={item.FeedbackID} item={item} onEdit={(data) => { setEditData(data); setModalOpen(true); }} onSuccess={loadData} adminFeedbackId={adminFeedbackId} />
             ))}
           </div>
 

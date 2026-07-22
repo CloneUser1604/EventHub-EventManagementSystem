@@ -11,6 +11,7 @@ IF OBJECT_ID('BlogCommentLikes', 'U') IS NOT NULL DROP TABLE BlogCommentLikes;
 IF OBJECT_ID('BlogComments', 'U') IS NOT NULL DROP TABLE BlogComments;
 IF OBJECT_ID('BlogLikes', 'U') IS NOT NULL DROP TABLE BlogLikes;
 IF OBJECT_ID('BlogPollVotes', 'U') IS NOT NULL DROP TABLE BlogPollVotes;
+IF OBJECT_ID('Reports', 'U') IS NOT NULL DROP TABLE Reports;
 IF OBJECT_ID('SavedBlogs', 'U') IS NOT NULL DROP TABLE SavedBlogs;
 IF OBJECT_ID('Blogs', 'U') IS NOT NULL DROP TABLE Blogs;
 IF OBJECT_ID('SurveyResponses', 'U') IS NOT NULL DROP TABLE SurveyResponses;
@@ -300,10 +301,6 @@ CREATE TABLE Blogs (
   PollOptions NVARCHAR(MAX)  NULL,
   IsPublished BIT            NOT NULL DEFAULT 0,
   PublishedAt DATETIME       NULL,
-  IsReported  BIT            NOT NULL DEFAULT 0,
-  ReportReason NVARCHAR(MAX) NULL,
-  ReportedAt  DATETIME       NULL,
-  ReportedBy  INT            NULL REFERENCES Users(UserID),
   CreatedAt   DATETIME       NOT NULL DEFAULT GETDATE(),
   UpdatedAt   DATETIME       NOT NULL DEFAULT GETDATE()
 );
@@ -329,10 +326,6 @@ CREATE TABLE BlogComments (
   Content         NVARCHAR(MAX) NOT NULL,
   ImageURL        NVARCHAR(MAX) NULL,
   ParentCommentID INT NULL REFERENCES BlogComments(CommentID),
-  IsReported      BIT NOT NULL DEFAULT 0,
-  ReportReason    NVARCHAR(MAX) NULL,
-  ReportedAt      DATETIME NULL,
-  ReportedBy      INT NULL REFERENCES Users(UserID),
   CreatedAt       DATETIME DEFAULT GETDATE(),
   UpdatedAt       DATETIME DEFAULT GETDATE()
 );
@@ -414,6 +407,21 @@ CREATE TABLE Feedbacks (
 --    Sau khi tạo bảng xong, chạy lệnh sau để tạo admin đúng:
 --      node scripts/seed-admin.js
 -- ============================================================
+
+-- ============================================================
+-- Reports Table (Unified reporting for Blogs, Comments, Feedbacks)
+-- ============================================================
+CREATE TABLE Reports (
+    ReportID INT PRIMARY KEY IDENTITY(1,1),
+    TargetType VARCHAR(50) NOT NULL, -- 'Blog', 'BlogComment', 'Feedback'
+    TargetID INT NOT NULL,           
+    ReporterID INT NOT NULL FOREIGN KEY REFERENCES Users(UserID),
+    Reason NVARCHAR(MAX) NOT NULL,   
+    Status VARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Resolved', 'Dismissed'
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UNIQUE(TargetType, TargetID, ReporterID)
+);
+
 -- (Admin sẽ được tạo bởi seed-admin.js với hash chính xác)
 
 -- Seed Categories

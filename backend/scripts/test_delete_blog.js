@@ -18,7 +18,7 @@ async function testDeleteBlog() {
     console.log('✅ Connected to database.');
 
     // Tìm một blog vi phạm để test
-    const result = await pool.request().query('SELECT TOP 1 BlogID, Title FROM Blogs WHERE IsReported = 1');
+    const result = await pool.request().query("SELECT TOP 1 b.BlogID, b.Title FROM Blogs b JOIN Reports r ON b.BlogID = r.TargetID WHERE r.TargetType = 'Blog'");
     if (result.recordset.length === 0) {
       console.log('❌ Không có bài viết nào đang bị report để test xoá.');
       return;

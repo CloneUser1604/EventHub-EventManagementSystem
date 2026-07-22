@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag } from 'antd';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag, Image } from 'antd';
 import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
@@ -48,6 +48,22 @@ const parseImages = (raw) => {
     if (Array.isArray(arr)) return arr;
   } catch (e) {}
   return [raw];
+};
+
+// SafeVideo: ensure video pauses when unmounted (fixes bug where video continues playing after modal close)
+const SafeVideo = ({ src, ...props }) => {
+  const videoRef = React.useRef(null);
+  React.useEffect(() => {
+    const v = videoRef.current;
+    return () => {
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      }
+    };
+  }, []);
+  return <video ref={videoRef} src={src} {...props} />;
 };
 
 // Grid image display component
@@ -120,13 +136,14 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
         onCancel={() => setLightbox(null)}
         width="auto"
         centered
+        destroyOnClose
         bodyStyle={{ padding: 0, background: 'transparent' }}
         style={{ maxWidth: '95vw' }}
       >
         {lightbox !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             {isVideoUrl(images[lightbox]) ? (
-              <video
+              <SafeVideo
                 src={buildImgUrl(images[lightbox])}
                 controls
                 autoPlay
@@ -168,12 +185,13 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
   );
 };
 
-const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onClosePopup = null }) => {
+const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null, popupOnly = false, onClosePopup = null }) => {
   const { t } = useTranslation();
   const { theme } = useSettingStore();
   const params = useParams();
-  const id = adminBlogId || params.id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const id = adminBlogId || params.id;
   const { user, isAuthenticated } = useAuthStore();
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
@@ -187,6 +205,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [fileList, setFileList] = useState([]);
   const [videoList, setVideoList] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [previewVideoModal, setPreviewVideoModal] = useState({ visible: false, url: '' });
   const [previewVideoUrls, setPreviewVideoUrls] = useState([]);
   const [showPoll, setShowPoll] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
@@ -306,8 +325,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   }, [id, blogs]);
 
   useEffect(() => {
-    if (detailModalVisible && window.location.hash) {
-      const hashId = window.location.hash.substring(1);
+    const targetHash = adminCommentId ? `comment-${adminCommentId}` : (window.location.hash ? window.location.hash.substring(1) : null);
+    if (detailModalVisible && targetHash) {
+      const hashId = targetHash;
       setTimeout(() => {
         const el = document.getElementById(hashId);
         if (el) {
@@ -460,7 +480,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
             if (parentEl) {
               parentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
               // Highlight the reply within
-              const replyEl = document.getElementById(`reply-${targetCommentId}`);
+              const replyEl = document.getElementById(`comment-${targetCommentId}`);
               if (replyEl) {
                 replyEl.style.backgroundColor = '#fef3c7';
                 setTimeout(() => { 
@@ -521,10 +541,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   };
 
   const handlePost = async () => {
-    if (!content.trim()) {
-      message.warning(t('blog.enterContent'));
-      return;
-    }
+    const hasMedia = fileList.length > 0 || videoList.length > 0;
+    let hasValidPoll = false;
 
     if (showPoll) {
       if (!pollQuestion.trim()) {
@@ -536,6 +554,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         message.warning(t('blog.enterTwoOptions'));
         return;
       }
+      hasValidPoll = true;
+    }
+
+    if (!content.trim() && !title.trim() && !hasMedia && !hasValidPoll) {
+      message.warning(t('blog.enterContent'));
+      return;
     }
 
     setSubmitting(true);
@@ -1599,7 +1623,6 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       >
         <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button type="text" onClick={() => setIsModalVisible(false)} style={{ margin: -8 }}>{t('blog.cancel')}</Button>
-          <Button type="primary" shape="round" onClick={handlePost} loading={submitting} disabled={!content.trim() && !title.trim() && fileList.length === 0 && !showPoll}>{t('blog.post')}</Button>
         </div>
 
         <div style={{ padding: 24, maxHeight: '70vh', overflowY: 'auto' }} className="hide-scrollbar">
@@ -1638,26 +1661,27 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
               />
               
               {(previewUrls.length > 0 || previewVideoUrls.length > 0) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12 }}>
-                  {previewUrls.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: previewUrls.length === 1 ? '1fr' : '1fr 1fr', gap: 8 }}>
-                      {previewUrls.map((url, index) => (
-                        <div key={index} style={{ position: 'relative' }}>
-                          <img src={url} alt="Preview" style={{ width: '100%', height: previewUrls.length === 1 ? 'auto' : 200, maxHeight: 400, borderRadius: 12, objectFit: 'cover' }} />
-                          <CloseCircleFilled 
-                            style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
-                            onClick={() => removeImage(index)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, paddingBottom: 12, marginTop: 8 }}>
+                  <Image.PreviewGroup>
+                    {previewUrls.map((url, index) => (
+                      <div key={index} style={{ position: 'relative', width: 80, height: 80 }}>
+                        <Image src={url} alt="Preview" width={80} height={80} style={{ borderRadius: 8, objectFit: 'cover' }} />
+                        <CloseCircleFilled 
+                          style={{ position: 'absolute', top: -6, right: -6, fontSize: 18, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%', zIndex: 10 }}
+                          onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                        />
+                      </div>
+                    ))}
+                  </Image.PreviewGroup>
                   {previewVideoUrls.map((url, index) => (
-                    <div key={index} style={{ position: 'relative' }}>
-                      <video src={url} controls style={{ width: '100%', maxHeight: 320, borderRadius: 12, objectFit: 'cover', background: '#000' }} />
+                    <div key={`vid-${index}`} style={{ position: 'relative', width: 80, height: 80 }}>
+                      <div style={{ width: 80, height: 80, cursor: 'pointer', borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPreviewVideoModal({ visible: true, url })}>
+                        <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                        <VideoCameraOutlined style={{ position: 'absolute', fontSize: 24, color: '#fff' }} />
+                      </div>
                       <CloseCircleFilled 
-                        style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
-                        onClick={() => { setVideoList(prev => prev.filter((_, i) => i !== index)); setPreviewVideoUrls(prev => prev.filter((_, i) => i !== index)); }}
+                        style={{ position: 'absolute', top: -6, right: -6, fontSize: 18, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%', zIndex: 10 }}
+                        onClick={(e) => { e.stopPropagation(); setVideoList(prev => prev.filter((_, i) => i !== index)); setPreviewVideoUrls(prev => prev.filter((_, i) => i !== index)); }}
                       />
                     </div>
                   ))}
@@ -1738,8 +1762,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     shape="round"
                     loading={submitting}
                     onClick={handlePost}
-                    disabled={!content.trim()}
-                    style={{ fontWeight: 600, padding: '0 24px', backgroundColor: content.trim() ? '#000' : '#f3f4f6', color: content.trim() ? '#fff' : '#9ca3af', border: 'none' }}
+                    disabled={!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll}
+                    style={{ fontWeight: 600, padding: '0 24px', backgroundColor: (!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll) ? '#f3f4f6' : '#000', color: (!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll) ? '#9ca3af' : '#fff', border: 'none' }}
                   >
                     {t('blog.post')}
                   </Button>
@@ -1748,6 +1772,21 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Video Preview Modal */}
+      <Modal
+        open={previewVideoModal.visible}
+        footer={null}
+        onCancel={() => setPreviewVideoModal({ visible: false, url: '' })}
+        width={800}
+        destroyOnClose
+        bodyStyle={{ padding: 0, backgroundColor: '#000' }}
+        closeIcon={<CloseCircleFilled style={{ fontSize: 24, color: 'rgba(255,255,255,0.8)' }} />}
+      >
+        {previewVideoModal.visible && (
+          <SafeVideo src={previewVideoModal.url} controls autoPlay style={{ width: '100%', maxHeight: '80vh', objectFit: 'contain' }} />
+        )}
       </Modal>
 
       {/* Blog Detail Modal */}
@@ -2033,7 +2072,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                           
                           {/* Replies */}
                           {replies.filter(r => r.ParentCommentID === comment.CommentID).map(reply => (
-                            <div key={reply.CommentID} id={`reply-${reply.CommentID}`} style={{ display: 'flex', gap: 12, marginLeft: 48, transition: 'background-color 0.8s', borderRadius: 8, padding: '4px 0' }}>
+                            <div key={reply.CommentID} id={`comment-${reply.CommentID}`} style={{ display: 'flex', gap: 12, marginLeft: 48, transition: 'background-color 0.8s', borderRadius: 8, padding: '4px 0' }}>
                               <Avatar src={getAvatarUrl(reply.AuthorAvatar)} icon={<UserOutlined />} size={28} />
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center' }}>

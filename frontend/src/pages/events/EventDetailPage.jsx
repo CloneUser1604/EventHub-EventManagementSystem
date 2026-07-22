@@ -74,11 +74,11 @@ const Countdown = ({targetDate, t}) => {
   );
 };
 
-const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "about" }) => {
+const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout = false, defaultTab = "about" }) => {
   const {id} = useParams();
   const targetId = adminEventId || id;
   const navigate = useNavigate();
-  const {selectedEvent: event, isLoading, fetchEventById} = useEventStore();
+  const {selectedEvent: event, isLoading, error, fetchEventById} = useEventStore();
   const {user, isAuthenticated} = useAuthStore();
   const [registering, setRegistering] = useState(false);
   const [myRegistration, setMyRegistration] = useState(null);
@@ -234,7 +234,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
     });
   };
 
-  if (isLoading || !event)
+  if (isLoading)
     return noLayout ? (
       <div style={{textAlign: "center", padding: "120px 24px"}}>
         <Spin size="large" />
@@ -243,6 +243,19 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
       <MainLayout>
         <div style={{textAlign: "center", padding: "120px 24px"}}>
           <Spin size="large" />
+        </div>
+      </MainLayout>
+    );
+
+  if (error || !event)
+    return noLayout ? (
+      <div style={{textAlign: "center", padding: "120px 24px"}}>
+        <Empty description={error || "Không tìm thấy sự kiện"} />
+      </div>
+    ) : (
+      <MainLayout>
+        <div style={{textAlign: "center", padding: "120px 24px"}}>
+          <Empty description={error || "Không tìm thấy sự kiện"} />
         </div>
       </MainLayout>
     );
@@ -635,7 +648,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                   label: t('eventDetail.reviews'),
                   children: (
                     <div style={{paddingTop: 8}}>
-                      <FeedbackSection eventId={targetId} />
+                      <FeedbackSection eventId={targetId} adminFeedbackId={adminFeedbackId} />
                     </div>
                   ),
                 },

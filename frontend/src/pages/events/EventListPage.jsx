@@ -198,6 +198,11 @@ const EventListPage = () => {
               }));
             }}
           />
+          {filters.startDate && filters.endDate && dayjs(filters.startDate).isAfter(dayjs(filters.endDate), 'day') && (
+            <Text type="danger" style={{fontSize: 12, marginTop: -4}}>
+              Ngày kết thúc không hợp lệ!
+            </Text>
+          )}
         </div>
       </div>
       <div>

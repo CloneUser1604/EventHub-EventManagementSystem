@@ -248,6 +248,7 @@ export const vi = {
     "postSuccess": "Đăng bài thành công",
     "postError": "Lỗi khi đăng bài",
     "confirmDelete": "Bạn có chắc chắn muốn xóa bài viết này không?",
+    "confirmDeleteComment": "Bạn có chắc chắn muốn xóa bình luận này không?",
     "cancel": "Hủy",
     "deleteSuccess": "Đã xóa bài viết",
     "deleteError": "Lỗi khi xóa bài viết",

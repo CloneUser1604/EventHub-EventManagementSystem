@@ -38,14 +38,22 @@ const AdminDashboard = () => {
   const activeMenu = searchParams.get('tab') || 'overview';
   const selectedEventId = searchParams.get('eventId');
   const selectedBlogId = searchParams.get('blogId');
+  const selectedCommentId = searchParams.get('commentId');
+  const selectedFeedbackId = searchParams.get('feedbackId');
   const [eventDetailTab, setEventDetailTab] = useState("about");
 
   const setActiveMenu = (menu) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       newParams.set('tab', menu);
-      if (menu !== 'event_detail') newParams.delete('eventId');
-      if (menu !== 'blog_detail') newParams.delete('blogId');
+      if (menu !== 'event_detail') {
+        newParams.delete('eventId');
+        newParams.delete('feedbackId');
+      }
+      if (menu !== 'blog_detail') {
+        newParams.delete('blogId');
+        newParams.delete('commentId');
+      }
       return newParams;
     });
   };
@@ -59,11 +67,12 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleViewEvent = (eventId) => {
+  const handleViewEvent = (eventId, feedbackId = null) => {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
       p.set('tab', 'event_detail');
       p.set('eventId', eventId);
+      if (feedbackId) p.set('feedbackId', feedbackId);
       return p;
     });
   };
@@ -677,7 +686,7 @@ const AdminDashboard = () => {
       title: 'Hành động', width: 200,
       render: (_, r) => (
         <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => { setEventDetailTab('feedback'); handleViewEvent(r.EventID); }}>Xem</Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => { setEventDetailTab('feedback'); handleViewEvent(r.EventID, r.FeedbackID); }}>Xem</Button>
           <Button size="small" danger onClick={() => confirm({ title: 'Xoá đánh giá vi phạm này?', content: 'Đánh giá sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveReport(r.FeedbackID, 'delete') })}>Xoá đánh giá</Button>
           <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Đánh giá vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveReport(r.FeedbackID, 'dismiss') })}>Bỏ qua</Button>
         </Space>
@@ -688,9 +697,15 @@ const AdminDashboard = () => {
   const reportedBlogCols = [
     { title: 'Tác giả', dataIndex: 'AuthorName', width: 200, render: t => <Text style={{ color: '#2563eb', fontWeight: 600 }}>{t}</Text> },
     { title: 'Nội dung bài viết', dataIndex: 'Content', width: 300, render: t => <Text style={{ color: '#334155' }}>{t?.length > 100 ? t.substring(0, 100) + '...' : (t || '(Không có nội dung)')}</Text> },
-    { title: 'Người báo cáo', dataIndex: 'ReporterName', width: 200, render: t => <Text style={{ color: '#059669', fontWeight: 600 }}>{t}</Text> },
-    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 250, render: t => <Text style={{ color: '#dc2626', fontWeight: 500 }}>{t}</Text> },
-    { title: 'Ngày báo cáo', dataIndex: 'ReportedAt', width: 150, render: d => dayjs(d).format('DD/MM/YYYY HH:mm') },
+    { title: 'Số người báo cáo', dataIndex: 'ReportCount', width: 150, render: t => <Tag color="error" style={{ fontWeight: 600 }}>{t || 1} lượt</Tag> },
+    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 300, render: t => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 100, overflowY: 'auto' }}>
+        {(t ? String(t).split(' | ') : []).map((reason, idx) => {
+          const cleanReason = reason.replace(/^,/, '').trim();
+          return <Text key={idx} style={{ color: '#dc2626', fontSize: 13 }}>• {cleanReason}</Text>;
+        })}
+      </div>
+    )},
     {
       title: 'Hành động', width: 200,
       render: (_, r) => (
@@ -702,7 +717,7 @@ const AdminDashboard = () => {
               return p;
             });
           }}>Xem</Button>
-          <Button size="small" danger onClick={() => openReject('blog', r.BlogID, 'Xoá bài viết vi phạm này')}>Xoá bài viết</Button>
+          <Button size="small" danger onClick={() => confirm({ title: 'Xoá bài viết vi phạm này?', content: 'Bài viết sẽ bị xóa vĩnh viễn.', onOk: () => handleResolveBlogReport(r.BlogID, 'delete', 'Vi phạm tiêu chuẩn cộng đồng') })}>Xoá bài viết</Button>
           <Button size="small" onClick={() => confirm({ title: 'Bỏ qua báo cáo này?', content: 'Bài viết vẫn sẽ được giữ lại trên hệ thống.', onOk: () => handleResolveBlogReport(r.BlogID, 'dismiss') })}>Bỏ qua</Button>
         </Space>
       )
@@ -712,9 +727,15 @@ const AdminDashboard = () => {
   const reportedCommentCols = [
     { title: 'Người bình luận', dataIndex: 'AuthorName', width: 200, render: t => <Text style={{ color: '#2563eb', fontWeight: 600 }}>{t}</Text> },
     { title: 'Nội dung bình luận', dataIndex: 'Content', width: 300, render: t => <Text style={{ color: '#334155' }}>{t?.length > 100 ? t.substring(0, 100) + '...' : (t || '(Không có nội dung)')}</Text> },
-    { title: 'Người báo cáo', dataIndex: 'ReporterName', width: 200, render: t => <Text style={{ color: '#059669', fontWeight: 600 }}>{t}</Text> },
-    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 250, render: t => <Text style={{ color: '#dc2626', fontWeight: 500 }}>{t}</Text> },
-    { title: 'Ngày báo cáo', dataIndex: 'ReportedAt', width: 150, render: d => dayjs(d).format('DD/MM/YYYY HH:mm') },
+    { title: 'Số người báo cáo', dataIndex: 'ReportCount', width: 150, render: t => <Tag color="error" style={{ fontWeight: 600 }}>{t || 1} lượt</Tag> },
+    { title: 'Lý do Báo cáo', dataIndex: 'ReportReason', width: 300, render: t => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 100, overflowY: 'auto' }}>
+        {(t ? String(t).split(' | ') : []).map((reason, idx) => {
+          const cleanReason = reason.replace(/^,/, '').trim();
+          return <Text key={idx} style={{ color: '#dc2626', fontSize: 13 }}>• {cleanReason}</Text>;
+        })}
+      </div>
+    )},
     {
       title: 'Hành động', width: 200,
       render: (_, r) => (
@@ -723,6 +744,7 @@ const AdminDashboard = () => {
             setSearchParams(prev => {
               const p = new URLSearchParams(prev);
               p.set('blogId', r.BlogID);
+              p.set('commentId', r.CommentID);
               return p;
             });
           }}>Xem</Button>
@@ -1207,7 +1229,7 @@ const AdminDashboard = () => {
               <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => setActiveMenu('events')} style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, background: 'rgba(255,255,255,0.2)', color: 'white' }}>
                 Quay lại
               </Button>
-              <EventDetailPage adminEventId={selectedEventId} noLayout={true} defaultTab={eventDetailTab} />
+              <EventDetailPage adminEventId={selectedEventId} adminFeedbackId={selectedFeedbackId} noLayout={true} defaultTab={eventDetailTab} />
             </div>
           )}
         </Content>
@@ -1218,6 +1240,7 @@ const AdminDashboard = () => {
         <React.Suspense fallback={null}>
           <BlogPage 
             adminBlogId={selectedBlogId} 
+            adminCommentId={selectedCommentId}
             noLayout={true} 
             popupOnly={true} 
             onClosePopup={() => {

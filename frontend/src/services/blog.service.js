@@ -9,7 +9,7 @@ export const blogService = {
   likeBlog: (id) => api.post(`/blogs/${id}/like`),
   getComments: (id, sort = 'new') => api.get(`/blogs/${id}/comments`, { params: { sort } }),
   addComment: (id, formData) => api.post(`/blogs/${id}/comments`, formData),
-  editComment: (id, content) => api.put(`/blogs/comments/${id}`, { content }),
+  editComment: (id, data) => api.put(`/blogs/comments/${id}`, data),
   deleteComment: (id) => api.delete(`/blogs/comments/${id}`),
   likeComment: (id) => api.post(`/blogs/comments/${id}/like`),
   getSavedBlogs: () => api.get('/blogs/me/saved'),

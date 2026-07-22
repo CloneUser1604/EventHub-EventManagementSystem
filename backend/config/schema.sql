@@ -396,6 +396,7 @@ CREATE TABLE Feedbacks (
   ReportReason  NVARCHAR(MAX) NULL,
   ReportedAt    DATETIME NULL,
   ReportedBy    INT NULL REFERENCES Users(UserID),
+  Status        VARCHAR(20) NOT NULL DEFAULT 'Active',
   CreatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
   UpdatedAt     DATETIME NOT NULL DEFAULT GETDATE(),
   UNIQUE (EventID, ParticipantID)

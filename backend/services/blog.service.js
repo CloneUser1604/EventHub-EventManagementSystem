@@ -58,10 +58,15 @@ async getBlogs(page, limit, eventId, sort, currentUserId) {
         const userSaveMap = {};
         userSaves.forEach(s => { userSaveMap[s.BlogID] = true; });
 
+        const userReports = await blogRepository.getUserBlogReports(blogIds, currentUserId);
+        const userReportMap = {};
+        userReports.forEach(r => { userReportMap[r.TargetID] = true; });
+
         blogs.forEach(b => { 
           b.UserVotedOption = userVoteMap[b.BlogID]; 
           b.UserLiked = userLikeMap[b.BlogID] || false;
           b.UserSaved = userSaveMap[b.BlogID] || false;
+          b.UserReported = userReportMap[b.BlogID] || false;
         });
       }
     }
@@ -97,40 +102,9 @@ async getBlogById(blogId) {
     
     return blog;
   }
-
-  async createBlog(title, content, eventId, pollQuestion, pollOptions, files, coverUrl, authorId) {
-    let images = [];
-    if (files && files.length > 0) {
-      images = files.map(file => `/uploads/blogs/${file.filename}`); 
-      // Simplified: controller used req.protocol + req.get('host') but relative paths are safer usually, 
-      // however since it's already refactored, the controller should pass full paths. 
-      // For this refactor, I will pass `images` directly from the controller to match old logic exactly.
-    }
-    
-    if (eventId) {
-      const exists = await blogRepository.checkEventExists(eventId);
-      if (!exists) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');
-    }
-    
-    let parsedPollOptions = null;
-    if (pollOptions) {
-      try {
-        const parsed = typeof pollOptions === 'string' ? JSON.parse(pollOptions) : pollOptions;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          parsedPollOptions = JSON.stringify(parsed);
-        }
-      } catch (e) {
-        throw new Error('BAD_REQUEST: Định dạng Poll Options không hợp lệ');
-      }
-    }
-
-    // Just throw BAD_REQUEST from controller if title/content is missing.
-    // The images will be passed from controller.
-  }
   
-  // Refactored createBlog proper
-  // ─── CREATE BLOG V2 ──────────────────────────────────────────────
-async createBlogV2(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions) {
+  // ─── CREATE BLOG ──────────────────────────────────────────────
+async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions) {
     if (eventId) {
       const exists = await blogRepository.checkEventExists(eventId);
       if (!exists) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');
@@ -184,15 +158,35 @@ async votePoll(blogId, userId, optionIndex) {
     if (sort === 'top') {
       orderClause = 'ORDER BY LikeCount DESC, c.CreatedAt DESC';
     }
-    return await blogRepository.getComments(blogId, userId, orderClause);
+    const comments = await blogRepository.getComments(blogId, userId, orderClause);
+    if (comments.length > 0 && userId) {
+      const commentIds = comments.map(c => c.CommentID).join(',');
+      const userReports = await blogRepository.getUserCommentReports(commentIds, userId);
+      const reportMap = {};
+      userReports.forEach(r => reportMap[r.TargetID] = true);
+      comments.forEach(c => c.UserReported = reportMap[c.CommentID] || false);
+    }
+    return comments;
   }
 
   // ─── ADD COMMENT ──────────────────────────────────────────────
-async addComment(blogId, userId, content, parentCommentId, imageUrl) {
+  async addComment(blogId, userId, content, parentCommentId, imageUrl) {
     if ((!content || !content.trim()) && !imageUrl) {
       throw new Error('BAD_REQUEST: Nội dung bình luận không được để trống');
     }
-    const comment = await blogRepository.insertComment(blogId, userId, content, parentCommentId, imageUrl);
+    
+    // Giới hạn độ sâu bình luận là 1 cấp
+    let actualParentId = parentCommentId;
+    if (parentCommentId) {
+      const parentOfParentId = await blogRepository.getCommentParentId(parentCommentId);
+      // Nếu comment mà ta đang reply đã là một reply (có parent rồi), 
+      // thì gán parent của comment mới bằng đúng parent của comment cũ.
+      if (parentOfParentId) {
+        actualParentId = parentOfParentId;
+      }
+    }
+
+    const comment = await blogRepository.insertComment(blogId, userId, content, actualParentId, imageUrl);
     const userInfo = await blogRepository.getUserInfo(userId);
     return { ...comment, ...userInfo };
   }
@@ -208,14 +202,24 @@ async addComment(blogId, userId, content, parentCommentId, imageUrl) {
     }
   }
 
-  async getSavedBlogs(userId) {
-    const blogs = await blogRepository.getSavedBlogs(userId);
+  async getSavedBlogs(userId, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    const total = await blogRepository.getSavedBlogsCount(userId);
+    const blogs = await blogRepository.getSavedBlogs(userId, offset, limit);
     blogs.forEach(blog => {
       if (blog.Images) {
         try { blog.Images = JSON.parse(blog.Images); } catch (e) { blog.Images = []; }
       }
     });
-    return blogs;
+    return {
+      data: blogs,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    };
   }
 
   async editComment(commentId, userId, content, imageUrl) {

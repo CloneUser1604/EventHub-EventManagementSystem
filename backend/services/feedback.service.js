@@ -15,8 +15,14 @@ async getEventFeedbacks(eventId) {
     if (eventInfo.RegistrationStatus !== "Registered") throw new Error('BAD_REQUEST: Bạn phải đăng ký tham gia sự kiện mới được quyền đánh giá.');
     if (!eventInfo.AttendanceID) throw new Error('BAD_REQUEST: Bạn phải check-in tham gia sự kiện thành công thì mới được quyền đánh giá.');
     
-    const exists = await feedbackRepository.checkIfFeedbackExists(eventId, userId);
-    if (exists) throw new Error('BAD_REQUEST: Bạn đã đánh giá sự kiện này rồi.');
+    const existingFeedback = await feedbackRepository.checkIfFeedbackExists(eventId, userId);
+    if (existingFeedback) {
+      if (existingFeedback.Status === 'Deleted') {
+        throw new Error('BAD_REQUEST: Đánh giá của bạn đã bị xoá do vi phạm. Bạn không thể đánh giá lại sự kiện này.');
+      } else {
+        throw new Error('BAD_REQUEST: Bạn đã đánh giá sự kiện này rồi.');
+      }
+    }
   }
 
   // ─── CREATE FEEDBACK ──────────────────────────────────────────────
@@ -27,6 +33,15 @@ async createFeedback(eventId, userId, rating, comment, mediaURLs) {
     if (eventInfo.RegistrationStatus !== "Registered") throw new Error('FORBIDDEN: Bạn phải đăng ký tham gia sự kiện mới được quyền đánh giá.');
     if (!eventInfo.AttendanceID) throw new Error('FORBIDDEN: Bạn phải check-in tham gia sự kiện thành công thì mới được quyền đánh giá.');
     
+    const existingFeedback = await feedbackRepository.checkIfFeedbackExists(eventId, userId);
+    if (existingFeedback) {
+      if (existingFeedback.Status === 'Deleted') {
+        throw new Error('FORBIDDEN: Đánh giá của bạn đã bị xoá do vi phạm. Bạn không thể đánh giá lại sự kiện này.');
+      } else {
+        throw new Error('FORBIDDEN: Bạn đã đánh giá sự kiện này rồi.');
+      }
+    }
+
     await feedbackRepository.createFeedback(eventId, userId, rating, comment, mediaURLs);
   }
 
@@ -50,8 +65,9 @@ async updateFeedback(eventId, userId, rating, comment, existingMedia, newFiles) 
       mediaURLs = [...mediaURLs, ...newMedia];
     }
     
-    const exists = await feedbackRepository.checkIfFeedbackExists(eventId, userId);
-    if (!exists) throw new Error('NOT_FOUND: Bạn chưa đánh giá sự kiện này.');
+    const existingFeedback = await feedbackRepository.checkIfFeedbackExists(eventId, userId);
+    if (!existingFeedback) throw new Error('NOT_FOUND: Bạn chưa đánh giá sự kiện này.');
+    if (existingFeedback.Status === 'Deleted') throw new Error('FORBIDDEN: Đánh giá của bạn đã bị xoá do vi phạm. Không thể chỉnh sửa.');
 
     await feedbackRepository.updateFeedback(eventId, userId, rating, comment, mediaURLs);
   }

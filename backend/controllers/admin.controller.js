@@ -411,7 +411,7 @@ const getOrganizerStats = async (req, res) => {
         (SELECT COUNT(*) FROM Events WHERE OrganizerID = u.UserID AND Status = 'Published') AS PublishedEvents,
         (SELECT COUNT(*) FROM Events e JOIN Registrations r ON e.EventID = r.EventID WHERE e.OrganizerID = u.UserID AND r.Status = 'Registered') AS TotalParticipants,
         (SELECT COUNT(*) FROM Events WHERE OrganizerID = u.UserID AND ApprovalStatus = 'Rejected') AS RejectedEvents,
-        (SELECT COUNT(*) FROM Blogs WHERE AuthorID = u.UserID AND IsReported = 1) AS ReportedBlogsCount
+        (SELECT COUNT(DISTINCT r.TargetID) FROM Reports r JOIN Blogs b2 ON r.TargetID = b2.BlogID WHERE r.TargetType = 'Blog' AND b2.AuthorID = u.UserID AND r.Status = 'Pending') AS ReportedBlogsCount
       FROM Users u
       LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
       WHERE u.Role = 'Organizer'

@@ -1,118 +1,48 @@
-const crypto = require('crypto');
 const { getPool, sql } = require('../config/db');
 const { successResponse, createdResponse, errorResponse, notFoundResponse, forbiddenResponse, conflictResponse } = require('../utils/response');
+const registrationService = require('../services/registration.service');
 
-// Generate 6-digit OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-// Generate unique QR token
-const generateQRToken = () => crypto.randomBytes(20).toString('hex');
-
-// ─── POST /api/registrations  ─────────────────────────────────
+// ─── REGISTER EVENT ──────────────────────────────────────────────
 const registerEvent = async (req, res) => {
   try {
     const { eventId } = req.body;
     const participantId = req.user.UserID;
-    const pool = getPool();
 
-    // Fetch event
-    const eventRes = await pool.request().input('EventID', sql.Int, eventId)
-      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly,
-                (SELECT COUNT(*) FROM Registrations WHERE EventID=@EventID AND Status='Registered') AS RegisteredCount
-              FROM Events WHERE EventID=@EventID`);
-    const event = eventRes.recordset[0];
-    if (!event) return notFoundResponse(res, 'Không tìm thấy sự kiện');
-    if (event.Status !== 'Published') return errorResponse(res, 'Sự kiện chưa được công bố', 400);
-    if (event.RegistrationDeadline && new Date() > new Date(event.RegistrationDeadline))
-      return errorResponse(res, 'Đã hết hạn đăng ký', 400);
-    if (event.MaxParticipants && event.RegisteredCount >= event.MaxParticipants)
-      return errorResponse(res, 'Sự kiện đã đầy chỗ', 400);
+    const result = await registrationService.registerEvent(eventId, participantId);
     
-    // ĐÃ SỬA: Lấy trực tiếp thông tin trường Đại học từ DB thay vì Token
-    const userRes = await pool.request()
-      .input('UserID', sql.Int, participantId)
-      .query('SELECT University FROM Users WHERE UserID = @UserID');
-    const userUniv = userRes.recordset[0]?.University;
-
-    // Check internal only
-    if (event.IsInternalOnly && userUniv !== 'Đại học FPT') {
-      return forbiddenResponse(res, 'Sự kiện này chỉ dành cho sinh viên trường Đại học FPT');
+    if (result.action === 're-register') {
+      return successResponse(res, result.data, 'Đăng ký lại thành công');
     }
-
-    // Check duplicate
-    const dup = await pool.request()
-      .input('EventID', sql.Int, eventId).input('PID', sql.Int, participantId)
-      .query(`SELECT RegistrationID, Status FROM Registrations WHERE EventID=@EventID AND ParticipantID=@PID`);
-    if (dup.recordset.length > 0) {
-      if (dup.recordset[0].Status === 'Registered') return conflictResponse(res, 'Bạn đã đăng ký sự kiện này');
-      // Re-register if cancelled
-      await pool.request().input('RegistrationID', sql.Int, dup.recordset[0].RegistrationID)
-        .query(`UPDATE Registrations SET Status='Registered', CancelledAt=NULL, CancellationNote=NULL WHERE RegistrationID=@RegistrationID`);
-      return successResponse(res, { registrationId: dup.recordset[0].RegistrationID }, 'Đăng ký lại thành công');
-    }
-
-    // Create registration
-    const regResult = await pool.request()
-      .input('EventID', sql.Int, eventId).input('PID', sql.Int, participantId)
-      .query(`INSERT INTO Registrations (EventID, ParticipantID) OUTPUT INSERTED.RegistrationID VALUES (@EventID, @PID)`);
-    const registrationId = regResult.recordset[0].RegistrationID;
-
-    // Generate QR + OTP
-    const qrCode  = generateQRToken();
-    const otpCode = generateOTP();
-    const otpExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // valid until event ends
-
-    await pool.request()
-      .input('RegistrationID', sql.Int, registrationId)
-      .input('QRCode', sql.VarChar(500), qrCode)
-      .input('OTPCode', sql.VarChar(10), otpCode)
-      .input('OTPExpiry', sql.DateTime, otpExpiry)
-      .query(`INSERT INTO QRTickets (RegistrationID, QRCode, OTPCode, OTPExpiry) VALUES (@RegistrationID, @QRCode, @OTPCode, @OTPExpiry)`);
-
-    // Send in-app notification
-    await pool.request()
-      .input('UserID', sql.Int, participantId)
-      .input('Title', sql.NVarChar(300), `🎟️ Đăng ký thành công: ${event.Title}`)
-      .input('Message', sql.NVarChar(sql.MAX), `Bạn đã đăng ký thành công sự kiện "${event.Title}". Mã OTP của bạn: ${otpCode}. Giữ mã này để check-in.`)
-      .input('Type', sql.VarChar(30), 'Registration')
-      .input('RelatedID', sql.Int, eventId)
-      .input('RelatedType', sql.VarChar(50), 'Event')
-      .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
-
-    return createdResponse(res, { registrationId, qrCode, otpCode }, 'Đăng ký thành công! Mã OTP đã được tạo. Vui lòng xem vé để check-in.');
+    return createdResponse(res, result.data, 'Đăng ký thành công! Mã OTP đã được tạo. Vui lòng xem vé để check-in.');
   } catch (error) {
     console.error('registerEvent error:', error);
+    const msg = error.message;
+    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.split(': ')[1]);
+    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.split(': ')[1], 400);
+    if (msg.startsWith('FORBIDDEN')) return forbiddenResponse(res, msg.split(': ')[1]);
+    if (msg.startsWith('CONFLICT')) return conflictResponse(res, msg.split(': ')[1]);
     return errorResponse(res, 'Đăng ký thất bại');
   }
 };
 
-// ─── DELETE /api/registrations/:id  ──────────────────────────
+// ─── CANCEL REGISTRATION ──────────────────────────────────────────────
 const cancelRegistration = async (req, res) => {
   try {
     const { id } = req.params;
     const { note } = req.body;
-    const pool = getPool();
-
-    const regRes = await pool.request().input('RegistrationID', sql.Int, parseInt(id))
-      .query(`SELECT r.*, e.RegistrationDeadline, e.Title AS EventTitle FROM Registrations r JOIN Events e ON r.EventID=e.EventID WHERE r.RegistrationID=@RegistrationID`);
-    const reg = regRes.recordset[0];
-    if (!reg) return notFoundResponse(res, 'Không tìm thấy đăng ký');
-    if (reg.ParticipantID !== req.user.UserID) return forbiddenResponse(res);
-    if (reg.Status !== 'Registered') return errorResponse(res, 'Đăng ký này không thể huỷ', 400);
-    if (reg.RegistrationDeadline && new Date() > new Date(reg.RegistrationDeadline))
-      return errorResponse(res, 'Đã qua hạn huỷ đăng ký', 400);
-
-    await pool.request()
-      .input('RegistrationID', sql.Int, parseInt(id))
-      .input('Note', sql.NVarChar(500), note || null)
-      .query(`UPDATE Registrations SET Status='Cancelled', CancelledAt=GETDATE(), CancellationNote=@Note WHERE RegistrationID=@RegistrationID`);
-
-    return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${reg.EventTitle}"`);
+    
+    const eventTitle = await registrationService.cancelRegistration(parseInt(id), req.user.UserID, note);
+    return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${eventTitle}"`);
   } catch (error) {
+    const msg = error.message;
+    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.split(': ')[1]);
+    if (msg.startsWith('FORBIDDEN')) return forbiddenResponse(res);
+    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.split(': ')[1], 400);
     return errorResponse(res, 'Huỷ đăng ký thất bại');
   }
 };
 
-// ─── GET /api/registrations/my  ──────────────────────────────
+// ─── GET MY REGISTRATIONS ──────────────────────────────────────────────
 const getMyRegistrations = async (req, res) => {
   try {
     const pool = getPool();
@@ -151,7 +81,7 @@ const getMyRegistrations = async (req, res) => {
   }
 };
 
-// ─── GET /api/registrations/:id/ticket  ──────────────────────
+// ─── GET TICKET ──────────────────────────────────────────────
 const getTicket = async (req, res) => {
   try {
     const { id } = req.params;
@@ -180,7 +110,7 @@ const getTicket = async (req, res) => {
   }
 };
 
-// ─── GET /api/registrations/notifications  ───────────────────
+// ─── GET NOTIFICATIONS ──────────────────────────────────────────────
 const getNotifications = async (req, res) => {
   try {
     const pool = getPool();
@@ -192,6 +122,7 @@ const getNotifications = async (req, res) => {
   }
 };
 
+// ─── MARK NOTIFICATION READ ──────────────────────────────────────────────
 const markNotificationRead = async (req, res) => {
   try {
     const { id } = req.params;

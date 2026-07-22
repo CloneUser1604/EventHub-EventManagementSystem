@@ -3,222 +3,30 @@ const {
   successResponse, createdResponse, errorResponse,
   notFoundResponse, forbiddenResponse, conflictResponse,
 } = require('../utils/response');
+const eventService = require('../services/event.service');
 
-// ─── GET ALL EVENTS ───────────────────────────────────────────
+// ─── GET EVENTS ──────────────────────────────────────────────
 const getEvents = async (req, res) => {
   try {
-    const {
-      page = 1, limit = 12,
-      search, categoryId, venueId, status, approvalStatus,
-      startDate, endDate, organizerId, timeStatus, isInternal,
-      sortBy = 'StartDate', sortOrder = 'ASC',
-    } = req.query;
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const pool   = getPool();
-    const isAdmin     = req.user?.Role === 'Admin';
-    const isOrganizer = req.user?.Role === 'Organizer';
-
-    // Build WHERE conditions + params as arrays — apply to each request separately
-    const conditions = [];
-    const params = [];   // { name, type, value }
-
-    // Role-based visibility
-    if (isAdmin) {
-      // Admin sees everything — optionally filter by status/approvalStatus
-      if (status) {
-        if (status === 'all_published_cancelled') {
-          conditions.push(`e.Status IN ('Published', 'Cancelled')`);
-        } else {
-          conditions.push(`e.Status = @Status`);
-          params.push({ name: 'Status', type: sql.VarChar(20), value: status });
-        }
-      }
-      if (approvalStatus) {
-        conditions.push(`e.ApprovalStatus = @ApprovalStatus`);
-        params.push({ name: 'ApprovalStatus', type: sql.VarChar(20), value: approvalStatus });
-      }
-    } else if (isOrganizer) {
-      params.push({ name: 'OrgID', type: sql.Int, value: req.user.UserID });
-      if (status === 'all_published_cancelled') {
-        conditions.push(`(e.Status IN ('Published', 'Cancelled') OR e.OrganizerID = @OrgID)`);
-      } else {
-        conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
-      }
-    } else {
-      if (status === 'all_published_cancelled') {
-        conditions.push(`e.Status IN ('Published', 'Cancelled')`);
-      } else if (status === 'Cancelled') {
-        conditions.push(`e.Status = 'Cancelled'`);
-      } else {
-        conditions.push(`e.Status = 'Published'`);
-      }
-    }
-
-    if (search) {
-      conditions.push(`(e.Title LIKE @Search OR e.Description LIKE @Search)`);
-      params.push({ name: 'Search', type: sql.NVarChar, value: `%${search}%` });
-    }
-    if (categoryId) {
-      conditions.push(`e.CategoryID = @CategoryID`);
-      params.push({ name: 'CategoryID', type: sql.Int, value: parseInt(categoryId) });
-    }
-    if (venueId) {
-      conditions.push(`e.VenueID = @VenueID`);
-      params.push({ name: 'VenueID', type: sql.Int, value: parseInt(venueId) });
-    }
-    if (startDate) {
-      conditions.push(`e.StartDate >= @StartDate`);
-      params.push({ name: 'StartDate', type: sql.DateTime, value: new Date(startDate) });
-    }
-    if (endDate) {
-      conditions.push(`e.EndDate <= @EndDate`);
-      params.push({ name: 'EndDate', type: sql.DateTime, value: new Date(endDate) });
-    }
-    if (timeStatus === 'upcoming') {
-      conditions.push(`e.StartDate > GETDATE()`);
-    } else if (timeStatus === 'ongoing') {
-      conditions.push(`e.StartDate <= GETDATE() AND e.EndDate >= GETDATE()`);
-    } else if (timeStatus === 'past') {
-      conditions.push(`e.EndDate < GETDATE()`);
-    }
-    if (isInternal === 'true') {
-      conditions.push(`e.IsInternalOnly = 1`);
-    } else if (isInternal === 'false') {
-      conditions.push(`e.IsInternalOnly = 0`);
-    }
-    if (organizerId && (isAdmin || isOrganizer)) {
-      conditions.push(`e.OrganizerID = @OrganizerID`);
-      params.push({ name: 'OrganizerID', type: sql.Int, value: parseInt(organizerId) });
-    }
-
-    const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
-
-    const validSortCols = { StartDate: 'e.StartDate', Title: 'e.Title', CreatedAt: 'e.CreatedAt', Rating: 'AverageRating', Participants: 'RegisteredCount' };
-    const orderCol = validSortCols[sortBy] || 'e.StartDate';
-    const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
-
-    // Helper to build a fresh request with all params
-    const buildRequest = () => {
-      const r = pool.request();
-      params.forEach(p => r.input(p.name, p.type, p.value));
-      return r;
-    };
-
-    // Count
-    const countResult = await buildRequest()
-      .query(`SELECT COUNT(*) AS Total FROM Events e WHERE ${whereClause}`);
-    const total = countResult.recordset[0]?.Total || 0;
-
-    // Data
-    const result = await buildRequest()
-      .input('Offset', sql.Int, offset)
-      .input('Limit',  sql.Int, parseInt(limit))
-      .query(`
-        SELECT
-          e.EventID, e.Title, e.Description, e.CoverImageURL,
-          e.StartDate, e.EndDate, e.RegistrationDeadline,
-          e.MaxParticipants, e.IsInternalOnly, e.Status, e.ApprovalStatus,
-          e.RejectionReason, e.ProposedChanges, e.EditReason, e.CreatedAt, e.UpdatedAt,
-          u.UserID AS OrganizerID, u.FullName AS OrganizerName,
-          op.OrganizationName,
-          c.CategoryID, c.Name AS CategoryName,
-          v.VenueID, v.Name AS VenueName, v.Address AS VenueAddress,
-          (SELECT ISNULL(AVG(CAST(Rating AS FLOAT)), 0) FROM Feedbacks f WHERE f.EventID = e.EventID) AS AverageRating,
-          (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered') AS RegisteredCount,
-          (SELECT COUNT(*) FROM Sessions s WHERE s.EventID = e.EventID) AS SessionCount
-        FROM Events e
-        INNER JOIN Users u ON e.OrganizerID = u.UserID
-        LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
-        LEFT JOIN Categories c ON e.CategoryID = c.CategoryID
-        LEFT JOIN Venues v ON e.VenueID = v.VenueID
-        WHERE ${whereClause}
-        ORDER BY ${orderCol} ${orderDir}
-        OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY
-      `);
-
-    return successResponse(res, {
-      events: result.recordset,
-      pagination: { total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) },
-    });
+    const result = await eventService.getEvents(req.query, req.user);
+    return successResponse(res, result);
   } catch (error) {
     console.error('getEvents error:', error.message);
     return errorResponse(res, 'Lấy danh sách sự kiện thất bại: ' + error.message);
   }
 };
 
-// ─── GET SINGLE EVENT ──────────────────────────────────────────
+// ─── GET EVENT BY ID ──────────────────────────────────────────────
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = getPool();
-
-    const result = await pool.request()
-      .input('EventID', sql.Int, parseInt(id))
-      .query(`
-        SELECT e.*,
-          u.FullName AS OrganizerName, u.Email AS OrganizerEmail,
-          op.OrganizationName,
-          c.Name AS CategoryName, c.IconURL AS CategoryIcon,
-          v.Name AS VenueName, v.Address AS VenueAddress,
-          v.Capacity AS VenueCapacity, v.MapURL,
-          approver.FullName AS ApprovedByName,
-          (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered') AS RegisteredCount
-        FROM Events e
-        INNER JOIN Users u ON e.OrganizerID = u.UserID
-        LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
-        LEFT JOIN Categories c ON e.CategoryID = c.CategoryID
-        LEFT JOIN Venues v ON e.VenueID = v.VenueID
-        LEFT JOIN Users approver ON e.ApprovedBy = approver.UserID
-        WHERE e.EventID = @EventID
-      `);
-
-    const event = result.recordset[0];
-    if (!event) return notFoundResponse(res, 'Không tìm thấy sự kiện');
-
-    const isOwner = req.user?.UserID === event.OrganizerID;
-    const isAdmin = req.user?.Role === 'Admin';
-    if (!isAdmin && !isOwner && event.Status !== 'Published' && event.Status !== 'Cancelled') {
-      return notFoundResponse(res, 'Không tìm thấy sự kiện');
-    }
-
-    const sessionsQuery = await pool.request()
-      .input('EventID', sql.Int, parseInt(id))
-      .query(`
-        SELECT s.*,
-          (SELECT STRING_AGG(u.FullName, ', ')
-           FROM SessionSpeakers ss 
-           JOIN Users u ON ss.SpeakerID = u.UserID
-           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
-           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS Speakers,
-          (SELECT STRING_AGG(u.Email, ',')
-           FROM SessionSpeakers ss 
-           JOIN Users u ON ss.SpeakerID = u.UserID
-           JOIN SpeakerInvitations si ON u.UserID = si.SpeakerID AND si.EventID = s.EventID
-           WHERE ss.SessionID = s.SessionID AND si.Status = 'Accepted') AS speakerEmailsStr
-        FROM Sessions s WHERE s.EventID = @EventID ORDER BY s.StartTime
-      `);
-
-    const sessions = sessionsQuery.recordset.map(s => {
-      s.speakerEmails = s.speakerEmailsStr ? s.speakerEmailsStr.split(',') : [];
-      delete s.speakerEmailsStr;
-      return s;
-    });
-
-
-
-    let isStaff = false;
-    if (req.user) {
-      const staffCheck = await pool.request()
-        .input('EventID', sql.Int, parseInt(id))
-        .input('StaffID', sql.Int, req.user.UserID)
-        .query('SELECT 1 FROM EventStaffs WHERE EventID = @EventID AND StaffID = @StaffID');
-      if (staffCheck.recordset.length > 0) isStaff = true;
-    }
-
-    return successResponse(res, { ...event, sessions: sessions, isStaff });
+    const result = await eventService.getEventById(parseInt(id), req.user);
+    return successResponse(res, result);
   } catch (error) {
     console.error('getEventById error:', error.message);
+    if (error.message === 'NOT_FOUND') {
+      return notFoundResponse(res, 'Không tìm thấy sự kiện');
+    }
     return errorResponse(res, 'Lấy thông tin sự kiện thất bại');
   }
 };
@@ -612,7 +420,7 @@ const deleteEvent = async (req, res) => {
   }
 };
 
-// ─── SUBMIT FOR APPROVAL ───────────────────────────────────────
+// ─── SUBMIT FOR APPROVAL ──────────────────────────────────────────────
 const submitForApproval = async (req, res) => {
   try {
     const { id } = req.params;
@@ -645,7 +453,6 @@ const submitForApproval = async (req, res) => {
     return errorResponse(res, 'Gửi duyệt thất bại');
   }
 };
-
 
 // ─── CANCEL EVENT ──────────────────────────────────────────────
 const cancelEvent = async (req, res) => {
@@ -683,7 +490,7 @@ const cancelEvent = async (req, res) => {
   }
 };
 
-// ─── SESSIONS ──────────────────────────────────────────────────
+// ─── GET SESSIONS ──────────────────────────────────────────────
 const getSessions = async (req, res) => {
   try {
     const pool = getPool();
@@ -693,6 +500,7 @@ const getSessions = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy sessions thất bại'); }
 };
 
+// ─── ADD SESSION ──────────────────────────────────────────────
 const addSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -712,6 +520,7 @@ const addSession = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Thêm phiên thất bại'); }
 };
 
+// ─── UPDATE SESSION ──────────────────────────────────────────────
 const updateSession = async (req, res) => {
   try {
     const { id, sessionId } = req.params;
@@ -730,6 +539,7 @@ const updateSession = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Cập nhật phiên thất bại'); }
 };
 
+// ─── DELETE SESSION ──────────────────────────────────────────────
 const deleteSession = async (req, res) => {
   try {
     const { id, sessionId } = req.params;
@@ -743,6 +553,7 @@ const deleteSession = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Xoá phiên thất bại'); }
 };
 
+// ─── UNLOCK EVENT EDIT ──────────────────────────────────────────────
 const unlockEventEdit = async (req, res) => {
   try {
     const { id } = req.params;
@@ -753,6 +564,7 @@ const unlockEventEdit = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Mở khoá thất bại'); }
 };
 
+// ─── GET CATEGORIES ──────────────────────────────────────────────
 const getCategories = async (req, res) => {
   try {
     const pool = getPool();
@@ -761,6 +573,7 @@ const getCategories = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy danh mục thất bại'); }
 };
 
+// ─── GET VENUES ──────────────────────────────────────────────
 const getVenues = async (req, res) => {
   try {
     const pool = getPool();
@@ -769,6 +582,7 @@ const getVenues = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy địa điểm thất bại'); }
 };
 
+// ─── GET DASHBOARD STATS ──────────────────────────────────────────────
 const getDashboardStats = async (req, res) => {
   try {
     const { timeRange = 'month' } = req.query; 

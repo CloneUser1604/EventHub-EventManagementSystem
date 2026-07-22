@@ -30,7 +30,7 @@ router.post('/:id/save', authenticate, toggleSaveBlog);
 router.post('/:id/report', authenticate, reportBlog);
 router.get('/:id/comments', getComments);
 router.post('/:id/comments', authenticate, uploadBlog.array('images', 5), addComment);
-router.put('/comments/:id', authenticate, editComment);
+router.put('/comments/:id', authenticate, uploadBlog.array('images', 5), editComment);
 router.delete('/comments/:id', authenticate, deleteComment);
 router.post('/comments/:id/like', authenticate, likeComment);
 router.post('/comments/:id/report', authenticate, reportComment);

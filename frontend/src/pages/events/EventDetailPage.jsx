@@ -581,7 +581,7 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                     </div>
                   ),
                 },
-                ...(event.isStaff || user?.userId === event.OrganizerID
+                ...(event.isStaff
                   ? [
                       {
                         key: "participants",
@@ -850,7 +850,25 @@ const EventDetailPage = ({ adminEventId = null, noLayout = false, defaultTab = "
                       style={{borderRadius: 10, marginBottom: 12}}
                     />
                   ) : null}
-                  {!(isPast || deadlinePassed) && (
+                  {user?.userId === event.OrganizerID ? (
+                    <Button
+                      type="primary"
+                      block
+                      size="large"
+                      onClick={() => navigate(`/organizer/events/${targetId}/dashboard`)}
+                      style={{
+                        borderRadius: 10,
+                        height: 50,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        marginBottom: 10,
+                        backgroundColor: "#10b981",
+                        borderColor: "#10b981",
+                      }}
+                    >
+                      Quản lý sự kiện
+                    </Button>
+                  ) : !(isPast || deadlinePassed) && (
                     <Button
                       type="primary"
                       block

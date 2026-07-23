@@ -861,6 +861,31 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+const getEventSpeakers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    const result = await pool.request()
+      .input('EventID', sql.Int, parseInt(id))
+      .query(`
+        SELECT 
+          u.UserID, u.FullName, u.Email, u.AvatarURL, u.Phone,
+          si.Status as InvitationStatus, si.CreatedAt as InvitedAt,
+          (SELECT STRING_AGG(s.Title, ', ') 
+           FROM SessionSpeakers ss 
+           JOIN Sessions s ON ss.SessionID = s.SessionID 
+           WHERE ss.SpeakerID = u.UserID AND s.EventID = @EventID) AS AssignedSessions
+        FROM SpeakerInvitations si
+        JOIN Users u ON si.SpeakerID = u.UserID
+        WHERE si.EventID = @EventID
+      `);
+    return successResponse(res, result.recordset);
+  } catch (error) {
+    console.error('getEventSpeakers error:', error.message);
+    return errorResponse(res, 'Lấy danh sách diễn giả thất bại');
+  }
+};
+
 module.exports = {
   getEvents, getEventById, createEvent, updateEvent, deleteEvent,
   submitForApproval,
@@ -868,4 +893,5 @@ module.exports = {
   notifyParticipants,
   getSessions, addSession, updateSession, deleteSession,
   unlockEventEdit, getCategories, getVenues, getDashboardStats,
+  getEventSpeakers,
 };

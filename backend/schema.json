@@ -1,0 +1,1518 @@
+{
+  "columns": [
+    {
+      "TableName": "Attendance",
+      "ColumnName": "AttendanceID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Attendance",
+      "ColumnName": "RegistrationID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Attendance",
+      "ColumnName": "CheckedInBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Attendance",
+      "ColumnName": "CheckInTime",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Attendance",
+      "ColumnName": "Status",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogCommentLikes",
+      "ColumnName": "LikeID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "BlogCommentLikes",
+      "ColumnName": "CommentID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogCommentLikes",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogCommentLikes",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "CommentID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "BlogID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "ParentCommentID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "Content",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "ImageURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "IsReported",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "ReportReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "ReportedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "ReportedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogComments",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogLikes",
+      "ColumnName": "LikeID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "BlogLikes",
+      "ColumnName": "BlogID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogLikes",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogLikes",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogPollVotes",
+      "ColumnName": "VoteID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "BlogPollVotes",
+      "ColumnName": "BlogID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogPollVotes",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogPollVotes",
+      "ColumnName": "OptionIndex",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "BlogPollVotes",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "BlogID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "AuthorID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "Title",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "Content",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "CoverURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "Images",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "PollQuestion",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "PollOptions",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "IsPublished",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "PublishedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "IsReported",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "ReportReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "ReportedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "ReportedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Blogs",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "CategoryID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "Name",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "IconURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "IsActive",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Categories",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "OrganizerID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "CategoryID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "VenueID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "Title",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "CoverImageURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "StartDate",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "EndDate",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "RegistrationDeadline",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "MaxParticipants",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "IsInternalOnly",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "Status",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "ApprovalStatus",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "ApprovedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "ApprovedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "RejectionReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "EditLockedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "AdminEditUnlock",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "DocumentsURL",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "ProposedChanges",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Events",
+      "ColumnName": "EditReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventSponsors",
+      "ColumnName": "EventSponsorID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "EventSponsors",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventSponsors",
+      "ColumnName": "SponsorID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventSponsors",
+      "ColumnName": "SponsorTier",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventStaffs",
+      "ColumnName": "EventStaffID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "EventStaffs",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventStaffs",
+      "ColumnName": "StaffID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventStaffs",
+      "ColumnName": "AssignedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "EventStaffs",
+      "ColumnName": "AssignedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "FeedbackID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "ParticipantID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "Rating",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "Comment",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "IsReported",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "ReportReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "ReportedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "ReportedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "MediaURLs",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "Reply",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Feedbacks",
+      "ColumnName": "RepliedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "NotificationID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "Title",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "Message",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "Type",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "IsRead",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "RelatedID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "RelatedType",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Notifications",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "OrganizerProfileID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "OrganizationName",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "DocumentURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "ApprovalStatus",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "ApprovedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "ApprovedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "RejectionReason",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "OrganizerProfiles",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "TicketID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "RegistrationID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "QRCode",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "OTPCode",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "OTPExpiry",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "IsUsed",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "QRTickets",
+      "ColumnName": "GeneratedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "RegistrationID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "ParticipantID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "Status",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "RegisteredAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "CancelledAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Registrations",
+      "ColumnName": "CancellationNote",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SavedBlogs",
+      "ColumnName": "SaveID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "SavedBlogs",
+      "ColumnName": "BlogID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SavedBlogs",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SavedBlogs",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "SessionID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "Title",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "StartTime",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "EndTime",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "Location",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sessions",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SessionSpeakers",
+      "ColumnName": "SessionSpeakerID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "SessionSpeakers",
+      "ColumnName": "SessionID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SessionSpeakers",
+      "ColumnName": "SpeakerID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SessionSpeakers",
+      "ColumnName": "Role",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "InvitationID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "SpeakerID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "InvitedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "Message",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "Status",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "RespondedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerInvitations",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "SpeakerProfileID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "Bio",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "Expertise",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "LinkedInURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "WebsiteURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "SpeakerProfiles",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "SponsorID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "Name",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "LogoURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "WebsiteURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Sponsors",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "InvitationID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "EventID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "ParticipantID",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "InvitedBy",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "Status",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "InvitedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "StaffInvitations",
+      "ColumnName": "RespondedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "UserID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "FullName",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "Email",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "PasswordHash",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "Role",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "AvatarURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "Phone",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "University",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "IsActive",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "IsVerified",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "ForceChangePassword",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "VerifyToken",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "VerifyTokenExpiry",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "ResetToken",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "ResetTokenExpiry",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "RefreshToken",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "RefreshTokenExpiry",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "UpdatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Users",
+      "ColumnName": "EmailNotifs",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "VenueID",
+      "DataType": "int",
+      "IsPrimaryKey": true
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "Name",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "Address",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "Capacity",
+      "DataType": "int",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "Description",
+      "DataType": "nvarchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "MapURL",
+      "DataType": "varchar",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "IsActive",
+      "DataType": "bit",
+      "IsPrimaryKey": false
+    },
+    {
+      "TableName": "Venues",
+      "ColumnName": "CreatedAt",
+      "DataType": "datetime",
+      "IsPrimaryKey": false
+    }
+  ],
+  "fks": [
+    {
+      "ParentTable": "BlogLikes",
+      "ParentColumn": "BlogID",
+      "ReferencedTable": "Blogs",
+      "ReferencedColumn": "BlogID"
+    },
+    {
+      "ParentTable": "BlogComments",
+      "ParentColumn": "BlogID",
+      "ReferencedTable": "Blogs",
+      "ReferencedColumn": "BlogID"
+    },
+    {
+      "ParentTable": "BlogPollVotes",
+      "ParentColumn": "BlogID",
+      "ReferencedTable": "Blogs",
+      "ReferencedColumn": "BlogID"
+    },
+    {
+      "ParentTable": "SavedBlogs",
+      "ParentColumn": "BlogID",
+      "ReferencedTable": "Blogs",
+      "ReferencedColumn": "BlogID"
+    },
+    {
+      "ParentTable": "Feedbacks",
+      "ParentColumn": "ParticipantID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Feedbacks",
+      "ParentColumn": "ReportedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Blogs",
+      "ParentColumn": "AuthorID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Blogs",
+      "ParentColumn": "ReportedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "OrganizerProfiles",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogLikes",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "OrganizerProfiles",
+      "ParentColumn": "ApprovedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogComments",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogComments",
+      "ParentColumn": "ReportedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "SpeakerProfiles",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogCommentLikes",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogPollVotes",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Events",
+      "ParentColumn": "OrganizerID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "SavedBlogs",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Events",
+      "ParentColumn": "ApprovedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Notifications",
+      "ParentColumn": "UserID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "SpeakerInvitations",
+      "ParentColumn": "SpeakerID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "SpeakerInvitations",
+      "ParentColumn": "InvitedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "SessionSpeakers",
+      "ParentColumn": "SpeakerID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "EventStaffs",
+      "ParentColumn": "StaffID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "EventStaffs",
+      "ParentColumn": "AssignedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "StaffInvitations",
+      "ParentColumn": "ParticipantID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "StaffInvitations",
+      "ParentColumn": "InvitedBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Registrations",
+      "ParentColumn": "ParticipantID",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "Attendance",
+      "ParentColumn": "CheckedInBy",
+      "ReferencedTable": "Users",
+      "ReferencedColumn": "UserID"
+    },
+    {
+      "ParentTable": "BlogComments",
+      "ParentColumn": "ParentCommentID",
+      "ReferencedTable": "BlogComments",
+      "ReferencedColumn": "CommentID"
+    },
+    {
+      "ParentTable": "BlogCommentLikes",
+      "ParentColumn": "CommentID",
+      "ReferencedTable": "BlogComments",
+      "ReferencedColumn": "CommentID"
+    },
+    {
+      "ParentTable": "Events",
+      "ParentColumn": "CategoryID",
+      "ReferencedTable": "Categories",
+      "ReferencedColumn": "CategoryID"
+    },
+    {
+      "ParentTable": "Events",
+      "ParentColumn": "VenueID",
+      "ReferencedTable": "Venues",
+      "ReferencedColumn": "VenueID"
+    },
+    {
+      "ParentTable": "Feedbacks",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "Blogs",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "Sessions",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "SpeakerInvitations",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "EventSponsors",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "EventStaffs",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "StaffInvitations",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "Registrations",
+      "ParentColumn": "EventID",
+      "ReferencedTable": "Events",
+      "ReferencedColumn": "EventID"
+    },
+    {
+      "ParentTable": "SessionSpeakers",
+      "ParentColumn": "SessionID",
+      "ReferencedTable": "Sessions",
+      "ReferencedColumn": "SessionID"
+    },
+    {
+      "ParentTable": "EventSponsors",
+      "ParentColumn": "SponsorID",
+      "ReferencedTable": "Sponsors",
+      "ReferencedColumn": "SponsorID"
+    },
+    {
+      "ParentTable": "QRTickets",
+      "ParentColumn": "RegistrationID",
+      "ReferencedTable": "Registrations",
+      "ReferencedColumn": "RegistrationID"
+    },
+    {
+      "ParentTable": "Attendance",
+      "ParentColumn": "RegistrationID",
+      "ReferencedTable": "Registrations",
+      "ReferencedColumn": "RegistrationID"
+    }
+  ]
+}

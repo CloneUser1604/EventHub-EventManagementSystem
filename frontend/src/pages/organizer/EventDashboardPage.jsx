@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Layout, Menu, Typography, Card, Row, Col, Table, Button, Tag, message, Avatar, Spin, Modal, Form, Input } from 'antd';
 import { 
   AppstoreOutlined, TeamOutlined, EditOutlined, 
-  LeftOutlined, IdcardOutlined, NotificationOutlined, SendOutlined
+  LeftOutlined, IdcardOutlined, NotificationOutlined, SendOutlined, AudioOutlined
 } from '@ant-design/icons';
 import MainLayout from '../../components/layout/MainLayout';
 import { eventService } from '../../services/event.service';
@@ -20,6 +20,7 @@ const EventDashboardPage = () => {
   const [event, setEvent] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [assignedStaffs, setAssignedStaffs] = useState([]);
+  const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // States cho tính năng gửi thông báo
@@ -32,18 +33,20 @@ const EventDashboardPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [evtRes, partRes, staffRes] = await Promise.all([
+      const [evtRes, partRes, staffRes, speakerRes] = await Promise.all([
         eventService.getEventById(id),
         fetch(`${API_BASE}/staff/events/${id}/participants`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
         }).then(r => r.json()),
         fetch(`${API_BASE}/staff/events/${id}/assigned`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-        }).then(r => r.json())
+        }).then(r => r.json()),
+        eventService.getEventSpeakers(id)
       ]);
       setEvent(evtRes.data.data || evtRes.data);
       setParticipants(partRes.data || []);
       setAssignedStaffs(staffRes.data || []);
+      setSpeakers(Array.isArray(speakerRes.data?.data) ? speakerRes.data.data : (Array.isArray(speakerRes.data) ? speakerRes.data : []));
     } catch (err) {
       message.error('Lỗi tải dữ liệu Dashboard');
     } finally {
@@ -112,6 +115,28 @@ const EventDashboardPage = () => {
     { title: 'Phân công lúc', dataIndex: 'AssignedAt', render: d => dayjs(d?.replace('Z', '')).format('DD/MM/YYYY HH:mm') }
   ];
 
+  const speakerCols = [
+    { title: 'Diễn giả', render: (_, r) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar src={r.AvatarURL ? `${API_BASE.replace('/api', '')}/uploads/${r.AvatarURL}` : undefined} style={{ background: '#f59e0b' }}>
+          {r.FullName?.[0]}
+        </Avatar>
+        <div>
+          <Text strong style={{ display: 'block' }}>{r.FullName}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{r.Email}</Text>
+        </div>
+      </div>
+    )},
+    { title: 'Trạng thái', dataIndex: 'InvitationStatus', render: s => {
+      let color = 'gold';
+      if (s === 'Accepted') color = 'green';
+      if (s === 'Declined') color = 'red';
+      return <Tag color={color}>{s}</Tag>;
+    }},
+    { title: 'Phiên tham gia', dataIndex: 'AssignedSessions', render: s => s || <Text type="secondary">Chưa phân công</Text> },
+    { title: 'Ngày mời', dataIndex: 'InvitedAt', render: d => dayjs(d?.replace('Z', '')).format('DD/MM/YYYY') }
+  ];
+
   return (
     <MainLayout>
       <div style={{ background: 'linear-gradient(135deg,#0f1629,#1a2744)', padding: '32px 24px', color: 'white' }}>
@@ -150,6 +175,7 @@ const EventDashboardPage = () => {
                 { key: 'overview', icon: <AppstoreOutlined />, label: 'Tổng quan' },
                 { key: 'participants', icon: <TeamOutlined />, label: 'Người tham dự' },
                 { key: 'staffs', icon: <IdcardOutlined />, label: 'Danh sách Staff' },
+                { key: 'speakers', icon: <AudioOutlined />, label: 'Danh sách Diễn giả' },
               ]}
             />
           </Col>
@@ -205,6 +231,26 @@ const EventDashboardPage = () => {
                   scroll={{ x: 600 }}
                   style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
                   locale={{ emptyText: 'Chưa có Staff nào được phân công' }}
+                />
+              </div>
+            )}
+
+            {activeMenu === 'speakers' && (
+              <div>
+                <Title level={4} style={{ fontFamily: "'Inter', sans-serif", marginBottom: 24 }}>Danh sách Diễn giả</Title>
+                <div style={{ marginBottom: 16 }}>
+                  <Text type="secondary">
+                    Lưu ý: Diễn giả được phân công vào các <strong>Phiên (Sessions)</strong>. Bạn có thể thêm/xóa Diễn giả khi <strong>Chỉnh sửa sự kiện</strong>.
+                  </Text>
+                </div>
+                <Table 
+                  columns={speakerCols} 
+                  dataSource={speakers} 
+                  rowKey="UserID"
+                  pagination={{ pageSize: 10 }}
+                  scroll={{ x: 600 }}
+                  style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                  locale={{ emptyText: 'Sự kiện này chưa có Diễn giả' }}
                 />
               </div>
             )}

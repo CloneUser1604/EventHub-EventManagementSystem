@@ -5,7 +5,7 @@ const {
   getEvents, getEventById, createEvent, updateEvent, deleteEvent,
   submitForApproval, cancelEvent, notifyParticipants,
   getSessions, addSession, updateSession, deleteSession,
-  unlockEventEdit, getCategories, getVenues, getDashboardStats,
+  unlockEventEdit, getCategories, getVenues, getDashboardStats, getEventSpeakers
 } = require('../controllers/event.controller');
 const { uploadEvent } = require('../middleware/upload');
 
@@ -26,6 +26,9 @@ router.post('/:id/cancel',  authenticate, authorize('Organizer','Admin'), cancel
 
 // Organizer: notify participants
 router.post('/:id/notify-participants', authenticate, authorize('Organizer','Admin'), notifyParticipants);
+
+// Organizer: manage speakers
+router.get('/:id/speakers', authenticate, authorize('Organizer','Admin'), getEventSpeakers);
 
 // Admin: unlock edit
 router.post('/:id/unlock-edit',  authenticate, authorize('Admin'), unlockEventEdit);

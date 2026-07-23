@@ -20,4 +20,5 @@ export const eventService = {
   getCategories: () => api.get('/events/categories'),
   getVenues: () => api.get('/events/venues'),
   getDashboardStats: (timeRange = 'month') => api.get('/events/admin/stats', { params: { timeRange } }),
+  getEventSpeakers: (id) => api.get(`/events/${id}/speakers`),
 };

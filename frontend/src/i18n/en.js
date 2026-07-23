@@ -248,6 +248,7 @@ export const en = {
     "postSuccess": "Posted successfully",
     "postError": "Error posting",
     "confirmDelete": "Are you sure you want to delete this post?",
+    "confirmDeleteComment": "Are you sure you want to delete this comment?",
     "cancel": "Cancel",
     "deleteSuccess": "Deleted successfully",
     "deleteError": "Error deleting",

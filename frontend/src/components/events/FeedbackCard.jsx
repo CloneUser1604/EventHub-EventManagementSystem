@@ -1,19 +1,20 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {Avatar, Rate, Button, Image, Modal, Input, message, Tag, Radio, Space} from "antd";
 import {UserOutlined, DeleteOutlined, MessageOutlined, WarningOutlined, EditOutlined} from "@ant-design/icons";
 import dayjs from "dayjs";
 import {feedbackService} from "../../services/feedback.service";
 import useAuthStore from "../../store/authStore";
 import {getImageUrl} from "../../utils/imageHelpers";
+import ImageGrid from "../common/ImageGrid";
 import useEventStore from "../../store/eventStore";
 
 const {TextArea} = Input;
 
-export default function FeedbackCard({item, onEdit, onSuccess}) {
+export default function FeedbackCard({item, onEdit, onSuccess, adminFeedbackId}) {
   const {user} = useAuthStore();
   const {selectedEvent} = useEventStore();
   
-  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [reportType, setReportType] = useState("");
@@ -57,7 +58,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
     try {
       await feedbackService.replyFeedback(selectedEvent?.EventID, item.FeedbackID, replyContent);
       message.success("Đã trả lời đánh giá.");
-      setReplyModalOpen(false);
+      setIsReplying(false);
       onSuccess();
     } catch (error) {
       message.error(error.message || "Lỗi khi trả lời.");
@@ -81,13 +82,32 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
       onSuccess();
     } catch (error) {
       message.error(error.message || "Lỗi báo cáo.");
+      // Close modal if already reported by someone else
+      if (error.message && error.message.includes("đã báo cáo")) {
+        setReportModalOpen(false);
+        onSuccess(); // Refresh to hide the button
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (adminFeedbackId && String(adminFeedbackId) === String(item.FeedbackID)) {
+      setTimeout(() => {
+        const el = document.getElementById(`feedback-${item.FeedbackID}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('highlight-blink');
+          setTimeout(() => el.classList.remove('highlight-blink'), 3000);
+        }
+      }, 500);
+    }
+  }, [adminFeedbackId, item.FeedbackID]);
+
   return (
     <div
+      id={`feedback-${item.FeedbackID}`}
       style={{
         backgroundColor: "#ffffff",
         border: "1px solid #e2e8f0",
@@ -108,7 +128,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
             style={{backgroundColor: "#2563eb", flexShrink: 0}}
           />
           <div>
-            <div style={{fontWeight: 800, color: "#0f172a", fontSize: "16px", marginBottom: "2px"}}>
+            <div style={{fontWeight: 600, color: "#0f172a", fontSize: "16px", marginBottom: "2px"}}>
               {item.UserName || "Người dùng ẩn danh"}
             </div>
             <div style={{fontSize: "13px", color: "#94a3b8", fontWeight: 500}}>
@@ -129,7 +149,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
           )}
           {isOrganizer && !isParticipant && (
             <>
-              <Button type="text" size="small" icon={<MessageOutlined />} style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => { setReplyContent(item.Reply || ""); setReplyModalOpen(true); }}>
+              <Button type="text" size="small" icon={<MessageOutlined />} style={{color: "#2563eb", fontSize: 13, fontWeight: 500}} onClick={() => { setReplyContent(item.Reply || ""); setIsReplying(!isReplying); }}>
                 {item.Reply ? "Sửa trả lời" : "Trả lời"}
               </Button>
               {!item.IsReported && <Button type="text" size="small" danger icon={<WarningOutlined />} style={{fontSize: 13, fontWeight: 500}} onClick={() => setReportModalOpen(true)}>Báo cáo</Button>}
@@ -144,20 +164,7 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
       </div>
 
       {mediaURLs.length > 0 && (
-        <div style={{display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8}}>
-          {mediaURLs.map((url, idx) => {
-            const isVideo = url.match(/\.(mp4|mov|avi)$/i);
-            const fullUrl = url.startsWith('http') ? url : `http://localhost:5000${url}`;
-            if (isVideo) {
-              return (
-                <video key={idx} src={fullUrl} controls style={{height: 100, borderRadius: 8, objectFit: "cover"}} />
-              );
-            }
-            return (
-              <Image key={idx} src={fullUrl} height={100} style={{borderRadius: 8, objectFit: "cover"}} />
-            );
-          })}
-        </div>
+        <ImageGrid imageUrl={JSON.stringify(mediaURLs)} maxVisible={3} />
       )}
 
       {item.Reply && (
@@ -183,9 +190,22 @@ export default function FeedbackCard({item, onEdit, onSuccess}) {
         </div>
       )}
 
-      <Modal title="Trả lời đánh giá" open={replyModalOpen} onCancel={() => setReplyModalOpen(false)} onOk={handleReply} confirmLoading={loading}>
-        <TextArea rows={4} placeholder="Nhập phản hồi của bạn..." value={replyContent} onChange={(e) => setReplyContent(e.target.value)} />
-      </Modal>
+      {isReplying && (
+        <div style={{marginTop: 16}}>
+          <TextArea 
+            rows={3} 
+            placeholder="Nhập phản hồi của bạn..." 
+            value={replyContent} 
+            onChange={(e) => setReplyContent(e.target.value)} 
+          />
+          <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8}}>
+            <Button size="small" onClick={() => setIsReplying(false)}>Hủy</Button>
+            <Button size="small" type="primary" onClick={handleReply} loading={loading}>
+              Gửi phản hồi
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal 
         title="Báo cáo đánh giá" 

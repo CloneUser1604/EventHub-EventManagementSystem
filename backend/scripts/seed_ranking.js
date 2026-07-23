@@ -155,11 +155,15 @@ async function seedRankingData() {
         .query(`
         IF NOT EXISTS (SELECT 1 FROM Blogs WHERE AuthorID = @Org3)
         BEGIN
-          INSERT INTO Blogs (AuthorID, EventID, Title, Content, IsPublished, IsReported, ReportReason, ReportedAt)
+          INSERT INTO Blogs (AuthorID, EventID, Title, Content, IsPublished)
           VALUES 
-          (@Org3, @Ev, 'Spam Blog 1', 'Spam', 1, 1, 'Spam', GETDATE()),
-          (@Org3, @Ev, 'Spam Blog 2', 'Spam', 1, 1, 'Inappropriate', GETDATE()),
-          (@Org3, @Ev, 'Spam Blog 3', 'Spam', 1, 1, 'Scam', GETDATE());
+          (@Org3, @Ev, 'Spam Blog 1', 'Spam', 1),
+          (@Org3, @Ev, 'Spam Blog 2', 'Spam', 1),
+          (@Org3, @Ev, 'Spam Blog 3', 'Spam', 1);
+
+          -- Insert Reports for these blogs
+          INSERT INTO Reports (TargetType, TargetID, ReporterID, Reason, Status)
+          SELECT 'Blog', BlogID, @Org3, 'Spam', 'Pending' FROM Blogs WHERE AuthorID = @Org3;
         END
       `);
     }

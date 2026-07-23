@@ -3,7 +3,7 @@ const router = express.Router();
 const feedbackController = require("../controllers/feedback.controller");
 
 // Lấy đúng tên hàm 'authenticate' từ file auth.js
-const {authenticate} = require("../middleware/auth");
+const {authenticate, authorize} = require("../middleware/auth");
 const {uploadFeedback} = require("../middleware/upload");
 
 // Xem danh sách feedback (Ai cũng xem được)
@@ -56,7 +56,8 @@ router.post(
 // Admin lấy danh sách feedback bị báo cáo
 router.get(
   "/admin/reported-feedbacks",
-  authenticate, // should ideally be authorize('Admin') but auth middleware might be needed
+  authenticate,
+  authorize('Admin'),
   feedbackController.getReportedFeedbacks,
 );
 
@@ -64,6 +65,7 @@ router.get(
 router.post(
   "/admin/reported-feedbacks/:feedbackId/resolve",
   authenticate,
+  authorize('Admin'),
   feedbackController.resolveReport,
 );
 

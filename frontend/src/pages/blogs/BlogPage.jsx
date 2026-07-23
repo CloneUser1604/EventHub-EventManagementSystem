@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag } from 'antd';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag, Image, Pagination } from 'antd';
 import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
@@ -48,6 +48,22 @@ const parseImages = (raw) => {
     if (Array.isArray(arr)) return arr;
   } catch (e) {}
   return [raw];
+};
+
+// SafeVideo: ensure video pauses when unmounted (fixes bug where video continues playing after modal close)
+const SafeVideo = ({ src, ...props }) => {
+  const videoRef = React.useRef(null);
+  React.useEffect(() => {
+    const v = videoRef.current;
+    return () => {
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      }
+    };
+  }, []);
+  return <video ref={videoRef} src={src} {...props} />;
 };
 
 // Grid image display component
@@ -120,13 +136,14 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
         onCancel={() => setLightbox(null)}
         width="auto"
         centered
+        destroyOnClose
         bodyStyle={{ padding: 0, background: 'transparent' }}
         style={{ maxWidth: '95vw' }}
       >
         {lightbox !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             {isVideoUrl(images[lightbox]) ? (
-              <video
+              <SafeVideo
                 src={buildImgUrl(images[lightbox])}
                 controls
                 autoPlay
@@ -168,12 +185,13 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
   );
 };
 
-const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onClosePopup = null }) => {
+const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null, popupOnly = false, onClosePopup = null }) => {
   const { t } = useTranslation();
   const { theme } = useSettingStore();
   const params = useParams();
-  const id = adminBlogId || params.id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const id = adminBlogId || params.id;
   const { user, isAuthenticated } = useAuthStore();
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
@@ -187,6 +205,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [fileList, setFileList] = useState([]);
   const [videoList, setVideoList] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [previewVideoModal, setPreviewVideoModal] = useState({ visible: false, url: '' });
   const [previewVideoUrls, setPreviewVideoUrls] = useState([]);
   const [showPoll, setShowPoll] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
@@ -203,6 +222,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [commentVideoFiles, setCommentVideoFiles] = useState([]);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
+  const [editingCommentFiles, setEditingCommentFiles] = useState([]);
+  const [editingCommentExistingUrls, setEditingCommentExistingUrls] = useState([]);
   const [replyingToId, setReplyingToId] = useState(null);
   const [replyInput, setReplyInput] = useState('');
   const [replyImageFiles, setReplyImageFiles] = useState([]);
@@ -226,6 +247,10 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   const [currentEventFilter, setCurrentEventFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [savedSearchQuery, setSavedSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalBlogs, setTotalBlogs] = useState(0);
+  const [savedCurrentPage, setSavedCurrentPage] = useState(1);
+  const [savedTotalBlogs, setSavedTotalBlogs] = useState(0);
   
   // Report state
   const [reportModalVisible, setReportModalVisible] = useState(false);
@@ -267,7 +292,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   };
 
   useEffect(() => {
-    fetchBlogs(blogsSort, currentEventFilter);
+    fetchBlogs(1, blogsSort, currentEventFilter);
     if (isAuthenticated) {
       fetchEvents();
     }
@@ -278,6 +303,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       setHasDraft(true);
       try {
         const parsed = JSON.parse(draft);
+        setTitle(parsed.title || '');
         setContent(parsed.content || '');
         setSelectedEvent(parsed.eventId || null);
         setShowPoll(parsed.showPoll || false);
@@ -306,8 +332,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   }, [id, blogs]);
 
   useEffect(() => {
-    if (detailModalVisible && window.location.hash) {
-      const hashId = window.location.hash.substring(1);
+    const targetHash = adminCommentId ? `comment-${adminCommentId}` : (window.location.hash ? window.location.hash.substring(1) : null);
+    if (detailModalVisible && targetHash) {
+      const hashId = targetHash;
       setTimeout(() => {
         const el = document.getElementById(hashId);
         if (el) {
@@ -338,18 +365,26 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
     return Object.values(eventScores).sort((a, b) => b.score - a.score).slice(0, 5);
   }, [allBlogs]);
 
-  const fetchBlogs = async (sort = blogsSort, eventId = currentEventFilter) => {
+  const fetchBlogs = async (page = currentPage, sort = blogsSort, eventId = currentEventFilter) => {
     setLoading(true);
     try {
-      const res = await blogService.getBlogs({ limit: 50, sort, eventId });
+      const limit = 10;
+      const res = await blogService.getBlogs({ page, limit, sort, eventId });
       if (res.data?.success) {
         setBlogs(res.data.data.data || []);
-        // Also fetch all blogs (no filter) to keep trending events accurate
+        if (res.data.data.pagination) {
+          setTotalBlogs(res.data.data.pagination.total || 0);
+          setCurrentPage(res.data.data.pagination.page || 1);
+        }
+        
+        // Also fetch all blogs (no filter) to keep trending events accurate (limit 200 for trending computation)
         if (eventId) {
           const allRes = await blogService.getBlogs({ limit: 200, sort });
           if (allRes.data?.success) setAllBlogs(allRes.data.data.data || []);
         } else {
-          setAllBlogs(res.data.data.data || []);
+          // If no filter, we can't use the paginated response for trending, so fetch 200 just for trending
+          const allRes = await blogService.getBlogs({ limit: 200, sort });
+          if (allRes.data?.success) setAllBlogs(allRes.data.data.data || []);
         }
       }
     } catch (error) {
@@ -367,12 +402,18 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
     }
   }, [activeView]);
 
-  const fetchSavedBlogs = async () => {
+  const fetchSavedBlogs = async (page = savedCurrentPage) => {
     if (!isAuthenticated) return;
     setLoadingSaved(true);
     try {
-      const res = await blogService.getSavedBlogs();
-      if (res.data?.success) setSavedBlogs(res.data.data || []);
+      const res = await blogService.getSavedBlogs({ page, limit: 10 });
+      if (res.data?.success) {
+        setSavedBlogs(res.data.data.data || []);
+        if (res.data.data.pagination) {
+          setSavedTotalBlogs(res.data.data.pagination.total || 0);
+          setSavedCurrentPage(res.data.data.pagination.page || 1);
+        }
+      }
     } catch (e) {
       message.error('Lỗi tải bài viết đã lưu');
     } finally {
@@ -460,7 +501,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
             if (parentEl) {
               parentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
               // Highlight the reply within
-              const replyEl = document.getElementById(`reply-${targetCommentId}`);
+              const replyEl = document.getElementById(`comment-${targetCommentId}`);
               if (replyEl) {
                 replyEl.style.backgroundColor = '#fef3c7';
                 setTimeout(() => { 
@@ -521,8 +562,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   };
 
   const handlePost = async () => {
-    if (!content.trim()) {
-      message.warning(t('blog.enterContent'));
+    const hasMedia = fileList.length > 0 || videoList.length > 0;
+    let hasValidPoll = false;
+
+    if (title && title.length > 300) {
+      message.error('Tiêu đề không được vượt quá 300 ký tự');
       return;
     }
 
@@ -531,11 +575,21 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         message.warning(t('blog.enterPollQuestion'));
         return;
       }
+      if (pollQuestion.length > 500) {
+        message.error('Câu hỏi khảo sát không được vượt quá 500 ký tự');
+        return;
+      }
       const validOptions = pollOptions.filter(o => o.trim());
       if (validOptions.length < 2) {
         message.warning(t('blog.enterTwoOptions'));
         return;
       }
+      hasValidPoll = true;
+    }
+
+    if (!content.trim() && !title.trim() && !hasMedia && !hasValidPoll) {
+      message.warning(t('blog.enterContent'));
+      return;
     }
 
     setSubmitting(true);
@@ -570,7 +624,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         setPollQuestion('');
         setPollOptions(['', '']);
         setIsModalVisible(false);
-        fetchBlogs(blogsSort, currentEventFilter);
+        fetchBlogs(1, blogsSort, currentEventFilter);
       }
     } catch (error) {
       message.error(error.response?.data?.message || t('blog.postError'));
@@ -591,7 +645,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           const res = await blogService.deleteBlog(id);
           if (res.data?.success) {
             message.success(t('blog.deleteSuccess'));
-            fetchBlogs(blogsSort, currentEventFilter);
+            fetchBlogs(1, blogsSort, currentEventFilter);
           }
         } catch (error) {
           message.error(error.response?.data?.message || t('blog.deleteError'));
@@ -616,6 +670,13 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       const res = await blogService.reportBlog(reportBlogId, finalReason);
       if (res.data?.success) {
         message.success('Đã gửi báo cáo thành công. Admin sẽ xem xét sớm nhất.');
+        
+        // Update UserReported locally
+        setBlogs(prev => prev.map(b => b.BlogID === reportBlogId ? { ...b, UserReported: true } : b));
+        if (detailBlog && detailBlog.BlogID === reportBlogId) {
+           setDetailBlog(prev => ({ ...prev, UserReported: true }));
+        }
+
         setReportModalVisible(false);
         setReportReason(null);
         setCustomReportReason('');
@@ -657,12 +718,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
     try {
       const res = await blogService.votePoll(blogId, optionIndex);
       if (!res.data?.success) {
-        fetchBlogs(); // rollback
+        fetchBlogs(currentPage, blogsSort, currentEventFilter); // rollback
       }
     } catch (error) {
       console.error(error);
       message.error('Lỗi khi vote bình chọn');
-      fetchBlogs(); // rollback on error
+      fetchBlogs(currentPage, blogsSort, currentEventFilter); // rollback on error
     }
   };
 
@@ -689,7 +750,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       await blogService.likeBlog(blogId);
     } catch (error) {
        message.error('Lỗi khi like bài viết');
-       fetchBlogs();
+       fetchBlogs(currentPage, blogsSort, currentEventFilter);
     }
   };
 
@@ -751,6 +812,14 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
     }
   };
 
+  const updateBlogCommentCount = (blogId, delta) => {
+    const updateFn = (prev) => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: Math.max(0, (b.CommentCount || 0) + delta) } : b);
+    setBlogs(updateFn);
+    setSavedBlogs(updateFn);
+    setAllBlogs(updateFn);
+    setDetailBlog(prev => prev?.BlogID === blogId ? { ...prev, CommentCount: Math.max(0, (prev.CommentCount || 0) + delta) } : prev);
+  };
+
   const handleAddComment = async (blogId) => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để bình luận');
@@ -768,7 +837,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       setCommentInput('');
       setCommentImageFiles([]);
       setCommentVideoFiles([]);
-      setBlogs(prev => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: (b.CommentCount || 0) + 1 } : b));
+      updateBlogCommentCount(blogId, 1);
       fetchComments(blogId, commentSort);
     } catch (e) {
       message.error('Lỗi khi thêm bình luận');
@@ -791,7 +860,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       setReplyImageFiles([]);
       setReplyVideoFiles([]);
       setReplyingToId(null);
-      setBlogs(prev => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: (b.CommentCount || 0) + 1 } : b));
+      updateBlogCommentCount(blogId, 1);
       fetchComments(blogId, commentSort);
     } catch (e) {
       message.error('Lỗi khi thêm bình luận');
@@ -811,6 +880,17 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
     try {
       await blogService.reportComment(reportCommentId, finalReason);
       message.success('Báo cáo bình luận thành công. Cảm ơn bạn đã phản hồi!');
+
+      setCommentsMap(prev => {
+        const newMap = { ...prev };
+        for (const blogId in newMap) {
+          newMap[blogId] = newMap[blogId].map(c => 
+            c.CommentID === reportCommentId ? { ...c, UserReported: true } : c
+          );
+        }
+        return newMap;
+      });
+
       setReportCommentModalVisible(false);
       setReportCommentId(null);
       setReportReason(null);
@@ -821,12 +901,19 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
   };
 
   const handleEditComment = async (commentId, blogId) => {
-    if (!editingCommentContent.trim()) return;
+    if (!editingCommentContent.trim() && editingCommentFiles.length === 0 && editingCommentExistingUrls.length === 0) return;
     try {
-      const res = await blogService.editComment(commentId, editingCommentContent);
+      const formData = new FormData();
+      formData.append('content', editingCommentContent);
+      editingCommentExistingUrls.forEach(url => formData.append('existingImages', url));
+      editingCommentFiles.forEach(file => formData.append('images', file));
+      
+      const res = await blogService.editComment(commentId, formData);
       if (res.data?.success || res.status === 200) {
         setEditingCommentId(null);
         setEditingCommentContent('');
+        setEditingCommentFiles([]);
+        setEditingCommentExistingUrls([]);
         fetchComments(blogId, commentSort);
         message.success('Đã cập nhật bình luận');
       }
@@ -848,6 +935,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           const res = await blogService.deleteComment(commentId);
           if (res.data?.success || res.status === 200) {
             message.success('Đã xoá bình luận');
+            let deletedCount = 1;
+            const allComments = commentsMap[blogId] || [];
+            const replies = allComments.filter(c => c.ParentCommentID === commentId);
+            deletedCount += replies.length;
+            updateBlogCommentCount(blogId, -deletedCount);
             fetchComments(blogId, commentSort);
           }
         } catch (err) {
@@ -940,7 +1032,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
               onClick={() => {
                 setCurrentEventFilter(null);
                 setActiveView('feed');
-                fetchBlogs(blogsSort, null);
+                fetchBlogs(1, blogsSort, null);
               }} 
               style={{ 
                 justifyContent: 'flex-start', border: 'none', 
@@ -1233,7 +1325,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                           </>
                         )}
                         {item.EventTitle && (
-                          <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
+                          <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(1, blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                             <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
                             <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
                           </div>
@@ -1250,7 +1342,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#52525b' : '#e5e7eb'; e.currentTarget.style.borderColor = theme === 'dark' ? '#71717a' : '#d1d5db'; }}
                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3f3f46' : '#f3f4f6'; e.currentTarget.style.borderColor = theme === 'dark' ? '#52525b' : '#e5e7eb'; }}
                           >
-                            {t('blog.joinEvent')}: {item.EventTitle}
+                            {item.EventStatus === 'Published' && (!item.EventRegistrationDeadline || dayjs().isBefore(dayjs(item.EventRegistrationDeadline))) ? 'Tham gia sự kiện:' : 'Chi tiết sự kiện:'} {item.EventTitle}
                           </span>
                         </div>
                       )}
@@ -1260,6 +1352,17 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
               )}
               locale={{ emptyText: t('blog.noSavedBlogs') }}
             />
+          )}
+          {!loadingSaved && savedTotalBlogs > 0 && (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <Pagination
+                current={savedCurrentPage}
+                total={savedTotalBlogs}
+                pageSize={10}
+                onChange={(page) => fetchSavedBlogs(page)}
+                showSizeChanger={false}
+              />
+            </div>
           )}
         </div>
       ) : activeView === 'search' ? (
@@ -1290,7 +1393,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         setCurrentEventFilter(ev.id);
                         setSearchQuery('');
                         setActiveView('feed');
-                        fetchBlogs(blogsSort, ev.id);
+                        fetchBlogs(1, blogsSort, ev.id);
                       }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: 16, color: theme === 'dark' ? '#fff' : 'inherit' }}>
@@ -1319,7 +1422,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     setCurrentEventFilter(ev.id);
                     setSearchQuery('');
                     setActiveView('feed');
-                    fetchBlogs(blogsSort, ev.id);
+                    fetchBlogs(1, blogsSort, ev.id);
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 16, color: theme === 'dark' ? '#fff' : '#000' }}>{ev.title}</div>
@@ -1344,7 +1447,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 20, padding: '4px 12px', fontSize: 14, color: '#1d4ed8' }}>
                   <span>#{evTitle}</span>
                   <button 
-                    onClick={() => { setCurrentEventFilter(null); fetchBlogs(blogsSort, null); }} 
+                    onClick={() => { setCurrentEventFilter(null); fetchBlogs(1, blogsSort, null); }} 
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#1d4ed8', padding: 0, lineHeight: 1 }}
                   >✕</button>
                 </div>
@@ -1353,7 +1456,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           </div>
           <Select 
             value={blogsSort} 
-            onChange={(val) => { setBlogsSort(val); fetchBlogs(val, currentEventFilter); }}
+            onChange={(val) => { setBlogsSort(val); fetchBlogs(1, val, currentEventFilter); }}
             variant="borderless"
             style={{ fontWeight: 600, fontSize: 15 }}
           >
@@ -1407,7 +1510,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         </>
                       )}
                       {item.EventTitle && (
-                        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
+                        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(item.EventID); fetchBlogs(1, blogsSort, item.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                           <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
                           <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{item.EventTitle}</Text>
                         </div>
@@ -1427,6 +1530,10 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                               label: <span style={{ color: '#ff4d4f' }}>Báo cáo</span>,
                               onClick: (e) => {
                                 e.domEvent.stopPropagation();
+                                if (item.UserReported) {
+                                  message.warning("Bạn đã báo cáo bài viết này rồi.");
+                                  return;
+                                }
                                 setReportBlogId(item.BlogID);
                                 setReportModalVisible(true);
                               }
@@ -1459,7 +1566,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
                         onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
-                        Tham gia sự kiện: {item.EventTitle}
+                        {item.EventStatus === 'Published' && (!item.EventRegistrationDeadline || dayjs().isBefore(dayjs(item.EventRegistrationDeadline))) ? 'Tham gia sự kiện:' : 'Chi tiết sự kiện:'} {item.EventTitle}
                       </span>
                     </div>
                   )}
@@ -1579,6 +1686,17 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
           }}
         />
       )}
+      {!loading && totalBlogs > 0 && activeView === 'feed' && (
+        <div style={{ textAlign: 'center', padding: '24px 0' }}>
+          <Pagination
+            current={currentPage}
+            total={totalBlogs}
+            pageSize={10}
+            onChange={(page) => fetchBlogs(page)}
+            showSizeChanger={false}
+          />
+        </div>
+      )}
       </div>
       </>
       )}
@@ -1599,7 +1717,6 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
       >
         <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button type="text" onClick={() => setIsModalVisible(false)} style={{ margin: -8 }}>{t('blog.cancel')}</Button>
-          <Button type="primary" shape="round" onClick={handlePost} loading={submitting} disabled={!content.trim() && !title.trim() && fileList.length === 0 && !showPoll}>{t('blog.post')}</Button>
         </div>
 
         <div style={{ padding: 24, maxHeight: '70vh', overflowY: 'auto' }} className="hide-scrollbar">
@@ -1638,26 +1755,27 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
               />
               
               {(previewUrls.length > 0 || previewVideoUrls.length > 0) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12 }}>
-                  {previewUrls.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: previewUrls.length === 1 ? '1fr' : '1fr 1fr', gap: 8 }}>
-                      {previewUrls.map((url, index) => (
-                        <div key={index} style={{ position: 'relative' }}>
-                          <img src={url} alt="Preview" style={{ width: '100%', height: previewUrls.length === 1 ? 'auto' : 200, maxHeight: 400, borderRadius: 12, objectFit: 'cover' }} />
-                          <CloseCircleFilled 
-                            style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
-                            onClick={() => removeImage(index)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, paddingBottom: 12, marginTop: 8 }}>
+                  <Image.PreviewGroup>
+                    {previewUrls.map((url, index) => (
+                      <div key={index} style={{ position: 'relative', width: 80, height: 80 }}>
+                        <Image src={url} alt="Preview" width={80} height={80} style={{ borderRadius: 8, objectFit: 'cover' }} />
+                        <CloseCircleFilled 
+                          style={{ position: 'absolute', top: -6, right: -6, fontSize: 18, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%', zIndex: 10 }}
+                          onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                        />
+                      </div>
+                    ))}
+                  </Image.PreviewGroup>
                   {previewVideoUrls.map((url, index) => (
-                    <div key={index} style={{ position: 'relative' }}>
-                      <video src={url} controls style={{ width: '100%', maxHeight: 320, borderRadius: 12, objectFit: 'cover', background: '#000' }} />
+                    <div key={`vid-${index}`} style={{ position: 'relative', width: 80, height: 80 }}>
+                      <div style={{ width: 80, height: 80, cursor: 'pointer', borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPreviewVideoModal({ visible: true, url })}>
+                        <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                        <VideoCameraOutlined style={{ position: 'absolute', fontSize: 24, color: '#fff' }} />
+                      </div>
                       <CloseCircleFilled 
-                        style={{ position: 'absolute', top: 8, right: 8, fontSize: 24, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%' }}
-                        onClick={() => { setVideoList(prev => prev.filter((_, i) => i !== index)); setPreviewVideoUrls(prev => prev.filter((_, i) => i !== index)); }}
+                        style={{ position: 'absolute', top: -6, right: -6, fontSize: 18, color: 'rgba(0,0,0,0.6)', cursor: 'pointer', backgroundColor: '#fff', borderRadius: '50%', zIndex: 10 }}
+                        onClick={(e) => { e.stopPropagation(); setVideoList(prev => prev.filter((_, i) => i !== index)); setPreviewVideoUrls(prev => prev.filter((_, i) => i !== index)); }}
                       />
                     </div>
                   ))}
@@ -1669,6 +1787,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                   <Input 
                     placeholder={t('blog.askAQuestion')} 
                     variant="borderless"
+                    maxLength={500}
                     value={pollQuestion}
                     onChange={(e) => setPollQuestion(e.target.value)}
                     style={{ padding: '0 0 12px 0', fontSize: 15, fontWeight: 600, borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', borderRadius: 0, marginBottom: 12 }}
@@ -1700,6 +1819,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                   showUploadList={false}
                   multiple
                   beforeUpload={(file) => {
+                    const totalFiles = fileList.length + videoList.length;
+                    if (totalFiles >= 10) {
+                      message.error('Chỉ được tải lên tối đa 10 ảnh/video');
+                      return Upload.LIST_IGNORE;
+                    }
+
                     const isVideo = file.type.startsWith('video/');
                     if (isVideo) {
                       const isUnder100MB = file.size / 1024 / 1024 < 100;
@@ -1738,8 +1863,8 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                     shape="round"
                     loading={submitting}
                     onClick={handlePost}
-                    disabled={!content.trim()}
-                    style={{ fontWeight: 600, padding: '0 24px', backgroundColor: content.trim() ? '#000' : '#f3f4f6', color: content.trim() ? '#fff' : '#9ca3af', border: 'none' }}
+                    disabled={!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll}
+                    style={{ fontWeight: 600, padding: '0 24px', backgroundColor: (!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll) ? '#f3f4f6' : '#000', color: (!content.trim() && !title.trim() && fileList.length === 0 && videoList.length === 0 && !showPoll) ? '#9ca3af' : '#fff', border: 'none' }}
                   >
                     {t('blog.post')}
                   </Button>
@@ -1748,6 +1873,21 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Video Preview Modal */}
+      <Modal
+        open={previewVideoModal.visible}
+        footer={null}
+        onCancel={() => setPreviewVideoModal({ visible: false, url: '' })}
+        width={800}
+        destroyOnClose
+        bodyStyle={{ padding: 0, backgroundColor: '#000' }}
+        closeIcon={<CloseCircleFilled style={{ fontSize: 24, color: 'rgba(255,255,255,0.8)' }} />}
+      >
+        {previewVideoModal.visible && (
+          <SafeVideo src={previewVideoModal.url} controls autoPlay style={{ width: '100%', maxHeight: '80vh', objectFit: 'contain' }} />
+        )}
       </Modal>
 
       {/* Blog Detail Modal */}
@@ -1771,7 +1911,15 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
         {detailBlog && (
           <div style={{ height: '85vh', display: 'flex', flexDirection: 'column', backgroundColor: theme === 'dark' ? '#18181b' : '#fff' }}>
             <div style={{ padding: '16px 24px', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0', display: 'flex', alignItems: 'center' }}>
-              <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setDetailModalVisible(false); setDetailBlog(null); if (onClosePopup) onClosePopup(); }} style={{ marginRight: 16, fontSize: 18 }} />
+              <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { 
+                setDetailModalVisible(false); 
+                setDetailBlog(null); 
+                if (onClosePopup) {
+                  onClosePopup(); 
+                } else {
+                  navigate('/blogs');
+                }
+              }} style={{ marginRight: 16, fontSize: 18 }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 18 }}>{t('blog.postDetails')}</div>
             </div>
@@ -1788,7 +1936,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                       <Text strong style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}>{detailBlog.AuthorName}</Text>
                       {detailBlog.AuthorRole && <span style={{ fontSize: 12, padding: '2px 8px', backgroundColor: getRoleStyle(detailBlog.AuthorRole).bg, color: getRoleStyle(detailBlog.AuthorRole).color, borderRadius: 12 }}>{detailBlog.AuthorRole}</span>}
                       {detailBlog.EventTitle && (
-                        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(detailBlog.EventID); fetchBlogs(blogsSort, detailBlog.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
+                        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setCurrentEventFilter(detailBlog.EventID); fetchBlogs(1, blogsSort, detailBlog.EventID); setActiveView('feed'); setDetailModalVisible(false); window.scrollTo(0, 0); }}>
                           <span style={{ color: '#9ca3af', fontSize: 14 }}>&gt;</span>
                           <Text strong className="hover-underline" style={{ fontSize: 15, color: theme === 'dark' ? '#fff' : '#000', marginLeft: 6 }}>{detailBlog.EventTitle}</Text>
                         </div>
@@ -1807,6 +1955,10 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                               label: <span style={{ color: '#ff4d4f' }}>{t('blog.report')}</span>,
                               onClick: (e) => {
                                 e.domEvent.stopPropagation();
+                                if (detailBlog.UserReported) {
+                                  message.warning("Bạn đã báo cáo bài viết này rồi.");
+                                  return;
+                                }
                                 setReportBlogId(detailBlog.BlogID);
                                 setReportModalVisible(true);
                               }
@@ -1837,7 +1989,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }}
                         onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
                       >
-                        Tham gia sự kiện: {detailBlog.EventTitle}
+                        {detailBlog.EventStatus === 'Published' && (!detailBlog.EventRegistrationDeadline || dayjs().isBefore(dayjs(detailBlog.EventRegistrationDeadline))) ? 'Tham gia sự kiện:' : 'Chi tiết sự kiện:'} {detailBlog.EventTitle}
                       </span>
                     </div>
                   )}
@@ -1908,8 +2060,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <Upload 
-                        multiple
                         beforeUpload={(file) => {
+                          const hasExisting = commentVideoFiles.length > 0 || commentImageFiles.length > 0;
+                          if (hasExisting) {
+                            message.error('Bạn chỉ được bình luận một ảnh hoặc một video.');
+                            return Upload.LIST_IGNORE;
+                          }
                           const isVideo = file.type.startsWith('video/');
                           if (isVideo) {
                             const isUnder100MB = file.size / 1024 / 1024 < 100;
@@ -1917,9 +2073,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                               message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB (video này: ${(file.size / 1024 / 1024).toFixed(1)}MB).`);
                               return Upload.LIST_IGNORE;
                             }
-                            setCommentVideoFiles(prev => [...prev, file]);
+                            setCommentVideoFiles([file]);
+                            setCommentImageFiles([]);
                           } else {
-                            setCommentImageFiles(prev => [...prev, file]);
+                            setCommentImageFiles([file]);
+                            setCommentVideoFiles([]);
                           }
                           return false;
                         }} 
@@ -1933,7 +2091,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                         value={commentInput}
                         onChange={(e) => setCommentInput(e.target.value)}
                         onPressEnter={() => handleAddComment(detailBlog.BlogID)}
-                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, fontWeight: 600 }}>{t('blog.post')}</Button>}
+                        suffix={<Button type="link" onClick={() => handleAddComment(detailBlog.BlogID)} style={{ padding: 0, display: 'flex', alignItems: 'center' }}><SendOutlined style={{ fontSize: 20, color: '#3b82f6' }} /></Button>}
                         style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '8px 16px', fontSize: 15, color: theme === 'dark' ? '#fff' : '#000' }}
                       />
                     </div>
@@ -1941,13 +2099,16 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginLeft: 40 }}>
                         {commentImageFiles.map((file, idx) => (
                           <div key={idx} style={{ position: 'relative' }}>
-                            <img src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                            <Image src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
                             <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setCommentImageFiles(prev => prev.filter((_, i) => i !== idx))} />
                           </div>
                         ))}
                         {commentVideoFiles.map((file, idx) => (
                           <div key={`v${idx}`} style={{ position: 'relative' }}>
-                            <video src={URL.createObjectURL(file)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0', background: '#000' }} />
+                            <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setPreviewVideoModal({ visible: true, url: URL.createObjectURL(file) })}>
+                              <video src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                              <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                            </div>
                             <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setCommentVideoFiles(prev => prev.filter((_, i) => i !== idx))} />
                           </div>
                         ))}
@@ -1983,15 +2144,73 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                               </div>
                               
                               {editingCommentId === comment.CommentID ? (
-                                <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <Input 
-                                    value={editingCommentContent} 
-                                    onChange={(e) => setEditingCommentContent(e.target.value)} 
-                                    style={{ borderRadius: 16 }}
-                                    onPressEnter={() => handleEditComment(comment.CommentID, detailBlog.BlogID)}
-                                  />
-                                  <Button type="primary" shape="round" onClick={() => handleEditComment(comment.CommentID, detailBlog.BlogID)}>Lưu</Button>
-                                  <Button type="text" shape="round" onClick={() => setEditingCommentId(null)}>Hủy</Button>
+                                <div style={{ width: '100%', marginTop: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Upload 
+                                      beforeUpload={(file) => {
+                                        const hasExisting = editingCommentFiles.length > 0 || editingCommentExistingUrls.length > 0;
+                                        if (hasExisting) {
+                                          message.error('Bạn chỉ được bình luận một ảnh hoặc một video.');
+                                          return Upload.LIST_IGNORE;
+                                        }
+                                        const isVideo = file.type.startsWith('video/');
+                                        if (isVideo) {
+                                          if (file.size > 100 * 1024 * 1024) {
+                                            message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB.`);
+                                          } else {
+                                            setEditingCommentFiles([file]);
+                                            setEditingCommentExistingUrls([]);
+                                          }
+                                        } else {
+                                          setEditingCommentFiles([file]);
+                                          setEditingCommentExistingUrls([]);
+                                        }
+                                        return false;
+                                      }} 
+                                      showUploadList={false} 
+                                      accept="image/*,video/*"
+                                    >
+                                      <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} title="Thêm ảnh / video" />
+                                    </Upload>
+                                    <Input 
+                                      value={editingCommentContent} 
+                                      onChange={(e) => setEditingCommentContent(e.target.value)} 
+                                      style={{ borderRadius: 16 }}
+                                      onPressEnter={() => handleEditComment(comment.CommentID, detailBlog.BlogID)}
+                                    />
+                                    <Button type="primary" shape="round" onClick={() => handleEditComment(comment.CommentID, detailBlog.BlogID)}>Lưu</Button>
+                                    <Button type="text" shape="round" onClick={() => { setEditingCommentId(null); setEditingCommentFiles([]); setEditingCommentExistingUrls([]); }}>Hủy</Button>
+                                  </div>
+                                  {(editingCommentFiles.length > 0 || editingCommentExistingUrls.length > 0) && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, marginLeft: 40 }}>
+                                      {editingCommentExistingUrls.map((url, idx) => (
+                                        <div key={`exist-${idx}`} style={{ position: 'relative' }}>
+                                          {isVideoUrl(url) ? (
+                                            <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <video src={buildImgUrl(url)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                                              <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                                            </div>
+                                          ) : (
+                                            <Image src={buildImgUrl(url)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                          )}
+                                          <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setEditingCommentExistingUrls(prev => prev.filter((_, i) => i !== idx))} />
+                                        </div>
+                                      ))}
+                                      {editingCommentFiles.map((file, idx) => (
+                                        <div key={`new-${idx}`} style={{ position: 'relative' }}>
+                                          {file.type.startsWith('video/') ? (
+                                            <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <video src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                                              <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                                            </div>
+                                          ) : (
+                                            <Image src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                          )}
+                                          <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setEditingCommentFiles(prev => prev.filter((_, i) => i !== idx))} />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div>
@@ -2015,7 +2234,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                 </Button>
                                   {(user?.userId === comment.AuthorID || user?.UserID === comment.AuthorID) ? (
                                     <>
-                                      <Button type="text" size="small" style={{ color: '#9ca3af', fontSize: 13 }} onClick={() => { setEditingCommentId(comment.CommentID); setEditingCommentContent(comment.Content); }}>
+                                      <Button type="text" size="small" style={{ color: '#9ca3af', fontSize: 13 }} onClick={() => { setEditingCommentId(comment.CommentID); setEditingCommentContent(comment.Content || ''); setEditingCommentExistingUrls(parseImages(comment.ImageURL) || []); setEditingCommentFiles([]); }}>
                                         Sửa
                                       </Button>
                                       <Button type="text" size="small" style={{ color: '#ff4d4f', fontSize: 13 }} onClick={() => handleDeleteComment(comment.CommentID, detailBlog.BlogID)}>
@@ -2023,7 +2242,14 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                       </Button>
                                     </>
                                   ) : (user?.role !== 'Admin' && (
-                                    <Button type="text" size="small" style={{ color: '#dc2626', fontSize: 13 }} onClick={() => { setReportCommentId(comment.CommentID); setReportCommentModalVisible(true); }}>
+                                    <Button type="text" size="small" style={{ color: '#dc2626', fontSize: 13 }} onClick={() => { 
+                                      if (comment.UserReported) {
+                                        message.warning("Bạn đã báo cáo bình luận này rồi.");
+                                        return;
+                                      }
+                                      setReportCommentId(comment.CommentID); 
+                                      setReportCommentModalVisible(true); 
+                                    }}>
                                       Báo cáo
                                     </Button>
                                   ))}
@@ -2033,7 +2259,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                           
                           {/* Replies */}
                           {replies.filter(r => r.ParentCommentID === comment.CommentID).map(reply => (
-                            <div key={reply.CommentID} id={`reply-${reply.CommentID}`} style={{ display: 'flex', gap: 12, marginLeft: 48, transition: 'background-color 0.8s', borderRadius: 8, padding: '4px 0' }}>
+                            <div key={reply.CommentID} id={`comment-${reply.CommentID}`} style={{ display: 'flex', gap: 12, marginLeft: 48, transition: 'background-color 0.8s', borderRadius: 8, padding: '4px 0' }}>
                               <Avatar src={getAvatarUrl(reply.AuthorAvatar)} icon={<UserOutlined />} size={28} />
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -2044,15 +2270,73 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                 </div>
                                 
                                 {editingCommentId === reply.CommentID ? (
-                                  <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                                    <Input 
-                                      value={editingCommentContent} 
-                                      onChange={(e) => setEditingCommentContent(e.target.value)} 
-                                      style={{ borderRadius: 16 }}
-                                      onPressEnter={() => handleEditComment(reply.CommentID, detailBlog.BlogID)}
-                                    />
-                                    <Button type="primary" shape="round" onClick={() => handleEditComment(reply.CommentID, detailBlog.BlogID)}>Lưu</Button>
-                                    <Button type="text" shape="round" onClick={() => setEditingCommentId(null)}>Hủy</Button>
+                                  <div style={{ width: '100%', marginTop: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <Upload 
+                                        beforeUpload={(file) => {
+                                          const hasExisting = editingCommentFiles.length > 0 || editingCommentExistingUrls.length > 0;
+                                          if (hasExisting) {
+                                            message.error('Bạn chỉ được bình luận một ảnh hoặc một video.');
+                                            return Upload.LIST_IGNORE;
+                                          }
+                                          const isVideo = file.type.startsWith('video/');
+                                          if (isVideo) {
+                                            if (file.size > 100 * 1024 * 1024) {
+                                              message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB.`);
+                                            } else {
+                                              setEditingCommentFiles([file]);
+                                              setEditingCommentExistingUrls([]);
+                                            }
+                                          } else {
+                                            setEditingCommentFiles([file]);
+                                            setEditingCommentExistingUrls([]);
+                                          }
+                                          return false;
+                                        }} 
+                                        showUploadList={false} 
+                                        accept="image/*,video/*"
+                                      >
+                                        <Button type="text" shape="circle" icon={<PictureOutlined style={{ fontSize: 20, color: '#6b7280' }} />} title="Thêm ảnh / video" />
+                                      </Upload>
+                                      <Input 
+                                        value={editingCommentContent} 
+                                        onChange={(e) => setEditingCommentContent(e.target.value)} 
+                                        style={{ borderRadius: 16 }}
+                                        onPressEnter={() => handleEditComment(reply.CommentID, detailBlog.BlogID)}
+                                      />
+                                      <Button type="primary" shape="round" onClick={() => handleEditComment(reply.CommentID, detailBlog.BlogID)}>Lưu</Button>
+                                      <Button type="text" shape="round" onClick={() => { setEditingCommentId(null); setEditingCommentFiles([]); setEditingCommentExistingUrls([]); }}>Hủy</Button>
+                                    </div>
+                                    {(editingCommentFiles.length > 0 || editingCommentExistingUrls.length > 0) && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, marginLeft: 40 }}>
+                                        {editingCommentExistingUrls.map((url, idx) => (
+                                          <div key={`exist-${idx}`} style={{ position: 'relative' }}>
+                                            {isVideoUrl(url) ? (
+                                              <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <video src={buildImgUrl(url)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                                                <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                                              </div>
+                                            ) : (
+                                              <Image src={buildImgUrl(url)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                            )}
+                                            <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setEditingCommentExistingUrls(prev => prev.filter((_, i) => i !== idx))} />
+                                          </div>
+                                        ))}
+                                        {editingCommentFiles.map((file, idx) => (
+                                          <div key={`new-${idx}`} style={{ position: 'relative' }}>
+                                            {file.type.startsWith('video/') ? (
+                                              <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <video src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                                                <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                                              </div>
+                                            ) : (
+                                              <Image src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                            )}
+                                            <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setEditingCommentFiles(prev => prev.filter((_, i) => i !== idx))} />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <div>
@@ -2074,7 +2358,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                   <Button type="text" size="small" shape="round" icon={<MessageOutlined />} onClick={() => setReplyingToId(replyingToId === comment.CommentID ? null : comment.CommentID)} />
                                   {(user?.userId === reply.AuthorID || user?.UserID === reply.AuthorID) ? (
                                     <>
-                                      <Button type="text" size="small" style={{ color: '#9ca3af', fontSize: 13 }} onClick={() => { setEditingCommentId(reply.CommentID); setEditingCommentContent(reply.Content); }}>
+                                      <Button type="text" size="small" style={{ color: '#9ca3af', fontSize: 13 }} onClick={() => { setEditingCommentId(reply.CommentID); setEditingCommentContent(reply.Content || ''); setEditingCommentExistingUrls(parseImages(reply.ImageURL) || []); setEditingCommentFiles([]); }}>
                                         Sửa
                                       </Button>
                                       <Button type="text" size="small" style={{ color: '#ff4d4f', fontSize: 13 }} onClick={() => handleDeleteComment(reply.CommentID, detailBlog.BlogID)}>
@@ -2082,7 +2366,14 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                       </Button>
                                     </>
                                   ) : (user?.role !== 'Admin' && (
-                                    <Button type="text" size="small" style={{ color: '#dc2626', fontSize: 13 }} onClick={() => { setReportCommentId(reply.CommentID); setReportCommentModalVisible(true); }}>
+                                    <Button type="text" size="small" style={{ color: '#dc2626', fontSize: 13 }} onClick={() => { 
+                                      if (reply.UserReported) {
+                                        message.warning("Bạn đã báo cáo bình luận này rồi.");
+                                        return;
+                                      }
+                                      setReportCommentId(reply.CommentID); 
+                                      setReportCommentModalVisible(true); 
+                                    }}>
                                       Báo cáo
                                     </Button>
                                   ))}
@@ -2098,8 +2389,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                   <Upload 
-                                    multiple
                                     beforeUpload={(file) => {
+                                      const hasExisting = replyVideoFiles.length > 0 || replyImageFiles.length > 0;
+                                      if (hasExisting) {
+                                        message.error('Bạn chỉ được bình luận một ảnh hoặc một video.');
+                                        return Upload.LIST_IGNORE;
+                                      }
                                       const isVideo = file.type.startsWith('video/');
                                       if (isVideo) {
                                         const isUnder100MB = file.size / 1024 / 1024 < 100;
@@ -2107,9 +2402,11 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                           message.error(`Video quá lớn! Vui lòng chọn video nhỏ hơn 100MB (video này: ${(file.size / 1024 / 1024).toFixed(1)}MB).`);
                                           return Upload.LIST_IGNORE;
                                         }
-                                        setReplyVideoFiles(prev => [...prev, file]);
+                                        setReplyVideoFiles([file]);
+                                        setReplyImageFiles([]);
                                       } else {
-                                        setReplyImageFiles(prev => [...prev, file]);
+                                        setReplyImageFiles([file]);
+                                        setReplyVideoFiles([]);
                                       }
                                       return false;
                                     }} 
@@ -2124,7 +2421,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                     value={replyInput}
                                     onChange={(e) => setReplyInput(e.target.value)}
                                     onPressEnter={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)}
-                                    suffix={<Button type="link" onClick={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)} style={{ padding: 0 }}>Đăng</Button>}
+                                    suffix={<Button type="link" onClick={() => handleReplySubmit(detailBlog.BlogID, comment.CommentID)} style={{ padding: 0, display: 'flex', alignItems: 'center' }}><SendOutlined style={{ fontSize: 18, color: '#3b82f6' }} /></Button>}
                                     style={{ borderRadius: 24, backgroundColor: theme === 'dark' ? '#27272a' : '#f9fafb', border: theme === 'dark' ? '1px solid #3f3f46' : '1px solid #e5e5e5', padding: '4px 12px', color: theme === 'dark' ? '#fff' : '#000' }}
                                   />
                                 </div>
@@ -2132,13 +2429,16 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, popupOnly = false, onC
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginLeft: 32 }}>
                                     {replyImageFiles.map((file, idx) => (
                                       <div key={idx} style={{ position: 'relative' }}>
-                                        <img src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                        <Image src={URL.createObjectURL(file)} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }} />
                                         <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setReplyImageFiles(prev => prev.filter((_, i) => i !== idx))} />
                                       </div>
                                     ))}
                                     {replyVideoFiles.map((file, idx) => (
                                       <div key={`rv${idx}`} style={{ position: 'relative' }}>
-                                        <video src={URL.createObjectURL(file)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0', background: '#000' }} />
+                                        <div style={{ width: 60, height: 60, borderRadius: 8, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setPreviewVideoModal({ visible: true, url: URL.createObjectURL(file) })}>
+                                          <video src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                                          <VideoCameraOutlined style={{ position: 'absolute', color: '#fff', fontSize: 16 }} />
+                                        </div>
                                         <CloseCircleFilled style={{ position: 'absolute', top: -6, right: -6, color: '#ef4444', fontSize: 16, cursor: 'pointer', background: '#fff', borderRadius: '50%' }} onClick={() => setReplyVideoFiles(prev => prev.filter((_, i) => i !== idx))} />
                                       </div>
                                     ))}

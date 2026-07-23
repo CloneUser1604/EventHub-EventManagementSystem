@@ -206,7 +206,7 @@ export const vi = {
     "search": "Tìm kiếm",
     "notifications": "Thông báo",
     "drafts": "Bài viết nháp",
-    "saved": "Đã lưu ở blog",
+    "saved": "Đã lưu",
     "newest": "Mới nhất",
     "trending": "Thịnh hành",
     "post": "Đăng",

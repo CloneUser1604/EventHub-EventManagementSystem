@@ -355,6 +355,7 @@ const EventFormPage = () => {
                 label={t('createEvent.registrationDeadline')}
                 dependencies={['dateRange']}
                 rules={[
+                  { required: true, message: 'Vui lòng chọn hạn đăng ký' },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value) return Promise.resolve();

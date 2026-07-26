@@ -1818,10 +1818,12 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
                   accept="image/*,video/*"
                   showUploadList={false}
                   multiple
-                  beforeUpload={(file) => {
-                    const totalFiles = fileList.length + videoList.length;
-                    if (totalFiles >= 10) {
-                      message.error('Chỉ được tải lên tối đa 10 ảnh/video');
+                  beforeUpload={(file, batchFiles) => {
+                    const totalFiles = fileList.length + videoList.length + batchFiles.length;
+                    if (totalFiles > 10) {
+                      if (file === batchFiles[0]) {
+                        message.error('Chỉ được tải lên tối đa 10 ảnh/video');
+                      }
                       return Upload.LIST_IGNORE;
                     }
 

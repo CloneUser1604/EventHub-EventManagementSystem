@@ -23,9 +23,19 @@ async registerEvent(eventId, participantId) {
     }
 
     const dup = await registrationRepository.findDuplicateRegistration(eventId, participantId);
+    if (dup && dup.Status === 'Registered') {
+      throw new Error('CONFLICT: Bạn đã đăng ký sự kiện này');
+    }
+
+    // Check for overlapping registrations
+    if (event.StartDate && event.EndDate) {
+      const overlaps = await registrationRepository.findOverlappingRegistrations(participantId, eventId, event.StartDate, event.EndDate);
+      if (overlaps && overlaps.length > 0) {
+        throw new Error(`CONFLICT: Bạn đã đăng ký sự kiện "${overlaps[0].Title}" diễn ra trùng thời gian. Vui lòng sắp xếp lại lịch trình.`);
+      }
+    }
+
     if (dup) {
-      if (dup.Status === 'Registered') throw new Error('CONFLICT: Bạn đã đăng ký sự kiện này');
-      
       // Re-register if cancelled
       await registrationRepository.updateRegistrationStatus(dup.RegistrationID, 'Registered');
       return { action: 're-register', data: { registrationId: dup.RegistrationID } };
@@ -56,8 +66,14 @@ async cancelRegistration(registrationId, participantId, note) {
     if (!reg) throw new Error('NOT_FOUND: Không tìm thấy đăng ký');
     if (reg.ParticipantID !== participantId) throw new Error('FORBIDDEN: ');
     if (reg.Status !== 'Registered') throw new Error('BAD_REQUEST: Đăng ký này không thể huỷ');
+    if (reg.IsTicketUsed) {
+      throw new Error('BAD_REQUEST: Không thể huỷ đăng ký do bạn đã check-in tham gia sự kiện');
+    }
     if (reg.RegistrationDeadline && new Date() > new Date(reg.RegistrationDeadline)) {
       throw new Error('BAD_REQUEST: Đã qua hạn huỷ đăng ký');
+    }
+    if (new Date() >= new Date(reg.StartDate)) {
+      throw new Error('BAD_REQUEST: Không thể hủy vé do sự kiện đã bắt đầu');
     }
 
     await registrationRepository.updateRegistrationStatus(registrationId, 'Cancelled', note);

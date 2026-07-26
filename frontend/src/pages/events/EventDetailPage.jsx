@@ -808,7 +808,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
                       {event.isStaff ? t('eventDetail.scanQr') : t('eventDetail.viewOtp')}
                     </Button>
                   )}
-                  {!event.isStaff && !deadlinePassed && !isPast && (
+                  {!event.isStaff && !deadlinePassed && isUpcoming && (
                     <Button
                       danger
                       block

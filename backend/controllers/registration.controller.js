@@ -53,7 +53,7 @@ const getMyRegistrations = async (req, res) => {
 
     const result = await request.query(`
       WITH MyEvents AS (
-        SELECT e.EventID, e.Title, e.StartDate, e.EndDate, e.CoverImageURL, e.Status AS EventStatus,
+        SELECT e.EventID, e.Title, e.StartDate, e.EndDate, e.RegistrationDeadline, e.CoverImageURL, e.Status AS EventStatus,
                v.Name AS VenueName, v.Address AS VenueAddress,
                ISNULL(r.RegistrationID, 0) AS RegistrationID, 
                ISNULL(r.Status, CASE WHEN spk.SpeakerID IS NOT NULL OR es.EventStaffID IS NOT NULL THEN 'Registered' ELSE NULL END) AS Status, 

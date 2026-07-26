@@ -69,11 +69,11 @@ async getEvents(query, user) {
       params.push({ name: 'EndDate', type: sql.DateTime, value: new Date(endDate) });
     }
     if (timeStatus === 'upcoming') {
-      conditions.push(`e.StartDate > GETDATE()`);
+      conditions.push(`e.StartDate > GETUTCDATE()`);
     } else if (timeStatus === 'ongoing') {
-      conditions.push(`e.StartDate <= GETDATE() AND e.EndDate >= GETDATE()`);
+      conditions.push(`e.StartDate <= GETUTCDATE() AND e.EndDate >= GETUTCDATE()`);
     } else if (timeStatus === 'past') {
-      conditions.push(`e.EndDate < GETDATE()`);
+      conditions.push(`e.EndDate < GETUTCDATE()`);
     }
     if (isInternal === 'true') {
       conditions.push(`e.IsInternalOnly = 1`);
@@ -90,8 +90,10 @@ async getEvents(query, user) {
     const orderCol = validSortCols[sortBy] || 'e.StartDate';
     const orderDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
+    console.log('[getEvents] timeStatus:', timeStatus, '| conditions:', conditions);
     const total = await eventRepository.countEvents(whereClause, params);
     const events = await eventRepository.findEvents(whereClause, params, orderCol, orderDir, offset, parseInt(limit));
+    console.log('[getEvents] total found:', total);
 
     return {
       events,

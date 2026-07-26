@@ -73,12 +73,13 @@ const createEvent = async (req, res) => {
     if (eDate <= sDate) {
       return errorResponse(res, 'Thời gian kết thúc phải diễn ra sau thời gian bắt đầu', 400);
     }
-    const rDate = registrationDeadline ? new Date(registrationDeadline) : null;
-    if (rDate) {
-      const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
-      if (rDate > oneDayBeforeStart) {
-        return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
-      }
+    if (!registrationDeadline) {
+      return errorResponse(res, 'Vui lòng chọn thời hạn đăng ký', 400);
+    }
+    const rDate = new Date(registrationDeadline);
+    const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
+    if (rDate > oneDayBeforeStart) {
+      return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
     }
 
     for (const s of parsedSessions) {
@@ -211,12 +212,13 @@ const updateEvent = async (req, res) => {
       return errorResponse(res, 'Thời gian kết thúc phải diễn ra sau thời gian bắt đầu', 400);
     }
     const rDateString = registrationDeadline !== undefined ? registrationDeadline : event.RegistrationDeadline;
-    const rDate = rDateString ? new Date(rDateString) : null;
-    if (rDate) {
-      const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
-      if (rDate > oneDayBeforeStart) {
-        return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
-      }
+    if (!rDateString) {
+      return errorResponse(res, 'Vui lòng chọn thời hạn đăng ký', 400);
+    }
+    const rDate = new Date(rDateString);
+    const oneDayBeforeStart = new Date(sDate.getTime() - 24 * 60 * 60 * 1000);
+    if (rDate > oneDayBeforeStart) {
+      return errorResponse(res, 'Hạn đăng ký phải kết thúc ít nhất 1 ngày trước khi sự kiện bắt đầu', 400);
     }
     let { coverImageURL } = req.body;
 

@@ -50,9 +50,15 @@ const createBlog = async (req, res) => {
     const { title, content, eventId, pollQuestion, pollOptions } = req.body;
     let images = [];
     if (req.files && req.files.length > 0) {
+      if (req.files.length > 10) {
+        return errorResponse(res, 'Chỉ được tải lên tối đa 10 ảnh/video', 400);
+      }
       images = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/blogs/${file.filename}`);
     } else if (req.body.coverUrl) {
       images = Array.isArray(req.body.coverUrl) ? req.body.coverUrl : [req.body.coverUrl];
+      if (images.length > 10) {
+        return errorResponse(res, 'Chỉ được tải lên tối đa 10 ảnh/video', 400);
+      }
     }
     const imagesJson = images.length > 0 ? JSON.stringify(images) : null;
 

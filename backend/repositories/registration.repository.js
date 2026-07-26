@@ -5,7 +5,7 @@ class RegistrationRepository {
 async findEventForRegistration(eventId) {
     const pool = getPool();
     const eventRes = await pool.request().input('EventID', sql.Int, eventId)
-      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly,
+      .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly, StartDate, EndDate,
                 (SELECT COUNT(*) FROM Registrations WHERE EventID=@EventID AND Status='Registered') AS RegisteredCount
               FROM Events WHERE EventID=@EventID`);
     return eventRes.recordset[0];
@@ -25,6 +25,26 @@ async findEventForRegistration(eventId) {
       .input('EventID', sql.Int, eventId).input('PID', sql.Int, participantId)
       .query(`SELECT RegistrationID, Status FROM Registrations WHERE EventID=@EventID AND ParticipantID=@PID`);
     return dup.recordset[0];
+  }
+
+  async findOverlappingRegistrations(participantId, eventId, startDate, endDate) {
+    const pool = getPool();
+    const overlapping = await pool.request()
+      .input('PID', sql.Int, participantId)
+      .input('EventID', sql.Int, eventId)
+      .input('NewStart', sql.DateTime, startDate)
+      .input('NewEnd', sql.DateTime, endDate)
+      .query(`
+        SELECT e.Title 
+        FROM Registrations r
+        JOIN Events e ON r.EventID = e.EventID
+        WHERE r.ParticipantID = @PID 
+          AND r.EventID != @EventID
+          AND r.Status = 'Registered'
+          AND e.StartDate < @NewEnd 
+          AND e.EndDate > @NewStart
+      `);
+    return overlapping.recordset;
   }
 
     async updateRegistrationStatus(registrationId, status, note = null) {
@@ -71,10 +91,16 @@ async findEventForRegistration(eventId) {
   }
 
   // ─── FIND REGISTRATION FOR CANCEL ──────────────────────────────────────────────
-async findRegistrationForCancel(registrationId) {
+  async findRegistrationForCancel(registrationId) {
     const pool = getPool();
     const regRes = await pool.request().input('RegistrationID', sql.Int, registrationId)
-      .query(`SELECT r.*, e.RegistrationDeadline, e.Title AS EventTitle FROM Registrations r JOIN Events e ON r.EventID=e.EventID WHERE r.RegistrationID=@RegistrationID`);
+      .query(`
+        SELECT r.*, e.RegistrationDeadline, e.StartDate, e.Title AS EventTitle,
+               (SELECT TOP 1 IsUsed FROM QRTickets WHERE RegistrationID = r.RegistrationID) AS IsTicketUsed
+        FROM Registrations r 
+        JOIN Events e ON r.EventID=e.EventID 
+        WHERE r.RegistrationID=@RegistrationID
+      `);
     return regRes.recordset[0];
   }
 }

@@ -43,13 +43,14 @@ const EventListPage = () => {
     venueId: "",
     timeStatus: searchParams.get("timeStatus") || "upcoming",
     isInternal: "",
+    isOpenRegistration: false,
     startDate: "",
     endDate: "",
     page: 1,
     limit: 6,
     sortBy: searchParams.get("sortBy") || "StartDate",
     sortOrder: searchParams.get("sortOrder") || "ASC",
-    status: "Published",
+    status: "all_published_cancelled",
   });
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
@@ -61,7 +62,7 @@ const EventListPage = () => {
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
-    params.status = "Published";
+    params.status = "all_published_cancelled";
     fetchEvents(params);
   }, [filters]);
 
@@ -75,6 +76,7 @@ const EventListPage = () => {
       venueId: "",
       timeStatus: "",
       isInternal: "",
+      isOpenRegistration: false,
       startDate: "",
       endDate: "",
       page: 1,
@@ -85,6 +87,7 @@ const EventListPage = () => {
     filters.venueId ||
     filters.timeStatus ||
     filters.isInternal ||
+    filters.isOpenRegistration ||
     filters.startDate;
 
   const FilterPanel = () => (
@@ -223,6 +226,12 @@ const EventListPage = () => {
           <Option value="Rating_DESC">{t('browse.sortRatingDesc')}</Option>
           <Option value="Title_ASC">{t('browse.sortNameAsc')}</Option>
         </Select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+        <Text strong style={{ fontSize: 13, color: '#166534' }}>
+          Còn hạn đăng ký
+        </Text>
+        <Switch checked={filters.isOpenRegistration} onChange={(v) => updateFilter("isOpenRegistration", v)} style={{ background: filters.isOpenRegistration ? '#22c55e' : 'rgba(0,0,0,0.25)' }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#be123c', borderRadius: 8, border: '1px solid #9f1239', boxShadow: '0 4px 12px rgba(190,18,60,0.15)' }}>
         <Text strong style={{ fontSize: 13, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>

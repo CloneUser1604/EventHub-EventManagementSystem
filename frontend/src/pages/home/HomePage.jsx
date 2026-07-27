@@ -174,12 +174,12 @@ const HomePage = () => {
 
   // Top 3 upcoming events ranked by registration count
   const featuredEvents = [...events]
-    .filter((e) => dayjs(e.StartDate).isAfter(dayjs()) && dayjs(e.EndDate).isAfter(dayjs()))
+    .filter((e) => e.Status === 'Published' && dayjs(e.EndDate).isAfter(dayjs()))
     .sort((a, b) => (b.RegisteredCount || 0) - (a.RegisteredCount || 0))
     .slice(0, 3);
 
   const upcomingEvents = [...events]
-    .filter((e) => dayjs(e.StartDate).isAfter(dayjs()))
+    .filter((e) => e.Status === 'Published' && dayjs(e.StartDate).isAfter(dayjs()))
     .sort((a, b) => dayjs(a.StartDate).valueOf() - dayjs(b.StartDate).valueOf())
     .slice(0, 3);
 

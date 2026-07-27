@@ -114,6 +114,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const isPast = dayjs(reg.EndDate).isBefore(dayjs());
   const isOngoing = dayjs(reg.StartDate).isBefore(dayjs()) && !isPast;
   const isCancelled = reg.Status === 'Cancelled' || reg.EventStatus === 'Cancelled';
+  const deadlinePassed = reg.RegistrationDeadline && dayjs().isAfter(dayjs(reg.RegistrationDeadline));
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -204,7 +205,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
                 </Button>
               ) : null
             )}
-            {reg.Status === 'Registered' && !isPast && !isCancelled && !reg.isStaffForThisEvent && !reg.isSpeakerForThisEvent && (
+            {reg.Status === 'Registered' && !isPast && !isOngoing && !deadlinePassed && !isCancelled && !reg.isStaffForThisEvent && !reg.isSpeakerForThisEvent && (
               <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => onCancel(reg, t)}
                 style={{ borderRadius: 7, fontSize: 13 }}>
                 {t('calendar.cancel')}

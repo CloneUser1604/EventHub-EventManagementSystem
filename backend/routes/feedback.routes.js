@@ -13,36 +13,41 @@ router.get("/events/:eventId/feedbacks", feedbackController.getEventFeedbacks);
 router.get(
   "/events/:eventId/feedbacks/check-eligibility",
   authenticate,
+  authorize('Participant'),
   feedbackController.checkEligibility,
 );
 
-// Viết feedback (Bắt buộc phải đăng nhập -> dùng 'authenticate')
+// Viết feedback (Chỉ Participant mới được viết)
 router.post(
   "/events/:eventId/feedbacks",
   authenticate,
+  authorize('Participant'),
   uploadFeedback.array('media', 3),
   feedbackController.createFeedback,
 );
 
-// Cập nhật feedback
+// Cập nhật feedback (Chỉ Participant)
 router.put(
   "/events/:eventId/feedbacks",
   authenticate,
+  authorize('Participant'),
   uploadFeedback.array('media', 3),
   feedbackController.updateFeedback,
 );
 
-// Xóa feedback (Participant)
+// Xóa feedback (Chỉ Participant)
 router.delete(
   "/events/:eventId/feedbacks/:feedbackId",
   authenticate,
+  authorize('Participant'),
   feedbackController.deleteFeedback,
 );
 
-// Organizer trả lời feedback
+// Organizer trả lời feedback (Chỉ Organizer của sự kiện mới được rep - service đã check thêm)
 router.post(
   "/events/:eventId/feedbacks/:feedbackId/reply",
   authenticate,
+  authorize('Organizer'),
   feedbackController.replyFeedback,
 );
 

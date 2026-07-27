@@ -48,6 +48,11 @@ export default function FeedbackSection({eventId, adminFeedbackId}) {
         message.warning("Vui lòng đăng nhập để đánh giá.");
         return;
       }
+      if (user.role !== 'Participant' && user.Role !== 'Participant') {
+        message.error("Bạn không có quyền đánh giá sự kiện này. Chỉ người tham gia (Participant) mới được đánh giá.");
+        return;
+      }
+      
       const res = await feedbackService.checkEligibility(eventId);
       if (res.success) {
         setEditData(null);

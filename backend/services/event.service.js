@@ -33,6 +33,11 @@ class EventService {
       params.push({ name: 'OrgID', type: require('../config/db').sql.Int, value: user.UserID });
       if (status === 'all_published_cancelled') {
         conditions.push(`(e.Status IN ('Published', 'Cancelled') OR e.OrganizerID = @OrgID)`);
+      } else if (status === 'Published') {
+        conditions.push(`e.Status = 'Published'`);
+      } else if (status) {
+        conditions.push(`e.Status = @Status`);
+        params.push({ name: 'Status', type: require('../config/db').sql.VarChar(20), value: status });
       } else {
         conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
       }

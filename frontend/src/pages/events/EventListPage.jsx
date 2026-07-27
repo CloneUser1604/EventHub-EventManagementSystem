@@ -49,7 +49,7 @@ const EventListPage = () => {
     limit: 6,
     sortBy: searchParams.get("sortBy") || "StartDate",
     sortOrder: searchParams.get("sortOrder") || "ASC",
-    status: "all_published_cancelled",
+    status: "Published",
   });
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
@@ -61,7 +61,7 @@ const EventListPage = () => {
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
-    params.status = "all_published_cancelled";
+    params.status = "Published";
     fetchEvents(params);
   }, [filters]);
 

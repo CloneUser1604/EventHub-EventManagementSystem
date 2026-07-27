@@ -9,9 +9,9 @@ async function seed() {
   console.log('Fetching dependencies...');
   
   // Get an organizer
-  const orgResult = await pool.request().query("SELECT TOP 1 UserID FROM Users WHERE Role='Organizer'");
+  const orgResult = await pool.request().query("SELECT TOP 1 UserID FROM Users WHERE Email='organizerdemo@example.com'");
   if (orgResult.recordset.length === 0) {
-    console.error('No organizer found! Please create an organizer first.');
+    console.error("❌ No organizerdemo@example.com found! Please run clean_db.sql and start the backend to auto-seed default users first.");
     process.exit(1);
   }
   const orgId = orgResult.recordset[0].UserID;

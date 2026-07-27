@@ -98,7 +98,12 @@ const EventDashboardPage = () => {
       </div>
     )},
     { title: 'Mã vé', dataIndex: 'RegistrationID', render: v => `EMS-${v}` },
-    { title: 'Trạng thái', dataIndex: 'Status', render: () => <Tag color="green">Đã đăng ký</Tag> }
+    { title: 'Trạng thái', render: (_, r) => {
+      if (r.AttendanceStatus === 'Present' || r.AttendanceStatus === 'Late') {
+        return <Tag color="blue">Check-in thành công</Tag>;
+      }
+      return <Tag color="green">Đã đăng ký</Tag>;
+    }}
   ];
 
   const staffCols = [

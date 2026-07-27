@@ -160,13 +160,18 @@ async function seed() {
 
   console.log(`Seeding ${events.length} events...`);
   
-  // We first delete old [SEED] events to avoid duplicates when running multiple times
-  await pool.request().query("DELETE FROM Registrations WHERE EventID IN (SELECT EventID FROM Events WHERE Title LIKE '[[]SEED]%')");
-  await pool.request().query("DELETE FROM Events WHERE Title LIKE '[[]SEED]%'");
+  // We first delete old events to avoid duplicates when running multiple times
+  await pool.request().query("DELETE FROM Registrations WHERE EventID IN (SELECT EventID FROM Events WHERE OrganizerID IN (SELECT UserID FROM Users WHERE Email='organizerdemo@example.com'))");
+  await pool.request().query("DELETE FROM EventStaffs WHERE EventID IN (SELECT EventID FROM Events WHERE OrganizerID IN (SELECT UserID FROM Users WHERE Email='organizerdemo@example.com'))");
+  await pool.request().query("DELETE FROM Events WHERE OrganizerID IN (SELECT UserID FROM Users WHERE Email='organizerdemo@example.com')");
 
   // Prepare participants for registration
   const partRes = await pool.request().query("SELECT UserID FROM Users WHERE Role='Participant'");
   const participants = partRes.recordset.map(r => r.UserID);
+  
+  // Prepare staffs for assignment
+  const staffRes = await pool.request().query("SELECT UserID FROM Users WHERE Role='Staff'");
+  const staffs = staffRes.recordset.map(r => r.UserID);
 
   for (let ev of events) {
     let startDate, endDate, regDeadline, status;
@@ -230,22 +235,42 @@ async function seed() {
       const eventId = insertResult.recordset[0].EventID;
       console.log(`✅ Created: ${ev.title} (${ev.type}, Internal: ${ev.internal})`);
 
-      // Seed registrations if upcoming_open or ongoing
-      if ((ev.type === 'upcoming_open' || ev.type === 'ongoing') && participants.length > 0) {
+      // Seed registrations and staffs if upcoming_open or ongoing
+      if ((ev.type === 'upcoming_open' || ev.type === 'ongoing')) {
         // Assign up to 3 participants randomly
-        const shuffled = participants.sort(() => 0.5 - Math.random());
-        const selectedParts = shuffled.slice(0, 3);
-        
-        for (const pid of selectedParts) {
-          await pool.request()
-            .input('EventID', sql.Int, eventId)
-            .input('ParticipantID', sql.Int, pid)
-            .query(`
-              INSERT INTO Registrations (EventID, ParticipantID, Status)
-              VALUES (@EventID, @ParticipantID, 'Registered')
-            `);
+        if (participants.length > 0) {
+          const shuffledParts = participants.sort(() => 0.5 - Math.random());
+          const selectedParts = shuffledParts.slice(0, 3);
+          
+          for (const pid of selectedParts) {
+            await pool.request()
+              .input('EventID', sql.Int, eventId)
+              .input('ParticipantID', sql.Int, pid)
+              .query(`
+                INSERT INTO Registrations (EventID, ParticipantID, Status)
+                VALUES (@EventID, @ParticipantID, 'Registered')
+              `);
+          }
+          console.log(`   👉 Seeded ${selectedParts.length} registrations`);
         }
-        console.log(`   👉 Seeded ${selectedParts.length} registrations`);
+
+        // Assign up to 7 staffs randomly
+        if (staffs.length > 0) {
+          const shuffledStaffs = staffs.sort(() => 0.5 - Math.random());
+          const selectedStaffs = shuffledStaffs.slice(0, 7);
+          
+          for (const sid of selectedStaffs) {
+            await pool.request()
+              .input('EventID', sql.Int, eventId)
+              .input('StaffID', sql.Int, sid)
+              .input('AssignedBy', sql.Int, orgId)
+              .query(`
+                INSERT INTO EventStaffs (EventID, StaffID, AssignedBy)
+                VALUES (@EventID, @StaffID, @AssignedBy)
+              `);
+          }
+          console.log(`   👉 Seeded ${selectedStaffs.length} staffs`);
+        }
       }
 
     } catch (err) {

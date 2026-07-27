@@ -134,8 +134,8 @@ async function seed() {
     { title: "[SEED] Cuộc thi Hackathon Mùa hè xanh", type: "upcoming_open", internal: 1 },
 
     // 5-8: Sắp diễn ra (Hết hạn đăng ký)
-    { title: "[SEED] Lễ hội văn hóa Nhật Bản FPT", type: "upcoming_closed", internal: 1 },
-    { title: "[SEED] Workshop Kỹ năng mềm: Giao tiếp ấn tượng", type: "upcoming_closed", internal: 0 },
+    { title: "[SEED] Lễ hội văn hóa Nhật Bản FPT", type: "upcoming_open", internal: 1 },
+    { title: "[SEED] Workshop Kỹ năng mềm: Giao tiếp ấn tượng", type: "upcoming_open", internal: 0 },
     { title: "[SEED] Chia sẻ kinh nghiệm thực tập FSoft", type: "upcoming_closed", internal: 1 },
     { title: "[SEED] Buổi gặp gỡ CLB Tiếng Anh", type: "upcoming_closed", internal: 0 },
 
@@ -162,6 +162,10 @@ async function seed() {
   
   // We first delete old [SEED] events to avoid duplicates when running multiple times
   await pool.request().query("DELETE FROM Events WHERE Title LIKE '[[]SEED]%'");
+
+  // Prepare participants for registration
+  const partRes = await pool.request().query("SELECT UserID FROM Users WHERE Role='Participant'");
+  const participants = partRes.recordset.map(r => r.UserID);
 
   for (let ev of events) {
     let startDate, endDate, regDeadline, status;
@@ -195,7 +199,7 @@ async function seed() {
     }
 
     try {
-      await pool.request()
+      const insertResult = await pool.request()
         .input('OrganizerID', sql.Int, orgId)
         .input('CategoryID', sql.Int, getRandCat())
         .input('Title', sql.NVarChar(300), ev.title)
@@ -213,13 +217,36 @@ async function seed() {
             OrganizerID, CategoryID, Title, Description, CoverImageURL, 
             StartDate, EndDate, RegistrationDeadline, MaxParticipants, 
             IsInternalOnly, Status, ApprovalStatus
-          ) VALUES (
+          ) 
+          OUTPUT INSERTED.EventID
+          VALUES (
             @OrganizerID, @CategoryID, @Title, @Description, @CoverImageURL,
             @StartDate, @EndDate, @RegistrationDeadline, @MaxParticipants,
             @IsInternalOnly, @Status, @ApprovalStatus
           )
         `);
+      
+      const eventId = insertResult.recordset[0].EventID;
       console.log(`✅ Created: ${ev.title} (${ev.type}, Internal: ${ev.internal})`);
+
+      // Seed registrations if upcoming_open or ongoing
+      if ((ev.type === 'upcoming_open' || ev.type === 'ongoing') && participants.length > 0) {
+        // Assign up to 3 participants randomly
+        const shuffled = participants.sort(() => 0.5 - Math.random());
+        const selectedParts = shuffled.slice(0, 3);
+        
+        for (const pid of selectedParts) {
+          await pool.request()
+            .input('EventID', sql.Int, eventId)
+            .input('ParticipantID', sql.Int, pid)
+            .query(`
+              INSERT INTO Registrations (EventID, ParticipantID, Status)
+              VALUES (@EventID, @ParticipantID, 'Registered')
+            `);
+        }
+        console.log(`   👉 Seeded ${selectedParts.length} registrations`);
+      }
+
     } catch (err) {
       console.error(`❌ Failed to create ${ev.title}:`, err.message);
     }

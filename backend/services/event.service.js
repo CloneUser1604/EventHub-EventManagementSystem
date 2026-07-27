@@ -5,7 +5,7 @@ class EventService {
     const {
       page = 1, limit = 12,
       search, categoryId, venueId, status, approvalStatus,
-      startDate, endDate, organizerId, timeStatus, isInternal,
+      startDate, endDate, organizerId, timeStatus, isInternal, isOpenRegistration,
       sortBy = 'StartDate', sortOrder = 'ASC',
     } = query;
 
@@ -75,12 +75,21 @@ class EventService {
       params.push({ name: 'EndDate', type: require('../config/db').sql.DateTime, value: new Date(endDate) });
     }
 
-    if (timeStatus === 'upcoming') {
-      conditions.push(`e.StartDate > GETDATE()`);
-    } else if (timeStatus === 'ongoing') {
-      conditions.push(`e.StartDate <= GETDATE() AND e.EndDate >= GETDATE()`);
-    } else if (timeStatus === 'past') {
-      conditions.push(`e.EndDate < GETDATE()`);
+    if (timeStatus) {
+      conditions.push(`e.Status != 'Cancelled'`);
+      if (timeStatus === 'upcoming') {
+        conditions.push(`e.StartDate > GETUTCDATE()`);
+      } else if (timeStatus === 'ongoing') {
+        conditions.push(`e.StartDate <= GETUTCDATE() AND e.EndDate >= GETUTCDATE()`);
+      } else if (timeStatus === 'past') {
+        conditions.push(`e.EndDate < GETUTCDATE()`);
+      }
+    }
+    
+    if (isOpenRegistration === 'true') {
+      conditions.push(`e.Status != 'Cancelled'`);
+      conditions.push(`(e.RegistrationDeadline > GETUTCDATE() OR (e.RegistrationDeadline IS NULL AND e.StartDate > GETUTCDATE()))`);
+      conditions.push(`(e.MaxParticipants IS NULL OR e.MaxParticipants > (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered'))`);
     }
 
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';

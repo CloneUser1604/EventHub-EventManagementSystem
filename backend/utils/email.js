@@ -135,9 +135,46 @@ const sendWelcomeEmail = async (email, fullName) => {
   });
 };
 
+const sendOrganizerRejectionEmail = async (email, fullName, orgName, reason) => {
+  return sendEmail({
+    to: email,
+    subject: '⚠️ Hồ sơ Ban tổ chức đã bị từ chối',
+    html: `
+      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 40px 20px;">
+        <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border-top: 4px solid #ef4444;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #1a1a2e; font-size: 28px; margin: 0;">🎓 EMS</h1>
+            <p style="color: #6b7280; margin: 8px 0 0;">Thông báo từ Hệ thống Quản lý Sự kiện</p>
+          </div>
+          <h2 style="color: #1a1a2e; font-size: 22px;">Xin chào ${fullName},</h2>
+          <p style="color: #4b5563; line-height: 1.6;">
+            Rất tiếc, hồ sơ đăng ký Ban tổ chức <strong>"${orgName}"</strong> của bạn đã bị từ chối với lý do:
+          </p>
+          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin: 24px 0; color: #991b1b; font-weight: 500;">
+            ${reason}
+          </div>
+          <p style="color: #4b5563; line-height: 1.6;">
+            Vui lòng đăng nhập lại vào hệ thống để cập nhật và gửi lại hồ sơ của bạn.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${process.env.FRONTEND_URL}/login" 
+               style="background: #ef4444; 
+                      color: white; padding: 14px 32px; border-radius: 8px; 
+                      text-decoration: none; font-weight: 600; font-size: 16px; 
+                      display: inline-block;">
+              Đăng nhập để Sửa hồ sơ
+            </a>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendOrganizerRejectionEmail,
 };

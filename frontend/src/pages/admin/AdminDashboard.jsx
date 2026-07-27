@@ -106,6 +106,8 @@ const AdminDashboard = () => {
   
   // Search states
   const [searchEvent, setSearchEvent] = useState('');
+  const [eventStatusFilter, setEventStatusFilter] = useState('all');
+  const [eventSortOption, setEventSortOption] = useState('approvedAt');
   const [activeEventTab, setActiveEventTab] = useState('pending');
   const [activeReportTab, setActiveReportTab] = useState('blogs');
   const [searchOrg, setSearchOrg] = useState('');
@@ -122,6 +124,19 @@ const AdminDashboard = () => {
   const [approveEventModal, setApproveEventModal] = useState({ open: false, event: null });
   const [selectedStaffs, setSelectedStaffs] = useState([]);
   const [availableStaffs, setAvailableStaffs] = useState([]);
+  const [modalAvailableStaffs, setModalAvailableStaffs] = useState([]);
+
+  useEffect(() => {
+    if (approveEventModal.open && approveEventModal.event) {
+      fetch(`${API_BASE}/staff/available?eventId=${approveEventModal.event.EventID}`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } })
+        .then(res => res.json())
+        .then(data => setModalAvailableStaffs(data.data || []))
+        .catch(err => console.error(err));
+    } else {
+      setModalAvailableStaffs([]);
+      setSelectedStaffs([]);
+    }
+  }, [approveEventModal.open, approveEventModal.event]);
 
   const [staffModal, setStaffModal] = useState({ open: false, data: null });
   const [staffForm] = Form.useForm();
@@ -266,7 +281,7 @@ const AdminDashboard = () => {
   const handleOrgAction = async (profileId, action, reason = '') => {
     try {
       await adminService.reviewOrganizer(profileId, action, reason);
-      message.success(action === 'approve' ? '✅ Đã phê duyệt ban tổ chức' : '❌ Đã từ chối');
+      message.success(action === 'approve' ? 'Đã phê duyệt ban tổ chức' : 'Đã từ chối ban tổ chức');
       loadAll();
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
@@ -274,7 +289,7 @@ const AdminDashboard = () => {
   const handleEventAction = async (eventId, action, reason = '') => {
     try {
       await eventService.reviewEvent(eventId, action, reason);
-      message.success(action === 'approve' ? '✅ Đã duyệt & công bố sự kiện' : '❌ Đã từ chối sự kiện');
+      message.success(action === 'approve' ? 'Đã duyệt & công bố sự kiện' : 'Đã từ chối sự kiện');
       loadAll();
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
@@ -294,10 +309,10 @@ const AdminDashboard = () => {
         if (!assignData.success) {
           message.warning(`Duyệt sự kiện thành công nhưng lỗi gán Staff: ${assignData.message}`);
         } else {
-          message.success('✅ Đã duyệt sự kiện và gán Staff thành công!');
+          message.success('Đã duyệt sự kiện và gán Staff thành công!');
         }
       } else {
-        message.success('✅ Đã duyệt & công bố sự kiện (Chưa gán Staff)');
+        message.success('Đã duyệt & công bố sự kiện (Chưa gán Staff)');
       }
       setApproveEventModal({ open: false, event: null });
       setSelectedStaffs([]);
@@ -401,7 +416,7 @@ const AdminDashboard = () => {
   const handleSpeakerAction = async (speakerId, action, reason = '') => {
     try {
       await adminService.reviewSpeaker(speakerId, action, reason);
-      message.success(action === 'approve' ? '✅ Đã phê duyệt diễn giả' : '❌ Đã từ chối');
+      message.success(action === 'approve' ? 'Đã phê duyệt diễn giả' : 'Đã từ chối diễn giả');
       loadAll();
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
@@ -479,6 +494,17 @@ const AdminDashboard = () => {
         const label = { Published: 'Công bố', PendingApproval: 'Chờ duyệt', Draft: 'Nháp', Rejected: 'Từ chối', Cancelled: 'Đã huỷ', Completed: 'Kết thúc' };
         return <Tag color={cfg[s] || 'default'}>{label[s] || s}</Tag>;
       }
+    },
+    {
+      title: 'Tài liệu sự kiện', dataIndex: 'eventDocuments', width: 150,
+      render: (docs) => (
+        <Space size={4} wrap>
+          {(docs || []).map((f, i) => (
+            <Button key={i} size="small" type="link" icon={<DownloadOutlined />} href={`${API_BASE.replace('/api', '')}/uploads/events/${f}`} target="_blank">File {i + 1}</Button>
+          ))}
+          {(!docs || docs.length === 0) && <Text type="secondary" style={{ fontSize: 12 }}>Không có</Text>}
+        </Space>
+      ),
     },
     {
       title: 'Hành động', width: 320,
@@ -1008,7 +1034,19 @@ const AdminDashboard = () => {
             <div>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0, marginBottom: 24 }}>
                 <Title level={4} style={{ fontFamily: "'Inter', sans-serif", margin: 0 }}>Quản lý Sự kiện</Title>
-                <Input.Search placeholder="Tìm kiếm sự kiện..." value={searchEvent} onChange={e => setSearchEvent(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
+                <Space style={{ display: 'flex', flexWrap: 'wrap' }}>
+                  <Select value={eventStatusFilter} onChange={setEventStatusFilter} style={{ width: 140 }}>
+                    <Select.Option value="all">Tất cả</Select.Option>
+                    <Select.Option value="Published">Đã công bố</Select.Option>
+                    <Select.Option value="Completed">Đã kết thúc</Select.Option>
+                    <Select.Option value="Cancelled">Đã huỷ</Select.Option>
+                  </Select>
+                  <Select value={eventSortOption} onChange={setEventSortOption} style={{ width: 160 }}>
+                    <Select.Option value="approvedAt">Thời gian duyệt</Select.Option>
+                    <Select.Option value="startDate">Ngày diễn ra</Select.Option>
+                  </Select>
+                  <Input.Search placeholder="Tìm kiếm sự kiện..." value={searchEvent} onChange={e => setSearchEvent(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
+                </Space>
               </div>
               {isMobile ? (
                 <div style={{ marginBottom: 16 }}>
@@ -1030,7 +1068,10 @@ const AdminDashboard = () => {
                     <Table size="small" columns={eventCols} dataSource={allEvents.filter(e => e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có yêu cầu chỉnh sửa nào' }} />
                   )}
                   {activeEventTab === 'approved' && (
-                    <Table size="small" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                    <Table size="small" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())) && (eventStatusFilter === 'all' || e.Status === eventStatusFilter)).sort((a,b) => {
+                      if (eventSortOption === 'startDate') return new Date(a.StartDate) - new Date(b.StartDate);
+                      return new Date(a.ApprovedAt || a.UpdatedAt) - new Date(b.ApprovedAt || b.UpdatedAt);
+                    })} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
                   )}
                 </div>
               ) : (
@@ -1048,7 +1089,10 @@ const AdminDashboard = () => {
                   {
                     key: 'approved',
                     label: 'Sự kiện đã duyệt/công bố',
-                    children: <Table size="middle" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())))} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
+                    children: <Table size="middle" columns={eventCols} dataSource={allEvents.filter(e => (e.ApprovalStatus === 'Approved' || e.Status === 'Published' || e.Status === 'Completed') && !e.ProposedChanges && (!searchEvent || e.Title?.toLowerCase().includes(searchEvent.toLowerCase())) && (eventStatusFilter === 'all' || e.Status === eventStatusFilter)).sort((a,b) => {
+                      if (eventSortOption === 'startDate') return new Date(a.StartDate) - new Date(b.StartDate);
+                      return new Date(a.ApprovedAt || a.UpdatedAt) - new Date(b.ApprovedAt || b.UpdatedAt);
+                    })} rowKey="EventID" pagination={{ pageSize: 10 }} scroll={{ x: 800 }} locale={{ emptyText: 'Không có sự kiện nào' }} />
                   }
                 ]} />
               )}
@@ -1332,6 +1376,50 @@ const AdminDashboard = () => {
       >
         <div style={{ marginBottom: 16 }}>
           <Text>Bạn đang duyệt sự kiện: <Text strong>{approveEventModal.event?.Title}</Text></Text>
+          
+          <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>Tài liệu xin phép tổ chức sự kiện:</Text>
+            {approveEventModal.event?.eventDocuments && approveEventModal.event.eventDocuments.length > 0 ? (
+              <Space size={8} wrap>
+                {approveEventModal.event.eventDocuments.map((doc, idx) => (
+                  <Button 
+                    key={`ev-${idx}`} 
+                    size="small" 
+                    type="primary" 
+                    icon={<DownloadOutlined />} 
+                    href={`${API_BASE.replace('/api', '')}/uploads/events/${doc}`} 
+                    target="_blank"
+                  >
+                    Tài liệu sự kiện {idx + 1}
+                  </Button>
+                ))}
+              </Space>
+            ) : (
+              <Text type="secondary" italic>Không có tài liệu sự kiện</Text>
+            )}
+
+            <Divider style={{ margin: '12px 0' }} />
+
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>Tài liệu xác minh của Ban tổ chức:</Text>
+            {approveEventModal.event?.organizerDocuments && approveEventModal.event.organizerDocuments.length > 0 ? (
+              <Space size={8} wrap>
+                {approveEventModal.event.organizerDocuments.map((doc, idx) => (
+                  <Button 
+                    key={`org-${idx}`} 
+                    size="small" 
+                    type="default" 
+                    icon={<DownloadOutlined />} 
+                    href={`${API_BASE.replace('/api', '')}/uploads/organizer-docs/${doc}`} 
+                    target="_blank"
+                  >
+                    Hồ sơ tổ chức {idx + 1}
+                  </Button>
+                ))}
+              </Space>
+            ) : (
+              <Text type="secondary" italic>Không có hồ sơ tổ chức đính kèm</Text>
+            )}
+          </div>
         </div>
         <div style={{ marginBottom: 8 }}>
           <Text strong>Phân công Staff (Không bắt buộc)</Text>
@@ -1345,7 +1433,7 @@ const AdminDashboard = () => {
           style={{ width: '100%' }}
           value={selectedStaffs}
           onChange={setSelectedStaffs}
-          options={availableStaffs.map(s => ({ value: s.UserID, label: `${s.FullName} (${s.Email})` }))}
+          options={modalAvailableStaffs.map(s => ({ value: s.UserID, label: `${s.FullName} (${s.Email})` }))}
           filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
         />
       </Modal>

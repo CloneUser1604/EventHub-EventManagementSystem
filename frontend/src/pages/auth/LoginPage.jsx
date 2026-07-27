@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
 import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
+import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../../store/authStore';
 import './Auth.css';
 
@@ -9,7 +10,7 @@ const LoginPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const { login, googleLogin, isLoading, isAuthenticated } = useAuthStore();
   const [rememberMe, setRememberMe] = useState(false);
 
   const from = location.state?.from?.pathname || '/dashboard';
@@ -17,13 +18,6 @@ const LoginPage = () => {
   useEffect(() => {
     if (isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, navigate, from]);
-
-  useEffect(() => {
-    if (error) {
-      message.error(error);
-      clearError();
-    }
-  }, [error, clearError]);
 
   const onFinish = async (values) => {
     console.log('🔐 [LOGIN SUBMIT] email:', values.email);
@@ -48,6 +42,39 @@ const LoginPage = () => {
       navigate(dest, { replace: true });
     } else {
       console.error('❌ Login failed:', result.message);
+      if (result.code === 'REJECTED_ORGANIZER') {
+        message.error({
+          content: (
+            <span>
+              {result.message}{' '}
+              <Button type="link" size="small" onClick={() => navigate('/register', { state: { isEditRejected: true, prefillData: result.user, reason: result.reason } })} style={{ padding: 0 }}>
+                [Sửa hồ sơ]
+              </Button>
+            </span>
+          ),
+          duration: 10,
+        });
+      } else {
+        message.error(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      }
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    console.log('Google Login Success', credentialResponse);
+    const result = await googleLogin(credentialResponse.credential);
+    if (result.success) {
+      message.success('Đăng nhập bằng Google thành công!');
+      const role = result.user?.role || '';
+      const dest = role === 'Admin' ? '/admin'
+                 : role === 'Organizer' ? '/organizer/events'
+                 : role === 'Participant' ? '/'
+                 : role === 'Speaker' ? '/my-calendar'
+                 : role === 'Staff' ? '/'
+                 : from === '/dashboard' ? '/' : from;
+      navigate(dest, { replace: true });
+    } else {
+      message.error(result.message || 'Đăng nhập Google thất bại');
     }
   };
 
@@ -158,6 +185,20 @@ const LoginPage = () => {
               </Button>
             </Form.Item>
           </Form>
+
+          <Divider plain>
+            <span className="divider-text">Hoặc đăng nhập bằng</span>
+          </Divider>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                message.error('Đăng nhập Google thất bại');
+              }}
+              useOneTap
+            />
+          </div>
 
           <Divider plain>
             <span className="divider-text">Chưa có tài khoản?</span>

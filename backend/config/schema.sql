@@ -4,6 +4,8 @@
 -- ============================================================
 
 -- Drop existing tables in reverse dependency order
+IF OBJECT_ID('Feedbacks', 'U') IS NOT NULL DROP TABLE Feedbacks;
+IF OBJECT_ID('Reports', 'U') IS NOT NULL DROP TABLE Reports;
 IF OBJECT_ID('EventSponsors', 'U') IS NOT NULL DROP TABLE EventSponsors;
 IF OBJECT_ID('Sponsors', 'U') IS NOT NULL DROP TABLE Sponsors;
 IF OBJECT_ID('Notifications', 'U') IS NOT NULL DROP TABLE Notifications;
@@ -11,7 +13,6 @@ IF OBJECT_ID('BlogCommentLikes', 'U') IS NOT NULL DROP TABLE BlogCommentLikes;
 IF OBJECT_ID('BlogComments', 'U') IS NOT NULL DROP TABLE BlogComments;
 IF OBJECT_ID('BlogLikes', 'U') IS NOT NULL DROP TABLE BlogLikes;
 IF OBJECT_ID('BlogPollVotes', 'U') IS NOT NULL DROP TABLE BlogPollVotes;
-IF OBJECT_ID('Reports', 'U') IS NOT NULL DROP TABLE Reports;
 IF OBJECT_ID('SavedBlogs', 'U') IS NOT NULL DROP TABLE SavedBlogs;
 IF OBJECT_ID('Blogs', 'U') IS NOT NULL DROP TABLE Blogs;
 IF OBJECT_ID('SurveyResponses', 'U') IS NOT NULL DROP TABLE SurveyResponses;
@@ -30,7 +31,6 @@ IF OBJECT_ID('Categories', 'U') IS NOT NULL DROP TABLE Categories;
 IF OBJECT_ID('SpeakerProfiles', 'U') IS NOT NULL DROP TABLE SpeakerProfiles;
 IF OBJECT_ID('OrganizerProfiles', 'U') IS NOT NULL DROP TABLE OrganizerProfiles;
 IF OBJECT_ID('Users', 'U') IS NOT NULL DROP TABLE Users;
-IF OBJECT_ID('Feedbacks', 'U') IS NOT NULL DROP TABLE Feedbacks;
 
 -- ============================================================
 -- 1. USERS

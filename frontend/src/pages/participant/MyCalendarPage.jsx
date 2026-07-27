@@ -17,6 +17,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 import { getImageUrl } from '../../utils/imageHelpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import useAuthStore from '../../store/authStore';
+import { staffService } from '../../services/staff.service';
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -224,6 +226,7 @@ const MyCalendarPage = () => {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const { t } = useTranslation();
   
+  const { user } = useAuthStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -237,7 +240,38 @@ const MyCalendarPage = () => {
     setLoading(true);
     try {
       const res = await registrationService.getMyRegistrations();
-      setRegistrations(res.data.data);
+      let combined = res.data.data || [];
+      
+      if (user?.Role === 'Staff' || (user?.Roles && user.Roles.includes('Staff'))) {
+        try {
+          const staffRes = await staffService.getMyEvents();
+          const staffEvents = (staffRes.data || []).map(e => ({
+            EventID: e.EventID,
+            Title: e.Title,
+            StartDate: e.StartDate,
+            EndDate: e.EndDate,
+            Status: 'Registered',
+            EventStatus: e.Status,
+            isStaffForThisEvent: true,
+            CoverImageURL: e.CoverImageURL || e.CoverImageUrl,
+            VenueName: e.VenueName
+          }));
+          
+          const existingIds = new Set(combined.map(c => c.EventID));
+          staffEvents.forEach(se => {
+            if (!existingIds.has(se.EventID)) {
+              combined.push(se);
+            } else {
+              const idx = combined.findIndex(c => c.EventID === se.EventID);
+              combined[idx].isStaffForThisEvent = true;
+            }
+          });
+        } catch (e) {
+          console.error('Lỗi lấy sự kiện Staff:', e);
+        }
+      }
+      
+      setRegistrations(combined);
     } catch { message.error('Tải dữ liệu thất bại'); }
     finally { setLoading(false); }
   };

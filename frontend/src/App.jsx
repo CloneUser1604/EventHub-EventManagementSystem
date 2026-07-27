@@ -5,6 +5,7 @@ import viVN from "antd/locale/vi_VN";
 import enUS from "antd/locale/en_US";
 import useAuthStore from "./store/authStore";
 import useSettingStore from "./store/settingStore";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import "./styles/global.css";
 
 // Auth
@@ -110,6 +111,7 @@ function App() {
   };
 
   return (
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
     <ConfigProvider locale={language === 'en' ? enUS : viVN} theme={getAntdTheme()}>
       <AntdApp>
         <BrowserRouter
@@ -247,6 +249,7 @@ function App() {
         </BrowserRouter>
       </AntdApp>
     </ConfigProvider>
+    </GoogleOAuthProvider>
   );
 }
 

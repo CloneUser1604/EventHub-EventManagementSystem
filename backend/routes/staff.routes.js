@@ -7,12 +7,16 @@ const {
   updateStaff,
   deleteStaff,
   getAssignedStaff,
+  getMyEvents,
   assignStaff,
   generateStaffSession,
   revokeStaff,
   participantCheckinWithOTP,
   getEventParticipants
 } = require('../controllers/staff.controller');
+
+// Staff: Lấy danh sách sự kiện được gán
+router.get('/my-events', authenticate, authorize('Staff'), getMyEvents);
 
 // Lấy danh sách Staff khả dụng (Admin)
 router.get('/available', authenticate, authorize('Admin'), getAvailableStaff);

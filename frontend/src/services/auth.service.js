@@ -3,6 +3,7 @@ import api from '../utils/axiosConfig';
 export const authService = {
   register: (data) => api.post('/auth/register', data),
   login:    (data) => api.post('/auth/login', data),
+  googleLogin: (idToken) => api.post('/auth/google-login', { idToken }),
   logout:   ()     => api.post('/auth/logout'),
   verifyEmail:          (token) => api.get(`/auth/verify-email?token=${token}`),
   resendVerification:   (email) => api.post('/auth/resend-verification', { email }),
@@ -12,4 +13,5 @@ export const authService = {
   refreshToken:         (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
   getMe:                ()      => api.get('/auth/me'),
   createSpeaker:        (data)  => api.post('/auth/speakers', data),
+  resubmitOrganizer:    (data)  => api.post('/auth/resubmit-organizer', data),
 };

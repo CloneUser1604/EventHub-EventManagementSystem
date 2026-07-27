@@ -8,7 +8,7 @@ const {
   forgotPassword, resetPassword, changePassword,
   createSpeaker, approveSpeaker,
   approveOrganizer, getPendingOrganizers, getAllOrganizers, getPendingSpeakers, getAllSpeakers,
-  updateSettings, deleteAccount,
+  updateSettings, deleteAccount, resubmitOrganizer, googleLogin
 } = require('../controllers/auth.controller');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, registerRules, loginRules, forgotPasswordRules, resetPasswordRules, changePasswordRules, createSpeakerRules } = require('../middleware/validators');
@@ -18,9 +18,11 @@ const emailLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { succe
 
 // Public
 router.post('/register', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), registerRules, validate, register);
+router.post('/resubmit-organizer', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), loginRules, validate, resubmitOrganizer);
 router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', emailLimiter, resendVerification);
 router.post('/login', loginRules, validate, login);
+router.post('/google-login', authLimiter, googleLogin);
 router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', emailLimiter, forgotPasswordRules, validate, forgotPassword);
 router.post('/reset-password', authLimiter, resetPasswordRules, validate, resetPassword);

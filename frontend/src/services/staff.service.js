@@ -6,6 +6,16 @@ export const staffService = {
     return res.data;
   },
   
+  getAssignedStaff: async (eventId) => {
+    const res = await api.get(`/staff/events/${eventId}/assigned`);
+    return res.data;
+  },
+
+  getMyEvents: async () => {
+    const res = await api.get('/staff/my-events');
+    return res.data;
+  },
+
   inviteStaff: async (eventId, participantId) => {
     const res = await api.post(`/staff/events/${eventId}/invite`, { participantId });
     return res.data;

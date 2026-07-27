@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Upload, message, Result, Typography, Radio, Select } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Form, Input, Button, Upload, message, Result, Typography, Radio, Alert } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, PhoneOutlined, TeamOutlined, InboxOutlined } from '@ant-design/icons';
+import { GoogleLogin } from '@react-oauth/google';
+import useAuthStore from '../../store/authStore';
 import './Auth.css';
 
 const { Text } = Typography;
@@ -26,11 +28,27 @@ const ROLES = [
 const RegisterPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [role, setRole] = useState('Participant');
+  const location = useLocation();
+  const { isEditRejected, prefillData, reason } = location.state || {};
+  const { googleLogin } = useAuthStore();
+
+  const [role, setRole] = useState(isEditRejected ? 'Organizer' : 'Participant');
   const [isUniversityStudent, setIsUniversityStudent] = useState(false);
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState({ done: false, email: '', message: '' });
+
+  useEffect(() => {
+    if (isEditRejected && prefillData) {
+      form.setFieldsValue({
+        email: prefillData.email,
+        fullName: prefillData.fullName,
+        phone: prefillData.phone,
+        organizationName: prefillData.organizationName,
+      });
+      // The user must enter password, so we don't prefill password
+    }
+  }, [isEditRejected, prefillData, form]);
 
   const onFinish = async (values) => {
     if (role === 'Organizer' && fileList.length === 0) {
@@ -52,7 +70,8 @@ const RegisterPage = () => {
         fileList.forEach(f => formData.append('documents', f.originFileObj));
       }
 
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const endpoint = isEditRejected ? '/auth/resubmit-organizer' : '/auth/register';
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
@@ -68,6 +87,24 @@ const RegisterPage = () => {
       message.error('Lỗi kết nối. Vui lòng thử lại.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    console.log('Google Login/Register Success', credentialResponse);
+    const result = await googleLogin(credentialResponse.credential);
+    if (result.success) {
+      message.success('Đăng nhập/Đăng ký bằng Google thành công!');
+      const role = result.user?.role || '';
+      const dest = role === 'Admin' ? '/admin'
+                 : role === 'Organizer' ? '/organizer/events'
+                 : role === 'Participant' ? '/'
+                 : role === 'Speaker' ? '/my-calendar'
+                 : role === 'Staff' ? '/'
+                 : '/';
+      navigate(dest, { replace: true });
+    } else {
+      message.error(result.message || 'Đăng nhập Google thất bại');
     }
   };
 
@@ -139,12 +176,23 @@ const RegisterPage = () => {
             <Button type="link" onClick={() => navigate('/')} style={{ padding: 0, marginBottom: 16, color: '#6b7280' }}>
               ← Về trang chủ
             </Button>
-            <h2>Tạo tài khoản</h2>
-            <p>Chọn loại tài khoản phù hợp với bạn.</p>
+            <h2>{isEditRejected ? 'Sửa hồ sơ Ban tổ chức' : 'Tạo tài khoản'}</h2>
+            <p>{isEditRejected ? 'Cập nhật lại thông tin và giấy tờ để nộp lại hồ sơ.' : 'Chọn loại tài khoản phù hợp với bạn.'}</p>
           </div>
 
+          {isEditRejected && (
+            <Alert
+              message="Hồ sơ bị từ chối"
+              description={reason}
+              type="error"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+          )}
+
           {/* Role selector */}
-          <div className="role-selector" style={{ marginBottom: 24 }}>
+          {!isEditRejected && (
+            <div className="role-selector" style={{ marginBottom: 24 }}>
             {ROLES.map(r => (
               <div key={r.value}
                 className={`role-card ${role === r.value ? 'role-card--active' : ''}`}
@@ -156,20 +204,24 @@ const RegisterPage = () => {
               </div>
             ))}
           </div>
+          )}
 
           <Form form={form} layout="vertical" onFinish={onFinish} size="large" requiredMark={false}>
             <Form.Item name="fullName" label="Họ và tên"
               rules={[{ required: true, message: 'Vui lòng nhập họ tên' }, { min: 2, message: 'Ít nhất 2 ký tự' }]}>
-              <Input prefix={<UserOutlined className="input-icon" />} placeholder="Nguyễn Văn A" />
+              <Input prefix={<UserOutlined className="input-icon" />} placeholder="Nguyễn Văn A" disabled={isEditRejected} />
             </Form.Item>
 
             <Form.Item name="email" label="Email"
               rules={[{ required: true, message: 'Vui lòng nhập email' }, { type: 'email', message: 'Email không hợp lệ' }]}>
-              <Input prefix={<MailOutlined className="input-icon" />} placeholder="example@email.com" />
+              <Input prefix={<MailOutlined className="input-icon" />} placeholder="example@email.com" disabled={isEditRejected} />
             </Form.Item>
 
-            <Form.Item name="phone" label="Số điện thoại (tuỳ chọn)">
-              <Input prefix={<PhoneOutlined className="input-icon" />} placeholder="0912345678" />
+            <Form.Item name="phone" label="Số điện thoại (tuỳ chọn)"
+              rules={[
+                { pattern: /^[0-9]{10,11}$/, message: 'Vui lòng nhập đúng định dạng số điện thoại (10-11 số)' }
+              ]}>
+              <Input prefix={<PhoneOutlined className="input-icon" />} placeholder="0912345678" disabled={isEditRejected} />
             </Form.Item>
 
             {role === 'Participant' && (
@@ -177,6 +229,7 @@ const RegisterPage = () => {
                   <Radio.Group 
                     onChange={(e) => setIsUniversityStudent(e.target.value)} 
                     value={isUniversityStudent}
+                    disabled={isEditRejected}
                   >
                     <Radio value={true}>Có</Radio>
                     <Radio value={false}>Không</Radio>
@@ -188,7 +241,7 @@ const RegisterPage = () => {
               <>
                 <Form.Item name="organizationName" label="Tên tổ chức / CLB"
                   rules={[{ required: true, message: 'Vui lòng nhập tên tổ chức' }]}>
-                  <Input prefix={<TeamOutlined className="input-icon" />} placeholder="CLB Công nghệ thông tin" />
+                  <Input prefix={<TeamOutlined className="input-icon" />} placeholder="CLB Công nghệ thông tin" disabled={isEditRejected} />
                 </Form.Item>
 
                 <Form.Item
@@ -249,9 +302,29 @@ const RegisterPage = () => {
 
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading} block className="auth-submit-btn">
-                {loading ? 'Đang tạo tài khoản...' : `Đăng ký ${role === 'Organizer' ? 'Ban tổ chức' : 'Người tham dự'}`}
+                {loading ? 'Đang xử lý...' : (isEditRejected ? 'Gửi lại hồ sơ' : `Đăng ký ${role === 'Organizer' ? 'Ban tổ chức' : 'Người tham dự'}`)}
               </Button>
             </Form.Item>
+
+            {role === 'Participant' && !isEditRejected && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', margin: '16px 0' }}>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }}></div>
+                  <span style={{ margin: '0 12px', color: '#6b7280', fontSize: 13 }}>Hoặc đăng ký bằng</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }}></div>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                      message.error('Đăng nhập Google thất bại');
+                    }}
+                    useOneTap
+                  />
+                </div>
+              </>
+            )}
 
             <div className="auth-footer-text">
               Đã có tài khoản?{' '}

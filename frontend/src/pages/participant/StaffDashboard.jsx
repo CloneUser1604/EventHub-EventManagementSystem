@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Typography, message, Table, Tag, Avatar } from 'antd';
+import { Card, Button, Typography, message, Table, Tag, Avatar, Select, Empty } from 'antd';
 import { QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../../utils/axiosConfig';
+import { staffService } from '../../services/staff.service';
 
 const { Title, Text } = Typography;
 
@@ -11,21 +12,30 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
-  
-  // Hardcode tạm eventId để test (Trong thực tế staff chọn sự kiện từ danh sách)
-  const mockEventId = 1;
+  const [myEvents, setMyEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
-    fetchParticipants();
-    // Tạo 1 interval cập nhật danh sách mỗi 10 giây (nếu đang ở màn hình này)
-    const interval = setInterval(fetchParticipants, 10000);
-    return () => clearInterval(interval);
+    staffService.getMyEvents().then(res => {
+      if (res.data) {
+        setMyEvents(res.data);
+      }
+    }).catch(err => console.error(err));
   }, []);
 
+  useEffect(() => {
+    if (!selectedEventId) return;
+    
+    fetchParticipants();
+    const interval = setInterval(fetchParticipants, 10000);
+    return () => clearInterval(interval);
+  }, [selectedEventId]);
+
   const fetchParticipants = async () => {
+    if (!selectedEventId) return;
     setLoadingParticipants(true);
     try {
-      const res = await api.get(`/staff/events/${mockEventId}/participants`);
+      const res = await api.get(`/staff/events/${selectedEventId}/participants`);
       if (res.data.success) {
         setParticipants(res.data.data);
       }
@@ -37,9 +47,13 @@ const StaffDashboard = () => {
   };
 
   const generateStaffSession = async () => {
+    if (!selectedEventId) {
+      message.error('Vui lòng chọn sự kiện trước');
+      return;
+    }
     setLoading(true);
     try {
-      const res = await api.get(`/staff/session/${mockEventId}`);
+      const res = await api.get(`/staff/session/${selectedEventId}`);
       if (res.data.success) {
         setQrToken(res.data.data.qrToken);
         message.success('Đã tạo phiên check-in mới!');
@@ -69,9 +83,25 @@ const StaffDashboard = () => {
     <div style={{ padding: '40px 24px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
       <Title level={2} style={{ fontFamily: "'Inter', sans-serif" }}>Dành cho Staff (Nhân viên điểm danh)</Title>
       <Text type="secondary">Vui lòng sinh mã QR Code phiên làm việc của bạn. Người tham gia sẽ quét mã này và nhập OTP để điểm danh.</Text>
+
+      <div style={{ marginTop: '24px', textAlign: 'left' }}>
+        <Text strong>Chọn sự kiện: </Text>
+        <Select
+          style={{ width: 300 }}
+          placeholder="Chọn sự kiện để điểm danh"
+          value={selectedEventId}
+          onChange={(val) => { setSelectedEventId(val); setQrToken(null); }}
+        >
+          {myEvents.map(e => (
+            <Select.Option key={e.EventID} value={e.EventID}>{e.Title}</Select.Option>
+          ))}
+        </Select>
+      </div>
       
-      <Card style={{ marginTop: '24px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-        {!qrToken ? (
+      {selectedEventId ? (
+        <>
+          <Card style={{ marginTop: '24px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+            {!qrToken ? (
           <div style={{ padding: '40px 0' }}>
             <QrcodeOutlined style={{ fontSize: '64px', color: '#d9d9d9', marginBottom: '16px' }} />
             <div>
@@ -110,6 +140,12 @@ const StaffDashboard = () => {
           locale={{ emptyText: 'Chưa có người tham dự' }}
         />
       </div>
+        </>
+      ) : (
+        <div style={{ marginTop: 40 }}>
+          <Empty description="Vui lòng chọn sự kiện ở trên để bắt đầu" />
+        </div>
+      )}
     </div>
   );
 };

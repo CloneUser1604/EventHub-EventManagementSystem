@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Form, Input, Button, Select, DatePicker, Upload, InputNumber,
-  message, Steps, Divider, Card, Typography, Space, Modal, Alert, Radio
+  message, Steps, Divider, Card, Typography, Space, Modal, Alert, Radio, Tabs
 } from 'antd';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -107,6 +107,7 @@ const EventFormPage = () => {
       if (values.registrationDeadline) formData.append('registrationDeadline', values.registrationDeadline.toISOString());
       if (values.maxParticipants) formData.append('maxParticipants', values.maxParticipants);
       if (values.isInternalOnly !== undefined) formData.append('isInternalOnly', values.isInternalOnly);
+      if (values.coverImageURL) formData.append('coverImageURL', values.coverImageURL);
       
       const invalidSession = sessions.find(s => !(s.title || s.Title) || !(s.startTime || s.StartTime) || !(s.endTime || s.EndTime));
       if (invalidSession) {
@@ -288,20 +289,37 @@ const EventFormPage = () => {
             </div>
 
             <Form.Item label={t('createEvent.coverImage')}>
-              <Dragger
-                maxCount={1}
-                fileList={coverFileList}
-                beforeUpload={() => false}
-                onChange={({ fileList: fl }) => setCoverFileList(fl)}
-                accept="image/*"
-                listType="picture"
-              >
-                <p className="ant-upload-drag-icon"><UploadOutlined /></p>
-                <p className="ant-upload-text">{t('createEvent.dragCover')}</p>
-              </Dragger>
+              <Tabs defaultActiveKey="upload" items={[
+                {
+                  key: 'upload',
+                  label: 'Tải ảnh lên',
+                  children: (
+                    <Dragger
+                      maxCount={1}
+                      fileList={coverFileList}
+                      beforeUpload={() => false}
+                      onChange={({ fileList: fl }) => setCoverFileList(fl)}
+                      accept="image/*"
+                      listType="picture"
+                    >
+                      <p className="ant-upload-drag-icon"><UploadOutlined /></p>
+                      <p className="ant-upload-text">{t('createEvent.dragCover')}</p>
+                    </Dragger>
+                  )
+                },
+                {
+                  key: 'url',
+                  label: 'Nhập đường dẫn (URL)',
+                  children: (
+                    <Form.Item name="coverImageURL" noStyle>
+                      <Input placeholder="Nhập đường dẫn ảnh (ví dụ: https://...)" />
+                    </Form.Item>
+                  )
+                }
+              ]} />
             </Form.Item>
 
-            <Form.Item label={<span>{t('createEvent.eventDocs')} <span style={{color: 'red'}}>*</span> <span style={{fontSize: 13, color: '#6b7280'}}>{t('createEvent.requiredDocs')}</span></span>}>
+            <Form.Item label={<span>{t('createEvent.eventDocs')} <span style={{color: 'red'}}>*</span></span>}>
               <Dragger
                 multiple
                 maxCount={5}
@@ -481,7 +499,7 @@ const EventFormPage = () => {
 
       {/* Speaker Modal */}
       <Modal open={speakerModal} onCancel={() => setSpeakerModal(false)} onOk={handleCreateSpeaker}
-        confirmLoading={addingSpeaker} okText={t('createEvent.createAccount')}
+        confirmLoading={addingSpeaker} okText={t('createEvent.submitSpeaker', { defaultValue: 'Tạo diễn giả' })}
         title={<span style={{ fontFamily: "'Inter', sans-serif" }}>🎤 {t('createEvent.addNewSpeaker')}</span>}
         width={480}>
         <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 8 }}

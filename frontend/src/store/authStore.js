@@ -47,9 +47,51 @@ const useAuthStore = create(
           set({ user: normalizedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
           return { success: true, user: normalizedUser };
         } catch (err) {
-          const message = err.response?.data?.message || 'Đăng nhập thất bại';
+          const errorData = err.response?.data || {};
+          const message = errorData.message || 'Đăng nhập thất bại';
           set({ isLoading: false, error: message });
-          return { success: false, message };
+          return { success: false, ...errorData, message };
+        }
+      },
+
+      googleLogin: async (idToken) => {
+        set({ isLoading: true, error: null });
+        try {
+          const res = await authService.googleLogin(idToken);
+          const data = res.data.data || res.data;
+          
+          if (data.mustChangePassword) {
+            set({ isLoading: false });
+            return { success: true, mustChangePassword: true, user: data.user };
+          }
+
+          const { accessToken, refreshToken, user } = data;
+          const normalizedUser = {
+            ...user,
+            userId: user.UserID || user.userId,
+            fullName: user.FullName || user.fullName,
+            email: user.Email || user.email,
+            role: user.Role || user.role,
+            avatarURL: user.AvatarURL || user.avatarURL,
+            phone: user.Phone || user.phone,
+            university: user.University || user.university, 
+            UserID: user.UserID || user.userId,
+            FullName: user.FullName || user.fullName,
+            Role: user.Role || user.role,
+            Email: user.Email || user.email,
+            AvatarURL: user.AvatarURL || user.avatarURL,
+            University: user.University || user.university
+          };
+
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
+          set({ user: normalizedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
+          return { success: true, user: normalizedUser };
+        } catch (err) {
+          const errorData = err.response?.data || {};
+          const message = errorData.message || 'Đăng nhập Google thất bại';
+          set({ isLoading: false, error: message });
+          return { success: false, ...errorData, message };
         }
       },
 

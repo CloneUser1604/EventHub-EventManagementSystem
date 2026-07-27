@@ -30,11 +30,13 @@ import {
   HeartFilled,
   QrcodeOutlined,
   ArrowLeftOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import MainLayout from "../../components/layout/MainLayout";
 import useEventStore from "../../store/eventStore";
 import useAuthStore from "../../store/authStore";
 import {registrationService} from "../../services/registration.service";
+import {staffService} from "../../services/staff.service";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import {getImageUrl} from "../../utils/imageHelpers";
@@ -77,6 +79,7 @@ const Countdown = ({targetDate, t}) => {
 const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout = false, defaultTab = "about" }) => {
   const {id} = useParams();
   const targetId = adminEventId || id;
+  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
   const navigate = useNavigate();
   const {selectedEvent: event, isLoading, error, fetchEventById} = useEventStore();
   const {user, isAuthenticated} = useAuthStore();
@@ -136,7 +139,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
   }, [targetId, isAuthenticated, user]);
 
   useEffect(() => {
-    if (event && (event.isStaff || user?.userId === event.OrganizerID)) {
+    if (event && (event.IsStaffForThisEvent || user?.userId === event.OrganizerID)) {
       loadParticipants();
     }
   }, [event, user]);
@@ -144,8 +147,6 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
   const loadParticipants = async () => {
     try {
       setLoadingParticipants(true);
-      const API_BASE =
-        process.env.REACT_APP_API_URL || "http://localhost:5000/api";
       const res = await fetch(
         `${API_BASE}/staff/events/${targetId}/participants`,
         {
@@ -562,39 +563,93 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
                       className="organizer-box"
                       style={{
                         display: "flex",
-                        alignItems: "center",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
                         gap: 16,
                         padding: 20,
                         background: "#f9fafb",
                         borderRadius: 12,
                       }}
                     >
-                      <Avatar
-                        size={64}
+                      <div
                         style={{
-                          background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-                          fontSize: 24,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                          width: "100%",
                         }}
                       >
-                        {event.OrganizerName?.[0]}
-                      </Avatar>
-                      <div>
-                        <Text
-                          strong
+                        <Avatar
+                          size={64}
                           style={{
-                            fontSize: 17,
-                            fontFamily: "'Inter', sans-serif",
-                            display: "block",
+                            background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+                            fontSize: 24,
                           }}
                         >
-                          {event.OrganizationName || event.OrganizerName}
-                        </Text>
-                        <Text type="secondary">{event.OrganizerEmail}</Text>
+                          {event.OrganizerName?.[0]}
+                        </Avatar>
+                        <div>
+                          <Text
+                            strong
+                            style={{
+                              fontSize: 17,
+                              fontFamily: "'Inter', sans-serif",
+                              display: "block",
+                            }}
+                          >
+                            {event.OrganizationName || event.OrganizerName}
+                          </Text>
+                          <Text type="secondary">{event.OrganizerEmail}</Text>
+                        </div>
                       </div>
+
+                      {adminEventId && (event.organizerDocuments?.length > 0 || event.eventDocuments?.length > 0) && (
+                        <div style={{ marginTop: 24, width: '100%', paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+                          {event.eventDocuments && event.eventDocuments.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                              <Text strong style={{ display: "block", marginBottom: 8, color: '#1f2937' }}>Tài liệu xin phép tổ chức sự kiện:</Text>
+                              <Space size={8} wrap>
+                                {event.eventDocuments.map((doc, idx) => (
+                                  <Button
+                                    key={`ev-${idx}`}
+                                    size="small"
+                                    type="primary"
+                                    icon={<DownloadOutlined />}
+                                    href={`${API_BASE.replace('/api', '')}/uploads/events/${doc}`}
+                                    target="_blank"
+                                  >
+                                    Tài liệu sự kiện {idx + 1}
+                                  </Button>
+                                ))}
+                              </Space>
+                            </div>
+                          )}
+                          
+                          {event.organizerDocuments && event.organizerDocuments.length > 0 && (
+                            <div>
+                              <Text strong style={{ display: "block", marginBottom: 8, color: '#1f2937' }}>Tài liệu xác minh của Ban tổ chức:</Text>
+                              <Space size={8} wrap>
+                                {event.organizerDocuments.map((doc, idx) => (
+                                  <Button
+                                    key={`org-${idx}`}
+                                    size="small"
+                                    type="default"
+                                    icon={<DownloadOutlined />}
+                                    href={`${API_BASE.replace('/api', '')}/uploads/organizer-docs/${doc}`}
+                                    target="_blank"
+                                  >
+                                    Hồ sơ tổ chức {idx + 1}
+                                  </Button>
+                                ))}
+                              </Space>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ),
                 },
-                ...(event.isStaff
+                ...(event.IsStaffForThisEvent
                   ? [
                       {
                         key: "participants",
@@ -638,6 +693,19 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
                                 },
                               ]}
                             />
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(user?.Role === 'Admin'
+                  ? [
+                      {
+                        key: "admin_staff",
+                        label: "Tình nguyện viên",
+                        children: (
+                          <div style={{paddingTop: 8}}>
+                             <AdminStaffSection eventId={targetId} />
                           </div>
                         ),
                       },
@@ -805,10 +873,10 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
                         marginBottom: 10,
                       }}
                     >
-                      {event.isStaff ? t('eventDetail.scanQr') : t('eventDetail.viewOtp')}
+                      {event.IsStaffForThisEvent ? t('eventDetail.scanQr') : t('eventDetail.viewOtp')}
                     </Button>
                   )}
-                  {!event.isStaff && !deadlinePassed && !isPast && (
+                  {!event.IsStaffForThisEvent && !deadlinePassed && !isPast && (
                     <Button
                       danger
                       block
@@ -975,13 +1043,13 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
         centered
         title={
           <span style={{fontFamily: "'Inter', sans-serif", fontWeight: 700}}>
-            {event?.isStaff ? t('eventDetail.ticketScan') : t('eventDetail.ticketYour')}
+            {event?.IsStaffForThisEvent ? t('eventDetail.ticketScan') : t('eventDetail.ticketYour')}
           </span>
         }
       >
         {myRegistration && (
           <div style={{textAlign: "center", padding: "16px 0"}}>
-            {event?.isStaff ? (
+            {event?.IsStaffForThisEvent ? (
               <div
                 style={{
                   background: "#f9fafb",
@@ -1057,3 +1125,27 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
 };
 
 export default EventDetailPage;
+
+const AdminStaffSection = ({ eventId }) => {
+  const [staffs, setStaffs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    staffService.getAssignedStaff(eventId).then(res => {
+      setStaffs(res.data || []);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, [eventId]);
+
+  const columns = [
+    { title: 'Tên nhân viên', dataIndex: 'FullName', key: 'FullName' },
+    { title: 'Email', dataIndex: 'Email', key: 'Email' },
+    { title: 'Số điện thoại', dataIndex: 'Phone', key: 'Phone', render: t => t || '—' },
+    { title: 'Ngày phân công', dataIndex: 'AssignedAt', key: 'AssignedAt', render: t => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : '—' }
+  ];
+
+  return <Table dataSource={staffs} columns={columns} rowKey="EventStaffID" loading={loading} pagination={false} />;
+};

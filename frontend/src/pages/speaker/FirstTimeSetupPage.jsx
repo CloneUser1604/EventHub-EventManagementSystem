@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+// [Trang thiết lập lần đầu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const FirstTimeSetupPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const FirstTimeSetupPage = () => {
       return;
     }
 
+    // [Lấy thông tin lời mời thiết lập] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const fetchInvitation = async () => {
       try {
         const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/speaker/${userId}/pending-invitation`);
@@ -40,6 +42,7 @@ const FirstTimeSetupPage = () => {
     fetchInvitation();
   }, [userId, navigate]);
 
+  // [Xử lý hoàn tất thiết lập tài khoản] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const onFinish = async (values) => {
     // Kiem tra xem da tra loi het loi moi chua
     for (const inv of invitations) {

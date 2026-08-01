@@ -6,11 +6,13 @@ import { authService } from '../../services/auth.service';
 import './Auth.css';
 
 // ─── Forgot Password ───────────────────────────────────────────
+// [Trang quên mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 export const ForgotPasswordPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // [Xử lý gửi yêu cầu quên mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const onFinish = async ({ email }) => {
     setLoading(true);
     try {
@@ -84,6 +86,7 @@ export const ForgotPasswordPage = () => {
 };
 
 // ─── Reset Password ────────────────────────────────────────────
+// [Trang đặt lại mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 export const ResetPasswordPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -91,6 +94,7 @@ export const ResetPasswordPage = () => {
 
   const token = new URLSearchParams(window.location.search).get('token');
 
+  // [Xử lý gửi form đặt lại mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const onFinish = async ({ password, confirmPassword }) => {
     if (!token) return message.error('Token không hợp lệ');
     setLoading(true);

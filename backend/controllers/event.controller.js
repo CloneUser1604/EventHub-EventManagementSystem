@@ -4,6 +4,7 @@ const {
 } = require('../utils/response');
 const eventService = require('../services/event.service');
 
+// [Lấy danh sách sự kiện] Gọi từ event.routes -> Validate query params -> Gọi eventService.getEvents
 const getEvents = async (req, res) => {
   try {
     const result = await eventService.getEvents(req.query, req.user);
@@ -13,6 +14,7 @@ const getEvents = async (req, res) => {
   }
 };
 
+// [Lấy chi tiết sự kiện] Gọi từ route -> Lấy id từ params -> Gọi eventService.getEventById
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -24,6 +26,7 @@ const getEventById = async (req, res) => {
   }
 };
 
+// [Tạo sự kiện] Gọi từ event.routes -> Gọi eventService.createEvent -> Dọn file nếu lỗi
 const createEvent = async (req, res) => {
   try {
     const result = await eventService.createEvent(req.body, req.user, req.files);
@@ -35,6 +38,7 @@ const createEvent = async (req, res) => {
   }
 };
 
+// [Cập nhật sự kiện] Gọi từ event.routes -> Lấy id từ params -> Gọi eventService.updateEvent
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -48,6 +52,7 @@ const updateEvent = async (req, res) => {
   }
 };
 
+// [Xóa sự kiện] Gọi từ route -> Kiểm tra quyền -> Gọi eventService.deleteEvent
 const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -60,6 +65,7 @@ const deleteEvent = async (req, res) => {
   }
 };
 
+// [Gửi sự kiện chờ duyệt] Gọi từ route -> Gọi eventService.submitForApproval
 const submitForApproval = async (req, res) => {
   try {
     const { id } = req.params;
@@ -73,6 +79,7 @@ const submitForApproval = async (req, res) => {
   }
 };
 
+// [Hủy sự kiện] Gọi từ event.routes -> Gọi eventService.cancelEvent
 const cancelEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,6 +93,7 @@ const cancelEvent = async (req, res) => {
   }
 };
 
+// [Lấy danh sách phiên họi thảo] Gọi từ route -> Gọi eventService.getSessions
 const getSessions = async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,6 +102,7 @@ const getSessions = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy sessions thất bại'); }
 };
 
+// [Thêm phiên họi thảo] Gọi từ route -> Gọi eventService.addSession
 const addSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -106,6 +115,7 @@ const addSession = async (req, res) => {
   }
 };
 
+// [Cập nhật phiên họi thảo] Gọi từ route -> Gọi eventService.updateSession
 const updateSession = async (req, res) => {
   try {
     const { id, sessionId } = req.params;
@@ -118,6 +128,7 @@ const updateSession = async (req, res) => {
   }
 };
 
+// [Xóa phiên họi thảo] Gọi từ route -> Gọi eventService.deleteSession
 const deleteSession = async (req, res) => {
   try {
     const { id, sessionId } = req.params;
@@ -130,6 +141,7 @@ const deleteSession = async (req, res) => {
   }
 };
 
+// [Mở khóa chỉnh sửa sự kiện] Gọi từ route (Admin) -> Gọi eventService.unlockEventEdit
 const unlockEventEdit = async (req, res) => {
   try {
     const { id } = req.params;
@@ -138,6 +150,7 @@ const unlockEventEdit = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Mở khoá thất bại'); }
 };
 
+// [Lấy danh mục sự kiện] Gọi từ route (public) -> Gọi eventService.getCategories
 const getCategories = async (req, res) => {
   try {
     const result = await eventService.getCategories();
@@ -145,6 +158,7 @@ const getCategories = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy danh mục thất bại'); }
 };
 
+// [Lấy danh sách địa điểm] Gọi từ route (public) -> Gọi eventService.getVenues
 const getVenues = async (req, res) => {
   try {
     const result = await eventService.getVenues();
@@ -152,6 +166,7 @@ const getVenues = async (req, res) => {
   } catch (e) { return errorResponse(res, 'Lấy địa điểm thất bại'); }
 };
 
+// [Lấy thống kê Dashboard] Gọi từ route -> Gọi eventService.getDashboardStats
 const getDashboardStats = async (req, res) => {
   try {
     const result = await eventService.getDashboardStats(req.query.timeRange);
@@ -161,6 +176,7 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// [Lấy danh sách Diễn giả của sự kiện] Gọi từ route -> Gọi eventService.getEventSpeakers
 const getEventSpeakers = async (req, res) => {
   try {
     const { id } = req.params;

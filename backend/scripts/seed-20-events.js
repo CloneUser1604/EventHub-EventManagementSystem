@@ -32,7 +32,7 @@ async function seed() {
   // 1. Seed 16 Participants
   for (let i = 1; i <= 16; i++) {
     const isInternal = i > 8; // 9-16 is internal
-    const university = isInternal ? 'Đại học FPT' : 'Đại học Quốc gia';
+    const isFPTStudent = isInternal ? 1 : 0;
     const emailDomain = isInternal ? '@fpt.edu.vn' : '@gmail.com';
     const email = `sv${i}${emailDomain}`;
     
@@ -44,14 +44,14 @@ async function seed() {
           .input('Email', sql.VarChar, email)
           .input('PasswordHash', sql.VarChar, passwordHash)
           .input('Role', sql.VarChar, 'Participant')
-          .input('University', sql.NVarChar, university)
+          .input('IsFPTStudent', sql.Bit, isFPTStudent)
           .input('IsActive', sql.Bit, 1)
           .input('IsVerified', sql.Bit, 1)
           .query(`
-            INSERT INTO Users (FullName, Email, PasswordHash, Role, University, IsActive, IsVerified)
-            VALUES (@FullName, @Email, @PasswordHash, @Role, @University, @IsActive, @IsVerified)
+            INSERT INTO Users (FullName, Email, PasswordHash, Role, IsFPTStudent, IsActive, IsVerified)
+            VALUES (@FullName, @Email, @PasswordHash, @Role, @IsFPTStudent, @IsActive, @IsVerified)
           `);
-        console.log(`✅ Created Participant: ${email} (${university})`);
+        console.log(`✅ Created Participant: ${email} (FPT: ${!!isFPTStudent})`);
       }
     } catch (err) {
       console.error(`❌ Failed to create Participant ${email}:`, err.message);
@@ -235,23 +235,46 @@ async function seed() {
       const eventId = insertResult.recordset[0].EventID;
       console.log(`✅ Created: ${ev.title} (${ev.type}, Internal: ${ev.internal})`);
 
-      // Seed registrations and staffs if upcoming_open or ongoing
-      if ((ev.type === 'upcoming_open' || ev.type === 'ongoing')) {
+      // Seed registrations and staffs if not cancelled
+      if (ev.type !== 'cancelled') {
         // Assign up to 3 participants randomly
+        let selectedParts = [];
         if (participants.length > 0) {
           const shuffledParts = participants.sort(() => 0.5 - Math.random());
-          const selectedParts = shuffledParts.slice(0, 3);
+          selectedParts = shuffledParts.slice(0, 3);
           
           for (const pid of selectedParts) {
-            await pool.request()
+            const regRes = await pool.request()
               .input('EventID', sql.Int, eventId)
               .input('ParticipantID', sql.Int, pid)
               .query(`
                 INSERT INTO Registrations (EventID, ParticipantID, Status)
+                OUTPUT INSERTED.RegistrationID
                 VALUES (@EventID, @ParticipantID, 'Registered')
               `);
+            
+            const regId = regRes.recordset[0].RegistrationID;
+
+            // Insert a QRTicket
+            await pool.request()
+              .input('RegistrationID', sql.Int, regId)
+              .query(`
+                INSERT INTO QRTickets (RegistrationID, QRCode, OTPCode, OTPExpiry, IsUsed)
+                VALUES (@RegistrationID, NEWID(), '123456', DATEADD(day, 30, GETDATE()), ${ev.type === 'completed' ? 1 : 0})
+              `);
+
+            // If completed, add Attendance record so they can give feedback
+            if (ev.type === 'completed') {
+              await pool.request()
+                .input('RegistrationID', sql.Int, regId)
+                .input('OrganizerID', sql.Int, orgId)
+                .query(`
+                  INSERT INTO Attendance (RegistrationID, CheckInTime, CheckedInBy)
+                  VALUES (@RegistrationID, GETDATE(), @OrganizerID)
+                `);
+            }
           }
-          console.log(`   👉 Seeded ${selectedParts.length} registrations`);
+          console.log(`   👉 Seeded ${selectedParts.length} registrations${ev.type === 'completed' ? ' with Attendance' : ''}`);
         }
 
         // Assign up to 7 staffs randomly

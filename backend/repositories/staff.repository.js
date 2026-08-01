@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../config/db');
 
 class StaffRepository {
+  // [Kiểm tra quyền Staff] Nhận từ Service -> SELECT EventStaffs
   async checkStaffAccess(eventId, staffId) {
     const pool = getPool();
     const result = await pool.request()
@@ -10,6 +11,7 @@ class StaffRepository {
     return result.recordset.length > 0;
   }
 
+  // [Lấy danh sách người tham gia] Nhận từ Service -> SELECT Registrations JOIN Users
   async getEventParticipants(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -27,6 +29,7 @@ class StaffRepository {
     return result.recordset;
   }
 
+  // [Lấy danh sách Staff khả dụng] Nhận từ Service -> SELECT Users WHERE Role=Staff (lọc trùng lịch)
   async getAvailableStaff(eventId = null) {
     const pool = getPool();
     const request = pool.request();
@@ -60,6 +63,7 @@ class StaffRepository {
     return result.recordset;
   }
 
+  // [Tìm user theo Email] Nhận từ Service -> SELECT Users.Email
   async findUserByEmail(email) {
     const pool = getPool();
     const result = await pool.request()
@@ -68,6 +72,7 @@ class StaffRepository {
     return result.recordset.length > 0;
   }
 
+  // [Tạo mới Staff] Nhận từ Service -> INSERT INTO Users
   async createStaff(data) {
     const pool = getPool();
     await pool.request()
@@ -82,6 +87,7 @@ class StaffRepository {
       `);
   }
 
+  // [Cập nhật thông tin Staff] Nhận từ Service -> UPDATE Users
   async updateStaff(staffId, data) {
     const pool = getPool();
     await pool.request()
@@ -97,6 +103,7 @@ class StaffRepository {
       `);
   }
 
+  // [Vô hiệu hóa Staff] Nhận từ Service -> UPDATE Users.IsActive = 0
   async deleteStaff(staffId) {
     const pool = getPool();
     await pool.request()
@@ -104,6 +111,7 @@ class StaffRepository {
       .query('UPDATE Users SET IsActive = 0 WHERE UserID = @UserID');
   }
 
+  // [Lấy danh sách Staff đã gán] Nhận từ Service -> SELECT EventStaffs JOIN Users
   async getAssignedStaff(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -117,6 +125,7 @@ class StaffRepository {
     return result.recordset;
   }
 
+  // [Lấy thông tin sự kiện] Nhận từ Service -> SELECT Events
   async getEventById(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -125,6 +134,7 @@ class StaffRepository {
     return result.recordset[0];
   }
 
+  // [Kiểm tra trùng lịch] Nhận từ Service -> SELECT EventStaffs JOIN Events theo thời gian
   async checkOverlap(staffId, eventId, startDate, endDate) {
     const pool = getPool();
     const result = await pool.request()
@@ -145,6 +155,7 @@ class StaffRepository {
     return result.recordset[0];
   }
 
+  // [Gán Staff vào sự kiện] Nhận từ Service -> INSERT INTO EventStaffs
   async assignStaff(eventId, staffId, assignedBy) {
     const pool = getPool();
     await pool.request()
@@ -157,6 +168,7 @@ class StaffRepository {
       `);
   }
 
+  // [Tạo thông báo] Nhận từ Service -> INSERT INTO Notifications
   async createNotification(userId, title, message, type) {
     const pool = getPool();
     await pool.request()
@@ -167,6 +179,7 @@ class StaffRepository {
       .query('INSERT INTO Notifications (UserID, Title, Message, Type) VALUES (@UserID, @Title, @Message, @Type)');
   }
 
+  // [Xóa quyền Staff] Nhận từ Service -> DELETE EventStaffs
   async revokeStaff(eventId, staffId) {
     const pool = getPool();
     await pool.request()
@@ -175,6 +188,7 @@ class StaffRepository {
       .query('DELETE FROM EventStaffs WHERE EventID = @EventID AND StaffID = @StaffID');
   }
 
+  // [Lấy đăng ký kèm OTP] Nhận từ Service -> SELECT Registrations JOIN QRTickets
   async getRegistrationWithOTP(eventId, participantId) {
     const pool = getPool();
     const result = await pool.request()
@@ -190,6 +204,7 @@ class StaffRepository {
     return result.recordset[0];
   }
 
+  // [Đánh dấu OTP đã dùng] Nhận từ Service -> UPDATE QRTickets.IsUsed = 1
   async markOTPAsUsed(registrationId) {
     const pool = getPool();
     await pool.request()
@@ -197,6 +212,7 @@ class StaffRepository {
       .query('UPDATE QRTickets SET IsUsed = 1 WHERE RegistrationID = @RegistrationID');
   }
 
+  // [Tạo bản ghi chấm công] Nhận từ Service -> INSERT INTO Attendance
   async createAttendanceRecord(registrationId, staffId) {
     const pool = getPool();
     await pool.request()
@@ -208,6 +224,7 @@ class StaffRepository {
       `);
   }
 
+  // [Lấy danh sách sự kiện của Staff] Nhận từ Service -> SELECT EventStaffs JOIN Events
   async getMyEvents(staffId) {
     const pool = getPool();
     const result = await pool.request()

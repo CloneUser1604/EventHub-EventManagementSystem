@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../config/db');
 
 class AdminRepository {
+// [Repository: Lấy sự kiện chờ duyệt] Nhận từ Service -> Query DB
   async getPendingEvents() {
     const pool = getPool();
     const result = await pool.request()
@@ -16,6 +17,7 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Lấy sự kiện và nội dung chỉnh sửa] Nhận từ Service -> Query DB
   async getEventWithProposedChanges(eventId) {
     const pool = getPool();
     const result = await pool.request().input('EventID', sql.Int, eventId)
@@ -23,6 +25,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Duyệt sự kiện] Nhận từ Service -> Query DB
   async approveEvent(eventId, adminId) {
     const pool = getPool();
     const result = await pool.request()
@@ -37,6 +40,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Duyệt sự kiện có chỉnh sửa] Nhận từ Service -> Query DB
   async approveEventWithChanges(eventId, adminId, changes) {
     const pool = getPool();
     const request = pool.request()
@@ -66,6 +70,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Xóa các session cũ] Nhận từ Service -> Query DB
   async clearEventSessions(eventId) {
     const pool = getPool();
     await pool.request().input('EventID', sql.Int, eventId).query(`DELETE FROM SessionSpeakers WHERE SessionID IN (SELECT SessionID FROM Sessions WHERE EventID=@EventID)`);
@@ -73,6 +78,7 @@ class AdminRepository {
     await pool.request().input('EventID', sql.Int, eventId).query(`DELETE FROM Sessions WHERE EventID=@EventID`);
   }
 
+// [Repository: Thêm session mới] Nhận từ Service -> Query DB
   async insertSession(eventId, session) {
     const pool = getPool();
     const result = await pool.request()
@@ -88,6 +94,7 @@ class AdminRepository {
     return result.recordset[0].SessionID;
   }
 
+// [Repository: Tìm người dùng qua email] Nhận từ Service -> Query DB
   async findUserByEmail(email) {
     const pool = getPool();
     const result = await pool.request()
@@ -96,6 +103,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Thêm diễn giả vào session] Nhận từ Service -> Query DB
   async addSpeakerToSession(sessionId, speakerId) {
     const pool = getPool();
     await pool.request()
@@ -105,6 +113,7 @@ class AdminRepository {
               INSERT INTO SessionSpeakers (SessionID, SpeakerID) VALUES (@SessionID, @SpeakerID)`);
   }
 
+// [Repository: Tạo lời mời diễn giả] Nhận từ Service -> Query DB
   async addSpeakerInvitation(eventId, speakerId, invitedBy) {
     const pool = getPool();
     await pool.request()
@@ -115,6 +124,7 @@ class AdminRepository {
               INSERT INTO SpeakerInvitations (EventID, SpeakerID, InvitedBy, Status) VALUES (@EventID, @SpeakerID, @InvitedBy, 'Pending')`);
   }
 
+// [Repository: Lấy danh sách diễn giả] Nhận từ Service -> Query DB
   async getEventSpeakers(eventId) {
     const pool = getPool();
     const result = await pool.request().input('EventID', sql.Int, eventId).query(`
@@ -126,6 +136,7 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Tạo thông báo] Nhận từ Service -> Query DB
   async createNotification(userId, title, message, type, relatedId, relatedType, checkExisting = false) {
     const pool = getPool();
     const req = pool.request()
@@ -146,6 +157,7 @@ class AdminRepository {
     }
   }
 
+// [Repository: Lấy người tham gia và nhân viên] Nhận từ Service -> Query DB
   async getEventParticipantsAndStaffs(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -160,6 +172,7 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Từ chối sự kiện] Nhận từ Service -> Query DB
   async rejectEvent(eventId, adminId, reason) {
     const pool = getPool();
     const result = await pool.request()
@@ -175,6 +188,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Từ chối nội dung chỉnh sửa] Nhận từ Service -> Query DB
   async rejectEventChanges(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -188,6 +202,7 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Hủy sự kiện] Nhận từ Service -> Query DB
   async cancelEvent(eventId, reason) {
     const pool = getPool();
     const result = await pool.request()
@@ -202,11 +217,12 @@ class AdminRepository {
     return result.recordset[0];
   }
 
+// [Repository: Lấy tất cả người dùng] Nhận từ Service -> Query DB
   async getAllUsers() {
     const pool = getPool();
     const result = await pool.request()
       .query(`
-        SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, University
+        SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, IsFPTStudent
         FROM Users
         WHERE Role != 'Admin'
         ORDER BY CreatedAt DESC
@@ -214,12 +230,14 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Lấy vai trò người dùng] Nhận từ Service -> Query DB
   async getUserRole(userId) {
     const pool = getPool();
     const result = await pool.request().input('UserID', sql.Int, userId).query('SELECT Role FROM Users WHERE UserID = @UserID');
     return result.recordset[0];
   }
 
+// [Repository: Cập nhật trạng thái người dùng] Nhận từ Service -> Query DB
   async updateUserStatus(userId, isActive) {
     const pool = getPool();
     const result = await pool.request()
@@ -229,6 +247,7 @@ class AdminRepository {
     return result.rowsAffected[0];
   }
 
+// [Repository: Gửi thông báo hệ thống] Nhận từ Service -> Query DB
   async broadcastNotification(title, message, audience) {
     const pool = getPool();
     let query = `
@@ -249,6 +268,7 @@ class AdminRepository {
     await request.query(query);
   }
 
+// [Repository: Lấy thống kê Ban tổ chức] Nhận từ Service -> Query DB
   async getOrganizerStats() {
     const pool = getPool();
     const result = await pool.request().query(`
@@ -268,6 +288,7 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Lấy thông báo sự kiện] Nhận từ Service -> Query DB
   async getEventNotifications(eventId) {
     const pool = getPool();
     const result = await pool.request()
@@ -288,6 +309,7 @@ class AdminRepository {
     return result.recordset;
   }
 
+// [Repository: Thu hồi thông báo sự kiện] Nhận từ Service -> Query DB
   async revokeEventNotification(eventId, title, message) {
     const pool = getPool();
     await pool.request()

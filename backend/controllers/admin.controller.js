@@ -1,5 +1,6 @@
 const adminService = require('../services/admin.service');
 
+// [Lấy sự kiện chờ duyệt] Gọi từ Route -> Gọi adminService.getPendingEvents
 const getPendingEvents = async (req, res) => {
   try {
     const data = await adminService.getPendingEvents();
@@ -10,6 +11,7 @@ const getPendingEvents = async (req, res) => {
   }
 };
 
+// [Duyệt sự kiện] Gọi từ Route -> Gọi adminService.approveEvent
 const approveEvent = async (req, res) => {
   try {
     await adminService.approveEvent(parseInt(req.params.eventId), req.user.UserID);
@@ -21,6 +23,7 @@ const approveEvent = async (req, res) => {
   }
 };
 
+// [Từ chối sự kiện] Gọi từ Route -> Gọi adminService.rejectEvent
 const rejectEvent = async (req, res) => {
   try {
     const result = await adminService.rejectEvent(parseInt(req.params.eventId), req.user.UserID, req.body.reason);
@@ -33,6 +36,7 @@ const rejectEvent = async (req, res) => {
   }
 };
 
+// [Hủy sự kiện] Gọi từ Route -> Gọi adminService.cancelEvent
 const cancelEvent = async (req, res) => {
   try {
     await adminService.cancelEvent(parseInt(req.params.eventId), req.body.reason);
@@ -45,6 +49,7 @@ const cancelEvent = async (req, res) => {
   }
 };
 
+// [Lấy tất cả người dùng] Gọi từ Route -> Gọi adminService.getAllUsers
 const getAllUsers = async (req, res) => {
   try {
     const data = await adminService.getAllUsers();
@@ -55,6 +60,7 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// [Cập nhật trạng thái người dùng] Gọi từ Route -> Gọi adminService.updateUserStatus
 const updateUserStatus = async (req, res) => {
   try {
     await adminService.updateUserStatus(parseInt(req.params.userId), req.body.isActive);
@@ -68,6 +74,7 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
+// [Gửi thông báo hệ thống] Gọi từ Route -> Gọi adminService.broadcastNotification
 const broadcastNotification = async (req, res) => {
   try {
     await adminService.broadcastNotification(req.body.title, req.body.message, req.body.audience);
@@ -79,6 +86,7 @@ const broadcastNotification = async (req, res) => {
   }
 };
 
+// [Lấy thống kê Ban tổ chức] Gọi từ Route -> Gọi adminService.getOrganizerStats
 const getOrganizerStats = async (req, res) => {
   try {
     const data = await adminService.getOrganizerStats();
@@ -89,6 +97,7 @@ const getOrganizerStats = async (req, res) => {
   }
 };
 
+// [Lấy thông báo sự kiện] Gọi từ Route -> Gọi adminService.getEventNotifications
 const getEventNotifications = async (req, res) => {
   try {
     const data = await adminService.getEventNotifications(parseInt(req.params.eventId));
@@ -99,6 +108,7 @@ const getEventNotifications = async (req, res) => {
   }
 };
 
+// [Thu hồi thông báo sự kiện] Gọi từ Route -> Gọi adminService.revokeEventNotification
 const revokeEventNotification = async (req, res) => {
   try {
     await adminService.revokeEventNotification(parseInt(req.params.eventId), req.body.title, req.body.message);

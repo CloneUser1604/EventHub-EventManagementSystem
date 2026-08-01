@@ -16,6 +16,7 @@ import FeedbackCard from "../../components/events/FeedbackCard";
 import {Checkbox} from "antd";
 import dayjs from "dayjs";
 
+// [Trang tất cả đánh giá] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 export default function AllFeedbacksPage() {
   const {id} = useParams();
   const navigate = useNavigate();
@@ -32,11 +33,13 @@ export default function AllFeedbacksPage() {
   const [sortType, setSortType] = useState('latest');
   const pageSize = 5;
 
+  // [Lấy dữ liệu danh sách đánh giá] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     fetchEventById(id);
     loadData();
   }, [id]);
 
+  // [Xử lý tải dữ liệu đánh giá] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadData = async () => {
     try {
       const res = await feedbackService.getEventFeedbacks(id);
@@ -52,6 +55,7 @@ export default function AllFeedbacksPage() {
   };
 
   // Reset về trang 1 khi thay đổi bộ lọc
+  // [Đặt lại trang khi thay đổi điều kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStar, filterMedia, sortType]);

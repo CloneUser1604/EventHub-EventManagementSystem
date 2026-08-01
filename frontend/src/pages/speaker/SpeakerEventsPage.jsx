@@ -7,12 +7,14 @@ import { getImageUrl } from '../../utils/imageHelpers';
 
 const { Title, Text } = Typography;
 
+// [Trang sự kiện dành cho diễn giả] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const SpeakerEventsPage = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // [Lấy danh sách sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const fetchEvents = async () => {
       try {
         const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/speaker/events`, {

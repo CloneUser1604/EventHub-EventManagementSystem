@@ -6,6 +6,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../../store/authStore';
 import './Auth.css';
 
+// [Trang đăng nhập] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const LoginPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const LoginPage = () => {
     if (isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, navigate, from]);
 
+  // [Xử lý gửi form đăng nhập] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const onFinish = async (values) => {
     console.log('🔐 [LOGIN SUBMIT] email:', values.email);
     const result = await login({ email: values.email, password: values.password });
@@ -60,6 +62,7 @@ const LoginPage = () => {
     }
   };
 
+  // [Xử lý đăng nhập Google thành công] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleGoogleSuccess = async (credentialResponse) => {
     console.log('Google Login Success', credentialResponse);
     const result = await googleLogin(credentialResponse.credential);

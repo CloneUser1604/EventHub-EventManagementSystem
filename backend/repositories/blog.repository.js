@@ -2,6 +2,7 @@ const { getPool, sql } = require('../config/db');
 
 class BlogRepository {
   // ─── GET BLOGS COUNT ──────────────────────────────────────────────
+// [Repository: Đếm số lượng Blog] Nhận từ Service -> Query DB
 async getBlogsCount(whereClause, params) {
     const pool = getPool();
     const r = pool.request();
@@ -11,6 +12,7 @@ async getBlogsCount(whereClause, params) {
   }
 
   // ─── GET BLOGS ──────────────────────────────────────────────
+// [Repository: Lấy danh sách Blog] Nhận từ Service -> Query DB
 async getBlogs(whereClause, params, orderClause, offset, limit) {
     const pool = getPool();
     const r = pool.request();
@@ -36,6 +38,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return result.recordset;
   }
 
+// [Repository: Lấy kết quả vote của các Blog] Nhận từ Service -> Query DB
   async getBlogPollVotesByBlogIds(blogIds) {
     const pool = getPool();
     const votesResult = await pool.request().query(`
@@ -47,6 +50,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return votesResult.recordset;
   }
 
+// [Repository: Lấy vote của user cho các Blog] Nhận từ Service -> Query DB
   async getUserPollVotes(blogIds, userId) {
     const pool = getPool();
     const userVotes = await pool.request().input('UserID', sql.Int, userId).query(`
@@ -57,6 +61,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return userVotes.recordset;
   }
 
+// [Repository: Lấy like của user cho các Blog] Nhận từ Service -> Query DB
   async getUserBlogLikes(blogIds, userId) {
     const pool = getPool();
     const userLikes = await pool.request().input('UserID', sql.Int, userId).query(`
@@ -67,6 +72,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return userLikes.recordset;
   }
 
+// [Repository: Lấy Blog user đã lưu] Nhận từ Service -> Query DB
   async getUserSavedBlogs(blogIds, userId) {
     const pool = getPool();
     const userSaves = await pool.request().input('UserID', sql.Int, userId).query(`
@@ -77,6 +83,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
     return userSaves.recordset;
   }
 
+// [Repository: Lấy báo cáo của user cho các Blog] Nhận từ Service -> Query DB
   async getUserBlogReports(blogIds, userId) {
     const pool = getPool();
     const userReports = await pool.request().input('UserID', sql.Int, userId).query(`
@@ -88,6 +95,7 @@ async getBlogs(whereClause, params, orderClause, offset, limit) {
   }
 
   // ─── GET BLOG BY ID ──────────────────────────────────────────────
+// [Repository: Lấy chi tiết Blog] Nhận từ Service -> Query DB
 async getBlogById(blogId) {
     const pool = getPool();
     const result = await pool.request().input('BlogID', sql.Int, blogId).query(`
@@ -105,6 +113,7 @@ async getBlogById(blogId) {
     return result.recordset[0];
   }
 
+// [Repository: Lấy kết quả vote của 1 Blog] Nhận từ Service -> Query DB
   async getBlogPollVotes(blogId) {
     const pool = getPool();
     const votesResult = await pool.request().input('BlogID', sql.Int, blogId).query(`
@@ -114,6 +123,7 @@ async getBlogById(blogId) {
     return votesResult.recordset;
   }
 
+// [Repository: Kiểm tra sự kiện tồn tại] Nhận từ Service -> Query DB
   async checkEventExists(eventId) {
     const pool = getPool();
     const eventResult = await pool.request().input('EventID', sql.Int, eventId).query('SELECT OrganizerID FROM Events WHERE EventID = @EventID');
@@ -121,6 +131,7 @@ async getBlogById(blogId) {
   }
 
   // ─── CREATE BLOG ──────────────────────────────────────────────
+// [Repository: Tạo Blog mới] Nhận từ Service -> Query DB
 async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions) {
     const pool = getPool();
     const insertResult = await pool.request()
@@ -141,23 +152,27 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return insertResult.recordset[0].BlogID;
   }
 
+// [Repository: Lấy người tạo Blog] Nhận từ Service -> Query DB
   async getBlogAuthor(blogId) {
     const pool = getPool();
     const blogCheck = await pool.request().input('BlogID', sql.Int, blogId).query('SELECT AuthorID FROM Blogs WHERE BlogID = @BlogID');
     return blogCheck.recordset[0]?.AuthorID;
   }
 
+// [Repository: Xóa Blog] Nhận từ Service -> Query DB
   async deleteBlog(blogId) {
     const pool = getPool();
     await pool.request().input('BlogID', sql.Int, blogId).query('DELETE FROM Blogs WHERE BlogID = @BlogID');
   }
 
+// [Repository: Lấy các lựa chọn vote của Blog] Nhận từ Service -> Query DB
   async getBlogPollOptions(blogId) {
     const pool = getPool();
     const blogCheck = await pool.request().input('BlogID', sql.Int, blogId).query('SELECT PollOptions FROM Blogs WHERE BlogID = @BlogID');
     return blogCheck.recordset[0]?.PollOptions;
   }
 
+// [Repository: Lấy vote của user cho 1 Blog] Nhận từ Service -> Query DB
   async getUserVote(blogId, userId) {
     const pool = getPool();
     const voteCheck = await pool.request()
@@ -167,6 +182,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return voteCheck.recordset[0]?.OptionIndex;
   }
 
+// [Repository: Xóa vote của user] Nhận từ Service -> Query DB
   async deletePollVote(blogId, userId) {
     const pool = getPool();
     await pool.request()
@@ -175,6 +191,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query('DELETE FROM BlogPollVotes WHERE BlogID = @BlogID AND UserID = @UserID');
   }
 
+// [Repository: Cập nhật vote của user] Nhận từ Service -> Query DB
   async updatePollVote(blogId, userId, optionIndex) {
     const pool = getPool();
     await pool.request()
@@ -184,6 +201,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query('UPDATE BlogPollVotes SET OptionIndex = @OptionIndex, CreatedAt = GETDATE() WHERE BlogID = @BlogID AND UserID = @UserID');
   }
 
+// [Repository: Thêm vote của user] Nhận từ Service -> Query DB
   async insertPollVote(blogId, userId, optionIndex) {
     const pool = getPool();
     await pool.request()
@@ -193,6 +211,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query('INSERT INTO BlogPollVotes (BlogID, UserID, OptionIndex) VALUES (@BlogID, @UserID, @OptionIndex)');
   }
 
+// [Repository: Kiểm tra like Blog] Nhận từ Service -> Query DB
   async checkBlogLikeExists(blogId, userId) {
     const pool = getPool();
     const checkResult = await pool.request()
@@ -202,6 +221,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return checkResult.recordset.length > 0;
   }
 
+// [Repository: Bỏ like Blog] Nhận từ Service -> Query DB
   async deleteBlogLike(blogId, userId) {
     const pool = getPool();
     await pool.request()
@@ -210,6 +230,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query(`DELETE FROM BlogLikes WHERE BlogID = @BlogID AND UserID = @UserID`);
   }
 
+// [Repository: Thêm like Blog] Nhận từ Service -> Query DB
   async insertBlogLike(blogId, userId) {
     const pool = getPool();
     await pool.request()
@@ -218,6 +239,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
       .query(`INSERT INTO BlogLikes (BlogID, UserID) VALUES (@BlogID, @UserID)`);
   }
 
+// [Repository: Lấy danh sách bình luận] Nhận từ Service -> Query DB
   async getComments(blogId, userId, orderClause) {
     const pool = getPool();
     const result = await pool.request()
@@ -239,6 +261,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return result.recordset;
   }
 
+// [Repository: Thêm bình luận] Nhận từ Service -> Query DB
   async insertComment(blogId, userId, content, parentCommentId, imageUrl) {
     const pool = getPool();
     const result = await pool.request()
@@ -255,6 +278,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return result.recordset[0];
   }
 
+// [Repository: Lấy Parent ID của bình luận] Nhận từ Service -> Query DB
   async getCommentParentId(commentId) {
     const pool = getPool();
     const result = await pool.request()
@@ -263,6 +287,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return result.recordset[0]?.ParentCommentID;
   }
 
+// [Repository: Lấy báo cáo bình luận của user] Nhận từ Service -> Query DB
   async getUserCommentReports(commentIds, userId) {
     const pool = getPool();
     const userReports = await pool.request().input('UserID', sql.Int, userId).query(`

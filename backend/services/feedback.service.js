@@ -2,12 +2,14 @@ const feedbackRepository = require('../repositories/feedback.repository');
 
 class FeedbackService {
   // ─── GET EVENT FEEDBACKS ──────────────────────────────────────────────
+// [Service: Lấy danh sách feedback của sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async getEventFeedbacks(eventId) {
     const data = await feedbackRepository.getFeedbacksByEventId(eventId);
     const stats = await feedbackRepository.getEventFeedbackStats(eventId);
     return { data, stats };
   }
 
+// [Service: Kiểm tra điều kiện đánh giá] Nhận từ Controller -> Xử lý logic -> gọi Repository
     async checkEligibility(eventId, userId) {
     const eventInfo = await feedbackRepository.checkEventEligibility(eventId, userId);
     if (!eventInfo) throw new Error('NOT_FOUND: Sự kiện không tồn tại.');
@@ -26,6 +28,7 @@ async getEventFeedbacks(eventId) {
   }
 
   // ─── CREATE FEEDBACK ──────────────────────────────────────────────
+// [Service: Viết feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async createFeedback(eventId, userId, rating, comment, mediaURLs) {
     const eventInfo = await feedbackRepository.checkEventEligibility(eventId, userId);
     if (!eventInfo) throw new Error('NOT_FOUND: Sự kiện không tồn tại.');
@@ -46,6 +49,7 @@ async createFeedback(eventId, userId, rating, comment, mediaURLs) {
   }
 
   // ─── UPDATE FEEDBACK ──────────────────────────────────────────────
+// [Service: Cập nhật feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async updateFeedback(eventId, userId, rating, comment, existingMedia, newFiles) {
     let mediaURLs = [];
     if (existingMedia) {
@@ -73,12 +77,14 @@ async updateFeedback(eventId, userId, rating, comment, existingMedia, newFiles) 
   }
 
   // ─── DELETE FEEDBACK ──────────────────────────────────────────────
+// [Service: Xóa feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async deleteFeedback(feedbackId, userId) {
     const deleted = await feedbackRepository.deleteFeedback(feedbackId, userId);
     if (!deleted) throw new Error('NOT_FOUND: Không tìm thấy đánh giá hoặc bạn không có quyền xóa.');
   }
 
   // ─── REPLY FEEDBACK ──────────────────────────────────────────────
+// [Service: Trả lời feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async replyFeedback(eventId, feedbackId, userId, reply) {
     const isOrganizer = await feedbackRepository.checkIsOrganizer(eventId, userId);
     if (!isOrganizer) throw new Error('FORBIDDEN: Bạn không có quyền trả lời đánh giá này.');
@@ -86,6 +92,7 @@ async replyFeedback(eventId, feedbackId, userId, reply) {
   }
 
   // ─── REPORT FEEDBACK ──────────────────────────────────────────────
+// [Service: Báo cáo feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async reportFeedback(eventId, feedbackId, userId, reason) {
     const isOrganizer = await feedbackRepository.checkIsOrganizer(eventId, userId);
     if (!isOrganizer) throw new Error('FORBIDDEN: Bạn không có quyền thao tác.');
@@ -93,11 +100,13 @@ async reportFeedback(eventId, feedbackId, userId, reason) {
   }
 
   // ─── GET REPORTED FEEDBACKS ──────────────────────────────────────────────
+// [Service: Lấy danh sách feedback bị báo cáo] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async getReportedFeedbacks() {
     return await feedbackRepository.getReportedFeedbacks();
   }
 
   // ─── RESOLVE REPORT ──────────────────────────────────────────────
+// [Service: Xử lý báo cáo feedback] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async resolveReport(feedbackId, action) {
     await feedbackRepository.resolveReport(feedbackId, action);
   }

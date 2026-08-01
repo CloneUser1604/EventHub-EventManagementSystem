@@ -10,7 +10,7 @@ const dictionaries = {
 export function useTranslation() {
   const { language } = useSettingStore();
 
-  const t = (key) => {
+  const t = (key, options = {}) => {
     const keys = key.split('.');
     let value = dictionaries[language];
     
@@ -24,7 +24,7 @@ export function useTranslation() {
           if (fallback && typeof fallback === 'object' && fbKey in fallback) {
             fallback = fallback[fbKey];
           } else {
-            return key; // return key itself if completely missing
+            return options.defaultValue !== undefined ? options.defaultValue : key; // return defaultValue or key itself if missing
           }
         }
         return fallback;

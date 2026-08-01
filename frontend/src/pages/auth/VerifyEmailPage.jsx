@@ -4,17 +4,20 @@ import { Button, Result, Spin } from 'antd';
 import { authService } from '../../services/auth.service';
 import './Auth.css';
 
+// [Trang xác thực email] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading'); // loading | success | error | no-token
   const [message, setMessage] = useState('');
   const token = searchParams.get('token');
 
+  // [Tự động xác thực email] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     if (!token) {
       setStatus('no-token');
       return;
     }
+    // [Xử lý xác thực email] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const verify = async () => {
       try {
         const res = await authService.verifyEmail(token);

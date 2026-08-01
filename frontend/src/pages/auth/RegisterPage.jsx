@@ -25,6 +25,7 @@ const ROLES = [
   },
 ];
 
+// [Trang đăng ký] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const RegisterPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState({ done: false, email: '', message: '' });
 
+  // [Lấy dữ liệu điền trước vào form] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     if (isEditRejected && prefillData) {
       form.setFieldsValue({
@@ -50,6 +52,7 @@ const RegisterPage = () => {
     }
   }, [isEditRejected, prefillData, form]);
 
+  // [Xử lý gửi form đăng ký] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const onFinish = async (values) => {
     if (role === 'Organizer' && fileList.length === 0) {
       return message.error('Ban tổ chức cần upload ít nhất 1 tài liệu xác minh');
@@ -62,8 +65,8 @@ const RegisterPage = () => {
       formData.append('password', values.password);
       formData.append('role', role);
       if (values.phone) formData.append('phone', values.phone);
-      if (role === 'Participant' && isUniversityStudent) {
-        formData.append('university', 'Đại học FPT');
+      if (role === 'Participant') {
+        formData.append('isFPTStudent', isUniversityStudent);
       }
       if (role === 'Organizer') {
         formData.append('organizationName', values.organizationName);
@@ -90,6 +93,7 @@ const RegisterPage = () => {
     }
   };
 
+  // [Xử lý đăng ký Google thành công] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleGoogleSuccess = async (credentialResponse) => {
     console.log('Google Login/Register Success', credentialResponse);
     const result = await googleLogin(credentialResponse.credential);

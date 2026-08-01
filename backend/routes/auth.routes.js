@@ -16,11 +16,13 @@ const { validate, registerRules, loginRules, forgotPasswordRules, resetPasswordR
 const authLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { success:false, message:'Quá nhiều yêu cầu, thử lại sau 15 phút.' } });
 const emailLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { success:false, message:'Quá nhiều yêu cầu gửi email.' } });
 
-// Public
+// [Luồng Frontend: Đăng ký] -> [Route: /register] -> [Middleware: uploadOrgDocs (lưu file), validate form] -> [Controller: register]
 router.post('/register', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), registerRules, validate, register);
 router.post('/resubmit-organizer', authLimiter, uploadOrgDocs.fields([{ name:'documents', maxCount:5 }]), loginRules, validate, resubmitOrganizer);
 router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', emailLimiter, resendVerification);
+
+// [Luồng Frontend: Đăng nhập] -> [Route: /login] -> [Middleware: validate form] -> [Controller: login]
 router.post('/login', loginRules, validate, login);
 router.post('/google-login', authLimiter, googleLogin);
 router.post('/refresh-token', refreshToken);
@@ -34,7 +36,7 @@ router.post('/logout', authenticate, logout);
 router.put('/settings', authenticate, updateSettings);
 router.delete('/account', authenticate, deleteAccount);
 
-// Protected
+// [Luồng Frontend: Tự động Login bằng Token] -> [Route: /me] -> [Middleware: authenticate (kiểm tra JWT)] -> [Controller: getMe]
 router.get('/me', authenticate, getMe);
 
 router.get('/fix-avatar-column', async (req, res) => {
@@ -56,8 +58,8 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
     // 1. Nhận dữ liệu chữ
     const finalName = req.body.fullName || req.body.FullName || '';
     const finalPhone = req.body.phone || req.body.Phone || '';
-    // ĐÃ SỬA: Lấy thêm trường University từ form
-    const finalUniversity = req.body.university || req.body.University || '';
+    // ĐÃ SỬA: Lấy thêm trường IsFPTStudent từ form
+    const isFPTStudent = req.body.isFPTStudent === true || req.body.IsFPTStudent === true || req.body.isFPTStudent === 'true';
     
     // 2. Xử lý Ảnh đại diện (Ưu tiên lấy file thật, nếu không có lấy URL)
     let finalAvatar = req.body.avatarURL || req.body.AvatarURL || '';
@@ -75,11 +77,11 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
       .input('UserID', sql.Int, userId)
       .input('FullName', sql.NVarChar(255), finalName)
       .input('Phone', sql.VarChar(50), finalPhone)
-      // ĐÃ SỬA: Bổ sung input University
-      .input('University', sql.NVarChar(150), finalUniversity)
+      // ĐÃ SỬA: Bổ sung input IsFPTStudent
+      .input('IsFPTStudent', sql.Bit, isFPTStudent ? 1 : 0)
       .input('AvatarURL', sql.NVarChar(sql.MAX), finalAvatar)
-      // ĐÃ SỬA: Thêm cột University=@University vào câu lệnh UPDATE
-      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, University = @University, AvatarURL = @AvatarURL WHERE UserID = @UserID');
+      // ĐÃ SỬA: Thêm cột IsFPTStudent=@IsFPTStudent vào câu lệnh UPDATE
+      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, IsFPTStudent = @IsFPTStudent, AvatarURL = @AvatarURL WHERE UserID = @UserID');
 
     // 4. Cập nhật tài liệu Organizer (Nếu có)
     if (req.files && req.files['documents'] && req.files['documents'].length > 0) {
@@ -105,8 +107,8 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
 
 router.put('/change-password', authenticate, changePasswordRules, validate, changePassword);
 
-// Organizer: tạo speaker trong event
-router.post('/speakers', authenticate, authorize('Organizer'), createSpeakerRules, validate, createSpeaker);
+// Organizer và Admin: tạo speaker trong event
+router.post('/speakers', authenticate, authorize('Organizer', 'Admin'), createSpeakerRules, validate, createSpeaker);
 
 // Admin: quản lý phê duyệt
 router.get('/admin/pending-organizers', authenticate, authorize('Admin'), getPendingOrganizers);

@@ -1,5 +1,6 @@
 const checkinService = require('../services/checkin.service');
 
+// [Xác nhận mã OTP Check-in] Gọi từ route POST /checkin/verify -> Xử lý OTP -> Gọi checkinService.verifyOTP
 const verifyOTP = async (req, res) => {
   try {
     await checkinService.verifyOTP(req.user.UserID, req.body.qrToken, req.body.otpCode);

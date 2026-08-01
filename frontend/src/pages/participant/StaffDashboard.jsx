@@ -7,6 +7,7 @@ import { staffService } from '../../services/staff.service';
 
 const { Title, Text } = Typography;
 
+// [Bảng điều khiển dành cho nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const StaffDashboard = () => {
   const [qrToken, setQrToken] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ const StaffDashboard = () => {
     return () => clearInterval(interval);
   }, [selectedEventId]);
 
+  // [Lấy danh sách tham gia để điểm danh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchParticipants = async () => {
     if (!selectedEventId) return;
     setLoadingParticipants(true);
@@ -46,6 +48,7 @@ const StaffDashboard = () => {
     }
   };
 
+  // [Tạo mã phiên làm việc cho nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const generateStaffSession = async () => {
     if (!selectedEventId) {
       message.error('Vui lòng chọn sự kiện trước');

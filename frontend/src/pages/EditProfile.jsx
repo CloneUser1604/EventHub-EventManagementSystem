@@ -6,6 +6,7 @@ import useAuthStore from '../store/authStore';
 import { getImageUrl } from '../utils/imageHelpers';
 import '../styles/EditProfile.css';
 
+// [Giao diện chỉnh sửa hồ sơ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const EditProfile = () => {
   const { accessToken, fetchMe } = useAuthStore();
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const EditProfile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
 
   const [formData, setFormData] = useState({
-    fullName: '', phone: '', avatarURL: '', email: '', university: ''
+    fullName: '', phone: '', avatarURL: '', email: '', isFPTStudent: false
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -32,11 +33,13 @@ const EditProfile = () => {
 
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
 
+  // [Bật/tắt hiển thị mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const togglePasswordVisibility = (field) => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   useEffect(() => {
+    // [Tải dữ liệu thông tin cá nhân] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -49,7 +52,7 @@ const EditProfile = () => {
           phone: u.phone || u.Phone || '',
           avatarURL: u.avatarURL || u.AvatarURL || '',
           email: u.email || u.Email || '',
-          university: u.university || u.University || '', // Load dữ liệu trường ĐH
+          isFPTStudent: u.isFPTStudent ?? u.IsFPTStudent ?? false, // Load dữ liệu trường ĐH
         });
 
         setUserRole(u.role || u.Role);
@@ -66,6 +69,7 @@ const EditProfile = () => {
     if (accessToken) loadData();
   }, [accessToken]);
 
+  // [Xử lý lưu thông tin cá nhân] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSaveInfo = async (e) => {
     e.preventDefault();
 
@@ -95,8 +99,7 @@ const EditProfile = () => {
       
       // ĐÃ SỬA: Ép cứng giá trị gửi đi để Backend luôn nhận được
       if (userRole === 'Participant') {
-        const uniValue = formData.university === 'Đại học FPT' ? 'Đại học FPT' : 'Khác';
-        formDataPayload.append('university', uniValue);
+        formDataPayload.append('isFPTStudent', formData.isFPTStudent);
       }
       
       if (avatarFile) {
@@ -134,6 +137,7 @@ const EditProfile = () => {
     }
   };
 
+  // [Xử lý cập nhật mật khẩu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -275,19 +279,18 @@ const EditProfile = () => {
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px' }}>
                       <input
                         type="radio"
-                        name="university"
-                        checked={formData.university === 'Đại học FPT'}
-                        onChange={() => setFormData({...formData, university: 'Đại học FPT'})}
+                        name="isFPTStudent"
+                        checked={formData.isFPTStudent === true}
+                        onChange={() => setFormData({...formData, isFPTStudent: true})}
                         style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                       /> Có
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px' }}>
                       <input
                         type="radio"
-                        name="university"
-                        checked={formData.university !== 'Đại học FPT'}
-                        // ĐÃ SỬA: Đổi onChange thành "Khác"
-                        onChange={() => setFormData({...formData, university: 'Khác'})}
+                        name="isFPTStudent"
+                        checked={formData.isFPTStudent === false}
+                        onChange={() => setFormData({...formData, isFPTStudent: false})}
                         style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                       /> Không
                     </label>

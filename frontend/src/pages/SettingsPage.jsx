@@ -10,6 +10,7 @@ import api from '../utils/axiosConfig';
 
 const { Title, Text } = Typography;
 
+// [Trang cài đặt hệ thống] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -18,16 +19,19 @@ const SettingsPage = () => {
   const { theme, emailNotifs, setTheme, setLanguage, setEmailNotifs } = useSettingStore();
   const { t, language } = useTranslation();
 
+  // [Xử lý thay đổi ngôn ngữ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleLanguageChange = (val) => {
     setLanguage(val);
     message.success(val === 'en' ? 'Language updated' : 'Đã cập nhật ngôn ngữ');
   };
 
+  // [Xử lý thay đổi giao diện sáng/tối] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleThemeChange = (val) => {
     setTheme(val);
     message.success(language === 'en' ? 'Theme updated' : 'Đã cập nhật giao diện');
   };
 
+  // [Hiển thị hộp thoại xác nhận xóa tài khoản] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const showDeleteConfirm = () => {
     Modal.confirm({
       title: t('settings.deleteAcc') + '?',

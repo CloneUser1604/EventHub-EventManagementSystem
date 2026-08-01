@@ -1,8 +1,8 @@
 const { getPool, sql } = require('../config/db');
 
 class RegistrationRepository {
-  // ─── FIND EVENT FOR REGISTRATION ──────────────────────────────────────────────
-async findEventForRegistration(eventId) {
+  // [Tìm sự kiện để đăng ký] Nhận từ Service -> SELECT Events kèm số lượng đăng ký
+  async findEventForRegistration(eventId) {
     const pool = getPool();
     const eventRes = await pool.request().input('EventID', sql.Int, eventId)
       .query(`SELECT EventID, Title, Status, RegistrationDeadline, MaxParticipants, IsInternalOnly, StartDate, EndDate,
@@ -11,15 +11,17 @@ async findEventForRegistration(eventId) {
     return eventRes.recordset[0];
   }
 
-    async findUserUniversity(userId) {
+  // [Kiểm tra sinh viên FPT] Nhận từ Service -> SELECT Users.IsFPTStudent
+  async findUserIsFPTStudent(userId) {
     const pool = getPool();
     const userRes = await pool.request()
       .input('UserID', sql.Int, userId)
-      .query('SELECT University FROM Users WHERE UserID = @UserID');
-    return userRes.recordset[0]?.University;
+      .query('SELECT IsFPTStudent FROM Users WHERE UserID = @UserID');
+    return userRes.recordset[0]?.IsFPTStudent;
   }
 
-    async findDuplicateRegistration(eventId, participantId) {
+  // [Kiểm tra trùng đăng ký] Nhận từ Service -> SELECT Registrations theo EventID + ParticipantID
+  async findDuplicateRegistration(eventId, participantId) {
     const pool = getPool();
     const dup = await pool.request()
       .input('EventID', sql.Int, eventId).input('PID', sql.Int, participantId)
@@ -27,6 +29,7 @@ async findEventForRegistration(eventId) {
     return dup.recordset[0];
   }
 
+  // [Kiểm tra trùng lịch] Nhận từ Service -> SELECT Registrations JOIN Events theo khoảng thời gian
   async findOverlappingRegistrations(participantId, eventId, startDate, endDate) {
     const pool = getPool();
     const overlapping = await pool.request()
@@ -47,7 +50,8 @@ async findEventForRegistration(eventId) {
     return overlapping.recordset;
   }
 
-    async updateRegistrationStatus(registrationId, status, note = null) {
+  // [Cập nhật trạng thái đăng ký] Nhận từ Service -> UPDATE bảng Registrations
+  async updateRegistrationStatus(registrationId, status, note = null) {
     const pool = getPool();
     if (status === 'Registered') {
       await pool.request().input('RegistrationID', sql.Int, registrationId)
@@ -60,7 +64,8 @@ async findEventForRegistration(eventId) {
     }
   }
 
-    async insertRegistration(eventId, participantId) {
+  // [Tạo đăng ký mới] Nhận từ Service -> INSERT INTO Registrations
+  async insertRegistration(eventId, participantId) {
     const pool = getPool();
     const regResult = await pool.request()
       .input('EventID', sql.Int, eventId).input('PID', sql.Int, participantId)
@@ -68,7 +73,8 @@ async findEventForRegistration(eventId) {
     return regResult.recordset[0].RegistrationID;
   }
 
-    async insertQRTicket(registrationId, qrCode, otpCode, otpExpiry) {
+  // [Tạo vé QR + OTP] Nhận từ Service -> INSERT INTO QRTickets
+  async insertQRTicket(registrationId, qrCode, otpCode, otpExpiry) {
     const pool = getPool();
     await pool.request()
       .input('RegistrationID', sql.Int, registrationId)
@@ -78,7 +84,8 @@ async findEventForRegistration(eventId) {
       .query(`INSERT INTO QRTickets (RegistrationID, QRCode, OTPCode, OTPExpiry) VALUES (@RegistrationID, @QRCode, @OTPCode, @OTPExpiry)`);
   }
 
-    async insertNotification(userId, title, message, type, relatedId, relatedType) {
+  // [Tạo thông báo đăng ký] Nhận từ Service -> INSERT INTO Notifications
+  async insertNotification(userId, title, message, type, relatedId, relatedType) {
     const pool = getPool();
     await pool.request()
       .input('UserID', sql.Int, userId)
@@ -90,7 +97,7 @@ async findEventForRegistration(eventId) {
       .query(`INSERT INTO Notifications (UserID,Title,Message,Type,RelatedID,RelatedType) VALUES (@UserID,@Title,@Message,@Type,@RelatedID,@RelatedType)`);
   }
 
-  // ─── FIND REGISTRATION FOR CANCEL ──────────────────────────────────────────────
+  // [Tìm đăng ký để hủy] Nhận từ Service -> SELECT Registrations JOIN Events
   async findRegistrationForCancel(registrationId) {
     const pool = getPool();
     const regRes = await pool.request().input('RegistrationID', sql.Int, registrationId)

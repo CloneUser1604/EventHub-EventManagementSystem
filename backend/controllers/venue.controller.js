@@ -1,6 +1,6 @@
 const { getPool, sql } = require('../config/db');
 
-// Lấy danh sách địa điểm
+// [Lấy danh sách địa điểm] Gọi từ Route (public) -> Query bảng Venues -> Trả về danh sách
 const getAllVenues = async (req, res) => {
   try {
     const pool = getPool();
@@ -12,7 +12,7 @@ const getAllVenues = async (req, res) => {
   }
 };
 
-// Thêm địa điểm mới
+// [Tạo địa điểm mới] Gọi từ Route (Admin) -> Kiểm tra tồn tại -> INSERT INTO Venues
 const createVenue = async (req, res) => {
   try {
     const { Name, Address } = req.body;
@@ -47,7 +47,7 @@ const createVenue = async (req, res) => {
   }
 };
 
-// Cập nhật địa điểm
+// [Cập nhật địa điểm] Gọi từ Route (Admin) -> Kiểm tra tồn tại -> UPDATE Venues
 const updateVenue = async (req, res) => {
   try {
     const { id } = req.params;
@@ -91,7 +91,7 @@ const updateVenue = async (req, res) => {
   }
 };
 
-// Xóa địa điểm
+// [Xóa địa điểm] Gọi từ Route (Admin) -> Kiểm tra đang sử dụng -> DELETE Venues
 const deleteVenue = async (req, res) => {
   try {
     const { id } = req.params;

@@ -13,6 +13,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// [Trang quản lý bảng điều khiển sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const EventDashboardPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const EventDashboardPage = () => {
 
   useEffect(() => { loadData(); }, [id]);
 
+  // [Tải dữ liệu thông tin cá nhân] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadData = async () => {
     setLoading(true);
     try {
@@ -54,6 +56,7 @@ const EventDashboardPage = () => {
     }
   };
 
+  // [Xử lý gửi thông báo sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSendNotification = async (values) => {
     if (participants.length === 0) {
       return message.warning('Chưa có ai đăng ký tham gia sự kiện này!');

@@ -12,16 +12,21 @@ const { uploadEvent } = require('../middleware/upload');
 // Public / optional-auth
 router.get('/categories', getCategories);
 router.get('/venues',     getVenues);
+// [Luồng Frontend: Xem danh sách sự kiện] -> [Route: GET /] -> [Middleware: optionalAuth] -> [Controller: getEvents]
 router.get('/',           optionalAuth, getEvents);
 router.get('/:id',        optionalAuth, getEventById);
 
 // Organizer: CRUD
+// [Luồng Frontend: Tạo sự kiện] -> [Route: POST /] -> [Middleware: authenticate, authorize, upload file] -> [Controller: createEvent]
 router.post('/',   authenticate, authorize('Organizer','Admin'), uploadEvent.fields([{ name: 'coverImage', maxCount: 1 }, { name: 'documents', maxCount: 5 }]), createEvent);
+
+// [Luồng Frontend: Cập nhật sự kiện] -> [Route: PUT /:id] -> [Middleware: auth, upload] -> [Controller: updateEvent]
 router.put('/:id', authenticate, authorize('Organizer','Admin'), uploadEvent.fields([{ name: 'coverImage', maxCount: 1 }, { name: 'documents', maxCount: 5 }]), updateEvent);
 router.delete('/:id', authenticate, authorize('Organizer','Admin'), deleteEvent);
 
 // Organizer: submit for approval
 router.post('/:id/submit',  authenticate, authorize('Organizer'), submitForApproval);
+// [Luồng Frontend: Hủy sự kiện] -> [Route: POST /:id/cancel] -> [Middleware: auth] -> [Controller: cancelEvent]
 router.post('/:id/cancel',  authenticate, authorize('Organizer','Admin'), cancelEvent);
 
 // router.post('/:id/notify-participants', authenticate, authorize('Organizer','Admin'), notifyParticipants);

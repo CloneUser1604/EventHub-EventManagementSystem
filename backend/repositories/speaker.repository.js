@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../config/db');
 
 class SpeakerRepository {
+  // [Lấy danh sách lời mời cơ sự] Nhận từ Service -> SELECT SpeakerInvitations JOIN Events
   async getPendingInvitations(speakerId) {
     const pool = getPool();
     const result = await pool.request()
@@ -20,6 +21,7 @@ class SpeakerRepository {
     return result.recordset;
   }
 
+  // [Cập nhật mật khẩu lần đầu] Nhận từ Service -> UPDATE Users.PasswordHash
   async updatePassword(userId, passwordHash) {
     const pool = getPool();
     await pool.request()
@@ -32,6 +34,7 @@ class SpeakerRepository {
       `);
   }
 
+  // [Gỡ Diễn giả khỏi sự kiện] Nhận từ Service -> DELETE SessionSpeakers + SpeakerInvitations
   async removeSpeakerFromEvent(speakerId, eventId) {
     const pool = getPool();
     await pool.request()
@@ -46,6 +49,7 @@ class SpeakerRepository {
       `);
   }
 
+  // [Chấp nhận lời mời] Nhận từ Service -> UPDATE SpeakerInvitations.Status = Accepted
   async acceptInvitation(speakerId, eventId) {
     const pool = getPool();
     await pool.request()
@@ -54,6 +58,7 @@ class SpeakerRepository {
       .query(`UPDATE SpeakerInvitations SET Status = 'Accepted' WHERE EventID = @EventID AND SpeakerID = @SpeakerID`);
   }
 
+  // [Lấy thông báo lời mời] Nhận từ Service -> SELECT Notifications theo userId
   async getNotifications(userId) {
     const pool = getPool();
     const result = await pool.request()
@@ -69,6 +74,7 @@ class SpeakerRepository {
     return result.recordset;
   }
 
+  // [Đánh dấu thông báo đã đọc] Nhận từ Service -> UPDATE Notifications.IsRead = 1
   async markNotificationAsRead(notificationId) {
     const pool = getPool();
     await pool.request()
@@ -76,6 +82,7 @@ class SpeakerRepository {
       .query('UPDATE Notifications SET IsRead = 1 WHERE NotificationID = @NotificationID');
   }
 
+  // [Lấy danh sách sự kiện của Diễn giả] Nhận từ Service -> SELECT Events từ SpeakerInvitations
   async getSpeakerEvents(speakerId) {
     const pool = getPool();
     const result = await pool.request()

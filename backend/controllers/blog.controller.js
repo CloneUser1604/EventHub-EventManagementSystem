@@ -1,6 +1,7 @@
 const blogService = require('../services/blog.service');
 const { successResponse, createdResponse, errorResponse, notFoundResponse, forbiddenResponse } = require('../utils/response');
 
+// [Controller: Xử lý lỗi] Dùng nội bộ -> Trả về response
 const handleError = (res, error, defaultMsg) => {
   const msg = error.message;
   if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.split(': ')[1]);
@@ -10,6 +11,7 @@ const handleError = (res, error, defaultMsg) => {
 };
 
 // ─── GET BLOGS ──────────────────────────────────────────────
+// [Controller: Lấy danh sách Blog] Gọi từ Route -> Validate -> gọi Service
 const getBlogs = async (req, res) => {
   try {
     const { page = 1, limit = 10, eventId, sort = 'new' } = req.query;
@@ -33,6 +35,7 @@ const getBlogs = async (req, res) => {
 };
 
 // ─── GET BLOG BY ID ──────────────────────────────────────────────
+// [Controller: Lấy chi tiết Blog] Gọi từ Route -> Validate -> gọi Service
 const getBlogById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -45,6 +48,7 @@ const getBlogById = async (req, res) => {
 };
 
 // ─── CREATE BLOG ──────────────────────────────────────────────
+// [Controller: Tạo Blog mới] Gọi từ Route -> Validate -> gọi Service
 const createBlog = async (req, res) => {
   try {
     const { title, content, eventId, pollQuestion, pollOptions } = req.body;
@@ -91,6 +95,7 @@ const createBlog = async (req, res) => {
 };
 
 // ─── DELETE BLOG ──────────────────────────────────────────────
+// [Controller: Xóa Blog] Gọi từ Route -> Validate -> gọi Service
 const deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -106,6 +111,7 @@ const deleteBlog = async (req, res) => {
 };
 
 // ─── VOTE POLL ──────────────────────────────────────────────
+// [Controller: Bình chọn Poll] Gọi từ Route -> Validate -> gọi Service
 const votePoll = async (req, res) => {
   try {
     const { id } = req.params;
@@ -121,6 +127,7 @@ const votePoll = async (req, res) => {
 };
 
 // ─── LIKE BLOG ──────────────────────────────────────────────
+// [Controller: Thích Blog] Gọi từ Route -> Validate -> gọi Service
 const likeBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -134,6 +141,7 @@ const likeBlog = async (req, res) => {
 };
 
 // ─── GET COMMENTS ──────────────────────────────────────────────
+// [Controller: Lấy danh sách bình luận] Gọi từ Route -> Validate -> gọi Service
 const getComments = async (req, res) => {
   try {
     const { id } = req.params;
@@ -157,6 +165,7 @@ const getComments = async (req, res) => {
 };
 
 // ─── ADD COMMENT ──────────────────────────────────────────────
+// [Controller: Thêm bình luận] Gọi từ Route -> Validate -> gọi Service
 const addComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -179,6 +188,7 @@ const addComment = async (req, res) => {
 };
 
 // ─── TOGGLE SAVE BLOG ──────────────────────────────────────────────
+// [Controller: Lưu hoặc bỏ lưu Blog] Gọi từ Route -> Validate -> gọi Service
 const toggleSaveBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -192,6 +202,7 @@ const toggleSaveBlog = async (req, res) => {
 };
 
 // ─── GET SAVED BLOGS ──────────────────────────────────────────────
+// [Controller: Lấy danh sách Blog đã lưu] Gọi từ Route -> Validate -> gọi Service
 const getSavedBlogs = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -205,6 +216,7 @@ const getSavedBlogs = async (req, res) => {
 };
 
 // ─── EDIT COMMENT ──────────────────────────────────────────────
+// [Controller: Chỉnh sửa bình luận] Gọi từ Route -> Validate -> gọi Service
 const editComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -236,6 +248,7 @@ const editComment = async (req, res) => {
 };
 
 // ─── DELETE COMMENT ──────────────────────────────────────────────
+// [Controller: Xóa bình luận] Gọi từ Route -> Validate -> gọi Service
 const deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -251,6 +264,7 @@ const deleteComment = async (req, res) => {
 };
 
 // ─── LIKE COMMENT ──────────────────────────────────────────────
+// [Controller: Thích bình luận] Gọi từ Route -> Validate -> gọi Service
 const likeComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -264,6 +278,7 @@ const likeComment = async (req, res) => {
 };
 
 // ─── GET NOTIFICATIONS ──────────────────────────────────────────────
+// [Controller: Lấy thông báo] Gọi từ Route -> Validate -> gọi Service
 const getNotifications = async (req, res) => {
   try {
     const userId = req.user.UserID || req.user.userId;
@@ -277,6 +292,7 @@ const getNotifications = async (req, res) => {
 
 // ─── REPORT BLOG ──────────────────────────────────────────────
 // Người dùng báo cáo bài viết: controller chỉ lấy id/reason/userId, service kiểm tra tồn tại rồi repository cập nhật Blogs.
+// [Controller: Báo cáo Blog] Gọi từ Route -> Validate -> gọi Service
 const reportBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -297,6 +313,7 @@ const reportBlog = async (req, res) => {
 };
 
 // Admin lấy danh sách bài viết bị report để hiển thị trong AdminDashboard.
+// [Controller: Lấy danh sách Blog bị báo cáo] Gọi từ Route -> Validate -> gọi Service
 const getReportedBlogs = async (req, res) => {
   try {
     const result = await blogService.getReportedBlogs();
@@ -308,6 +325,7 @@ const getReportedBlogs = async (req, res) => {
 };
 
 // Admin xử lý report bài viết: action='delete' hoặc 'dismiss', reason dùng khi gửi thông báo xóa bài.
+// [Controller: Giải quyết báo cáo Blog] Gọi từ Route -> Validate -> gọi Service
 const resolveReportedBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -322,6 +340,7 @@ const resolveReportedBlog = async (req, res) => {
 };
 
 // Người dùng báo cáo bình luận: lưu lý do vào BlogComments.ReportReason.
+// [Controller: Báo cáo bình luận] Gọi từ Route -> Validate -> gọi Service
 const reportComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -337,6 +356,7 @@ const reportComment = async (req, res) => {
 };
 
 // Admin lấy danh sách bình luận bị report.
+// [Controller: Lấy danh sách bình luận bị báo cáo] Gọi từ Route -> Validate -> gọi Service
 const getReportedComments = async (req, res) => {
   try {
     const result = await blogService.getReportedComments();
@@ -348,6 +368,7 @@ const getReportedComments = async (req, res) => {
 };
 
 // Admin xử lý report bình luận: xóa hoặc bỏ qua tương tự bài viết.
+// [Controller: Giải quyết báo cáo bình luận] Gọi từ Route -> Validate -> gọi Service
 const resolveReportedComment = async (req, res) => {
   try {
     const { id } = req.params;

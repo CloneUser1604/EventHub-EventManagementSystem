@@ -125,6 +125,7 @@ class EventRepository {
     return result.recordset;
   }
 
+  // [Tạo sự kiện] Thực thi INSERT INTO Events -> Trả về EventID mới
   async createEvent(eventData) {
     const pool = getPool();
     const r = pool.request()
@@ -197,6 +198,7 @@ class EventRepository {
       `);
   }
 
+  // [Cập nhật sự kiện] Thực thi UPDATE bảng Events
   async updateEvent(eventId, updateData) {
     const pool = getPool();
     const r = pool.request().input('EventID', sql.Int, eventId);

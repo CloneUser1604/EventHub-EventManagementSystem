@@ -26,10 +26,12 @@ dayjs.locale('vi');
 const { Title, Text } = Typography;
 
 /* ── Countdown component ────────────────────────────────────── */
+// [Thành phần đếm ngược thời gian] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const Countdown = ({ targetDate, size = 'normal', t }) => {
   const [timeLeft, setTimeLeft] = useState({ expired: false, text: '' });
 
   useEffect(() => {
+    // [Cập nhật nhịp đếm thời gian] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const tick = () => {
       const diff = dayjs(targetDate).diff(dayjs());
       if (diff <= 0) { setTimeLeft({ expired: true, text: t ? t('calendar.ongoing') : 'Đang diễn ra' }); return; }
@@ -58,6 +60,7 @@ const Countdown = ({ targetDate, size = 'normal', t }) => {
 };
 
 /* ── QR Ticket Modal ────────────────────────────────────────── */
+// [Hộp thoại hiển thị vé sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const TicketModal = ({ registration, onClose }) => {
   if (!registration) return null;
   return (
@@ -108,6 +111,7 @@ const TicketModal = ({ registration, onClose }) => {
 };
 
 /* ── Event Registration Card ───────────────────────────────── */
+// [Thẻ thông tin vé đã đăng ký] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -117,6 +121,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
   const deadlinePassed = reg.RegistrationDeadline && dayjs().isAfter(dayjs(reg.RegistrationDeadline));
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
+    // [Xử lý thay đổi kích thước ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -219,6 +224,7 @@ const RegistrationCard = ({ reg, onViewTicket, onCancel }) => {
 };
 
 /* ── Main Page ──────────────────────────────────────────────── */
+// [Trang lịch cá nhân] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const MyCalendarPage = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +236,7 @@ const MyCalendarPage = () => {
   const { user } = useAuthStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
+    // [Xử lý thay đổi kích thước ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -237,6 +244,7 @@ const MyCalendarPage = () => {
 
   useEffect(() => { fetchAll(); }, []);
 
+  // [Lấy tất cả sự kiện đã đăng ký] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchAll = async () => {
     setLoading(true);
     try {
@@ -277,6 +285,7 @@ const MyCalendarPage = () => {
     finally { setLoading(false); }
   };
 
+  // [Xử lý hủy sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCancel = (reg, tFunction) => {
     Modal.confirm({
       title: tFunction('calendar.confirmCancelTitle'),
@@ -299,6 +308,7 @@ const MyCalendarPage = () => {
   const cancelledByUser = registrations.filter(r => r.Status === 'Cancelled' && r.EventStatus !== 'Cancelled');
   const cancelledEvent = registrations.filter(r => r.EventStatus === 'Cancelled');
 
+  // [Hiển thị danh sách sự kiện dạng danh sách] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const renderList = (list, emptyText) => (
     loading ? <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>
     : list.length === 0
@@ -311,6 +321,7 @@ const MyCalendarPage = () => {
   );
 
   /* ── Month-view mini calendar widget ── */
+  // [Tính toán danh sách các ngày trong lịch] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const calendarDays = (() => {
     const start = currentMonth.startOf('month');
     const daysInMonth = currentMonth.daysInMonth();

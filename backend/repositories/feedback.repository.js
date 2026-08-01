@@ -2,6 +2,7 @@ const { getPool, sql } = require('../config/db');
 
 class FeedbackRepository {
   // ─── GET FEEDBACKS BY EVENT ID ──────────────────────────────────────────────
+// [Repository: Lấy danh sách feedback của sự kiện] Nhận từ Service -> Query DB
 async getFeedbacksByEventId(eventId) {
     const pool = getPool();
     const result = await pool.request().input("eventId", sql.Int, eventId)
@@ -16,6 +17,7 @@ async getFeedbacksByEventId(eventId) {
     return result.recordset;
   }
 
+// [Repository: Lấy thống kê feedback của sự kiện] Nhận từ Service -> Query DB
   async getEventFeedbackStats(eventId) {
     const pool = getPool();
     const statsResult = await pool.request().input("eventId", sql.Int, eventId)
@@ -35,6 +37,7 @@ async getFeedbacksByEventId(eventId) {
   }
 
   // ─── CHECK EVENT ELIGIBILITY ──────────────────────────────────────────────
+// [Repository: Kiểm tra điều kiện đánh giá sự kiện] Nhận từ Service -> Query DB
 async checkEventEligibility(eventId, userId) {
     const pool = getPool();
     const checkQuery = `
@@ -51,6 +54,7 @@ async checkEventEligibility(eventId, userId) {
     return checkResult.recordset[0];
   }
 
+// [Repository: Kiểm tra xem đã có feedback chưa] Nhận từ Service -> Query DB
   async checkIfFeedbackExists(eventId, userId) {
     const pool = getPool();
     const checkFeedbackQuery = `SELECT FeedbackID, Status FROM Feedbacks WHERE EventID = @eventId AND ParticipantID = @userId`;
@@ -62,6 +66,7 @@ async checkEventEligibility(eventId, userId) {
   }
 
   // ─── CREATE FEEDBACK ──────────────────────────────────────────────
+// [Repository: Viết feedback mới] Nhận từ Service -> Query DB
 async createFeedback(eventId, userId, rating, comment, mediaURLs) {
     const pool = getPool();
     const insertQuery = `
@@ -78,6 +83,7 @@ async createFeedback(eventId, userId, rating, comment, mediaURLs) {
   }
 
   // ─── UPDATE FEEDBACK ──────────────────────────────────────────────
+// [Repository: Cập nhật feedback] Nhận từ Service -> Query DB
 async updateFeedback(eventId, userId, rating, comment, mediaURLs) {
     const pool = getPool();
     const updateQuery = `
@@ -95,6 +101,7 @@ async updateFeedback(eventId, userId, rating, comment, mediaURLs) {
   }
 
   // ─── DELETE FEEDBACK ──────────────────────────────────────────────
+// [Repository: Xóa feedback] Nhận từ Service -> Query DB
 async deleteFeedback(feedbackId, userId) {
     const pool = getPool();
     const result = await pool.request()
@@ -104,6 +111,7 @@ async deleteFeedback(feedbackId, userId) {
     return result.rowsAffected[0] > 0;
   }
 
+// [Repository: Kiểm tra quyền Organizer] Nhận từ Service -> Query DB
   async checkIsOrganizer(eventId, userId) {
     const pool = getPool();
     const eventResult = await pool.request().input("eventId", sql.Int, eventId).input("userId", sql.Int, userId)
@@ -111,6 +119,7 @@ async deleteFeedback(feedbackId, userId) {
     return eventResult.recordset.length > 0;
   }
 
+// [Repository: Trả lời feedback] Nhận từ Service -> Query DB
   async replyFeedback(feedbackId, reply) {
     const pool = getPool();
     await pool.request()
@@ -125,6 +134,7 @@ async deleteFeedback(feedbackId, userId) {
       `);
   }
 
+// [Repository: Báo cáo feedback] Nhận từ Service -> Query DB
   async reportFeedback(feedbackId, reason, userId) {
     const pool = getPool();
     const check = await pool.request()
@@ -146,6 +156,7 @@ async deleteFeedback(feedbackId, userId) {
       .query(`UPDATE Feedbacks SET IsReported = 1, ReportReason = @reason, ReportedAt = GETDATE(), ReportedBy = @userId WHERE FeedbackID = @feedbackId`);
   }
 
+// [Repository: Lấy danh sách feedback bị báo cáo] Nhận từ Service -> Query DB
   async getReportedFeedbacks() {
     const pool = getPool();
     const result = await pool.request().query(`
@@ -160,6 +171,7 @@ async deleteFeedback(feedbackId, userId) {
     return result.recordset;
   }
 
+// [Repository: Xử lý báo cáo feedback] Nhận từ Service -> Query DB
   async resolveReport(feedbackId, action) {
     const pool = getPool();
     if (action === 'delete') {

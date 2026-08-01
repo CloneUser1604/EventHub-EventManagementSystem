@@ -9,12 +9,13 @@ class AuthRepository {
     return result.recordset[0];
   }
 
+  // [Tìm User theo email] Thực thi SELECT lấy thông tin User kèm trạng thái OrganizerProfile
   async findUserWithOrgStatus(email) {
     const pool = getPool();
     const result = await pool.request()
       .input('Email', sql.VarChar(255), email)
       .query(`
-        SELECT u.UserID, u.FullName, u.Email, u.PasswordHash, u.Role, u.Phone, u.University, u.IsActive, u.IsVerified, u.AvatarURL, u.MustChangePassword,
+        SELECT u.UserID, u.FullName, u.Email, u.PasswordHash, u.Role, u.Phone, u.IsFPTStudent, u.IsActive, u.IsVerified, u.AvatarURL, u.MustChangePassword,
                op.ApprovalStatus as OrgApprovalStatus, op.RejectionReason, op.OrganizationName
         FROM Users u
         LEFT JOIN OrganizerProfiles op ON u.UserID = op.UserID
@@ -23,6 +24,7 @@ class AuthRepository {
     return result.recordset[0];
   }
 
+  // [Tạo User mới] Thực thi INSERT INTO Users
   async createUser(userData) {
     const pool = getPool();
     const result = await pool.request()
@@ -31,11 +33,11 @@ class AuthRepository {
       .input('PasswordHash', sql.VarChar(255), userData.passwordHash)
       .input('Role', sql.VarChar(20), userData.role)
       .input('Phone', sql.VarChar(20), userData.phone || null)
-      .input('University', sql.NVarChar(150), userData.university || null)
+      .input('IsFPTStudent', sql.Bit, userData.isFPTStudent ? 1 : 0)
       .query(`
-        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, University, IsVerified, IsActive)
+        INSERT INTO Users (FullName, Email, PasswordHash, Role, Phone, IsFPTStudent, IsVerified, IsActive)
         OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email, INSERTED.Role, INSERTED.CreatedAt
-        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, @University, 1, 1)
+        VALUES (@FullName, @Email, @PasswordHash, @Role, @Phone, @IsFPTStudent, 1, 1)
       `);
     return result.recordset[0];
   }
@@ -119,7 +121,7 @@ class AuthRepository {
     const result = await pool.request()
       .input('UserID', sql.Int, userId)
       .query(`
-        SELECT u.UserID, u.FullName, u.Email, u.Role, u.AvatarURL, u.Phone, u.University, u.IsVerified, u.CreatedAt,
+        SELECT u.UserID, u.FullName, u.Email, u.Role, u.AvatarURL, u.Phone, u.IsFPTStudent, u.IsVerified, u.CreatedAt,
                op.OrganizerProfileID, op.OrganizationName, op.ApprovalStatus AS OrgApprovalStatus,
                op.DocumentURL, op.RejectionReason AS OrgRejectionReason
         FROM Users u
@@ -167,17 +169,17 @@ class AuthRepository {
     return result.recordset;
   }
 
-  async updateProfile(userId, fullName, phone, university, avatarURL) {
+  async updateProfile(userId, fullName, phone, isFPTStudent, avatarURL) {
     const pool = getPool();
     await pool.request()
       .input('UserID', sql.Int, userId)
       .input('FullName', sql.NVarChar(150), fullName)
       .input('Phone', sql.VarChar(20), phone)
-      .input('University', sql.NVarChar(150), university)
-      .input('AvatarURL', sql.VarChar(500), avatarURL)
+      .input('IsFPTStudent', sql.Bit, isFPTStudent ? 1 : 0)
+      .input('AvatarURL', sql.NVarChar(500), avatarURL)
       .query(`
         UPDATE Users 
-        SET FullName = @FullName, Phone = @Phone, University = @University, AvatarURL = @AvatarURL, UpdatedAt = GETDATE()
+        SET FullName = @FullName, Phone = @Phone, IsFPTStudent = @IsFPTStudent, AvatarURL = @AvatarURL, UpdatedAt = GETDATE()
         WHERE UserID = @UserID
       `);
   }

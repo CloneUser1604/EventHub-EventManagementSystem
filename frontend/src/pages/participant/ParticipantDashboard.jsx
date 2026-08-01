@@ -11,6 +11,7 @@ dayjs.locale('vi');
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 
+// [Bảng điều khiển dành cho người tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const ParticipantDashboard = () => {
   const { user } = useAuthStore();
   const [selectedKey, setSelectedKey] = useState('calendar');
@@ -25,6 +26,7 @@ const ParticipantDashboard = () => {
     { id: 3, title: 'Tech Career Fair', date: dayjs().subtract(10, 'day'), status: 'Attended' },
   ];
 
+  // [Xử lý điểm danh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCheckin = async () => {
     if (!otpCode || !staffToken) {
       return message.error('Vui lòng nhập Token của Staff và OTP');
@@ -40,6 +42,7 @@ const ParticipantDashboard = () => {
     }
   };
 
+  // [Lấy dữ liệu sự kiện cho ô ngày trên lịch] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const getListData = (value) => {
     let listData = [];
     events.forEach(event => {
@@ -50,6 +53,7 @@ const ParticipantDashboard = () => {
     return listData || [];
   };
 
+  // [Hiển thị nội dung sự kiện trong ô ngày lịch] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const dateCellRender = (value) => {
     const listData = getListData(value);
     return (
@@ -63,6 +67,7 @@ const ParticipantDashboard = () => {
     );
   };
 
+  // [Hiển thị nội dung chi tiết tab] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const renderContent = () => {
     switch (selectedKey) {
       case 'calendar':

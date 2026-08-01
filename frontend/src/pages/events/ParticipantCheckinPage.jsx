@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+// [Trang điểm danh người tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const ParticipantCheckinPage = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -23,7 +24,9 @@ const ParticipantCheckinPage = () => {
   const [event, setEvent] = useState(null);
   const [fetchingEvent, setFetchingEvent] = useState(true);
 
+  // [Lấy thông tin sự kiện cần điểm danh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   React.useEffect(() => {
+    // [Xử lý tải thông tin sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const fetchEvent = async () => {
       try {
         const res = await eventService.getEventById(id);
@@ -40,6 +43,7 @@ const ParticipantCheckinPage = () => {
   const isPast = event && dayjs(event.EndDate).isBefore(dayjs());
   const isFuture = event && dayjs(event.StartDate).isAfter(dayjs());
 
+  // [Xử lý điểm danh người tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCheckin = async () => {
     if (!isAuthenticated) {
       message.error('Vui lòng đăng nhập để check-in');

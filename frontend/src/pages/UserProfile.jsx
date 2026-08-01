@@ -6,6 +6,7 @@ import useAuthStore from '../store/authStore';
 import { getImageUrl } from '../utils/imageHelpers';
 import '../styles/UserProfile.css';
 
+// [Giao diện trang cá nhân người dùng] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const UserProfile = () => {
   const { accessToken, user: globalUser } = useAuthStore();
   const [profileData, setProfileData] = useState(null);
@@ -14,6 +15,7 @@ const UserProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // [Lấy dữ liệu hồ sơ người dùng] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const fetchUserProfile = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${accessToken}` } };
@@ -57,11 +59,13 @@ const UserProfile = () => {
     attended: safeData.stats?.attended || attendedEvents.length || 0,
   };
 
+  // [Định dạng ngày tháng sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const formatEventDate = (dateString) => {
     if (!dateString) return 'Chưa xác định';
     return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  // [Lấy kiểu dáng huy hiệu trạng thái] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const getBadgeStyle = (status) => {
     const s = status?.toLowerCase() || '';
     if (s === 'cancelled') return { backgroundColor: '#ef4444', color: '#fff', border: 'none' }; // Nền Đỏ

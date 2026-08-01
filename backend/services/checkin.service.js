@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const checkinRepository = require('../repositories/checkin.repository');
 
 class CheckinService {
+  // [Xác thực OTP Check-in] Nhận từ Controller -> Giải mã QR Token -> Kiểm tra thời gian sự kiện -> Xác nhận OTP -> Gọi Repo đánh dấu đã check-in
   async verifyOTP(participantId, qrToken, otpCode) {
     if (!qrToken || !otpCode) {
       throw new Error('BAD_REQUEST: Cần cung cấp mã phiên check-in của Staff và mã OTP');

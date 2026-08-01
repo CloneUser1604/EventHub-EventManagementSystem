@@ -1,6 +1,7 @@
 const feedbackService = require('../services/feedback.service');
 
 // ─── GET EVENT FEEDBACKS ──────────────────────────────────────────────
+// [Controller: Lấy danh sách feedback của sự kiện] Gọi từ Route -> Validate -> gọi Service
 exports.getEventFeedbacks = async (req, res) => {
   try {
     const {eventId} = req.params;
@@ -12,6 +13,7 @@ exports.getEventFeedbacks = async (req, res) => {
 };
 
 // ─── CHECK ELIGIBILITY ──────────────────────────────────────────────
+// [Controller: Kiểm tra điều kiện đánh giá] Gọi từ Route -> Validate -> gọi Service
 exports.checkEligibility = async (req, res) => {
   try {
     const {eventId} = req.params;
@@ -28,6 +30,7 @@ exports.checkEligibility = async (req, res) => {
 };
 
 // ─── CREATE FEEDBACK ──────────────────────────────────────────────
+// [Controller: Viết feedback] Gọi từ Route -> Validate -> gọi Service
 exports.createFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
@@ -57,6 +60,7 @@ exports.createFeedback = async (req, res) => {
 };
 
 // ─── UPDATE FEEDBACK ──────────────────────────────────────────────
+// [Controller: Cập nhật feedback] Gọi từ Route -> Validate -> gọi Service
 exports.updateFeedback = async (req, res) => {
   try {
     const {eventId} = req.params;
@@ -84,6 +88,7 @@ exports.updateFeedback = async (req, res) => {
 };
 
 // ─── DELETE FEEDBACK ──────────────────────────────────────────────
+// [Controller: Xóa feedback] Gọi từ Route -> Validate -> gọi Service
 exports.deleteFeedback = async (req, res) => {
   try {
     const {eventId, feedbackId} = req.params;
@@ -99,6 +104,7 @@ exports.deleteFeedback = async (req, res) => {
 };
 
 // ─── REPLY FEEDBACK ──────────────────────────────────────────────
+// [Controller: Trả lời feedback] Gọi từ Route -> Validate -> gọi Service
 exports.replyFeedback = async (req, res) => {
   try {
     const {eventId, feedbackId} = req.params;
@@ -115,6 +121,7 @@ exports.replyFeedback = async (req, res) => {
 };
 
 // ─── REPORT FEEDBACK ──────────────────────────────────────────────
+// [Controller: Báo cáo feedback] Gọi từ Route -> Validate -> gọi Service
 exports.reportFeedback = async (req, res) => {
   try {
     const {eventId, feedbackId} = req.params;
@@ -132,6 +139,7 @@ exports.reportFeedback = async (req, res) => {
 };
 
 // ─── GET REPORTED FEEDBACKS ──────────────────────────────────────────────
+// [Controller: Lấy danh sách feedback bị báo cáo] Gọi từ Route -> Validate -> gọi Service
 exports.getReportedFeedbacks = async (req, res) => {
   try {
     const result = await feedbackService.getReportedFeedbacks();
@@ -142,6 +150,7 @@ exports.getReportedFeedbacks = async (req, res) => {
 };
 
 // ─── RESOLVE REPORT ──────────────────────────────────────────────
+// [Controller: Xử lý báo cáo feedback] Gọi từ Route -> Validate -> gọi Service
 exports.resolveReport = async (req, res) => {
   try {
     const {feedbackId} = req.params;

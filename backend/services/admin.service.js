@@ -1,10 +1,12 @@
 const adminRepository = require('../repositories/admin.repository');
 
 class AdminService {
+// [Service: Lấy sự kiện chờ duyệt] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getPendingEvents() {
     return await adminRepository.getPendingEvents();
   }
 
+// [Service: Duyệt sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async approveEvent(eventId, adminId) {
     const currentEvent = await adminRepository.getEventWithProposedChanges(eventId);
     if (!currentEvent) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');
@@ -89,6 +91,7 @@ class AdminService {
     }
   }
 
+// [Service: Từ chối sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async rejectEvent(eventId, adminId, reason) {
     if (!reason) throw new Error('BAD_REQUEST: Vui lòng cung cấp lý do từ chối');
     
@@ -119,6 +122,7 @@ class AdminService {
     return { isRejectingChanges };
   }
 
+// [Service: Hủy sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async cancelEvent(eventId, reason) {
     if (!reason) throw new Error('BAD_REQUEST: Vui lòng cung cấp lý do khóa sự kiện');
     
@@ -135,10 +139,12 @@ class AdminService {
     );
   }
 
+// [Service: Lấy tất cả người dùng] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getAllUsers() {
     return await adminRepository.getAllUsers();
   }
 
+// [Service: Cập nhật trạng thái người dùng] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async updateUserStatus(userId, isActive) {
     if (typeof isActive !== 'boolean') throw new Error('BAD_REQUEST: Trạng thái isActive phải là boolean');
     
@@ -151,11 +157,13 @@ class AdminService {
     if (affected === 0) throw new Error('NOT_FOUND: Không tìm thấy người dùng');
   }
 
+// [Service: Gửi thông báo hệ thống] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async broadcastNotification(title, message, audience) {
     if (!title || !message) throw new Error('BAD_REQUEST: Vui lòng nhập tiêu đề và nội dung');
     await adminRepository.broadcastNotification(title, message, audience);
   }
 
+// [Service: Lấy thống kê Ban tổ chức] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getOrganizerStats() {
     const allOrgs = await adminRepository.getOrganizerStats();
     
@@ -171,10 +179,12 @@ class AdminService {
     return { topOrganizers, riskOrganizers };
   }
 
+// [Service: Lấy thông báo sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getEventNotifications(eventId) {
     return await adminRepository.getEventNotifications(eventId);
   }
 
+// [Service: Thu hồi thông báo sự kiện] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async revokeEventNotification(eventId, title, message) {
     await adminRepository.revokeEventNotification(eventId, title, message);
   }

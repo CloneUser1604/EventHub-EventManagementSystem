@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {useSearchParams} from "react-router-dom";
+import {useSearchParams, useLocation} from "react-router-dom";
 import {
   Row,
   Col,
@@ -26,6 +26,7 @@ const {Option} = Select;
 const {RangePicker} = DatePicker;
 
 const EventListPage = () => {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const {
     events,
@@ -39,8 +40,9 @@ const EventListPage = () => {
     clearFilters,
     fetchEvents,
     fetchMeta,
+    showFavs,
+    setShowFavs,
   } = useEventStore();
-  const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -53,11 +55,31 @@ const EventListPage = () => {
     if (searchParams.has("sortBy")) updates.sortBy = searchParams.get("sortBy");
     if (searchParams.has("sortOrder")) updates.sortOrder = searchParams.get("sortOrder");
     
-    if (Object.keys(updates).length > 0) {
-      setFilters(updates);
+    if (location.state?.fromHome) {
+      setFilters(() => ({
+        search: updates.search || "",
+        categoryId: updates.categoryId || "",
+        venueId: "",
+        timeStatus: updates.timeStatus || "",
+        isInternal: "",
+        isOpenRegistration: false,
+        startDate: "",
+        endDate: "",
+        page: 1,
+        limit: 6,
+        sortBy: updates.sortBy || "StartDate",
+        sortOrder: updates.sortOrder || "ASC",
+        status: "all_published_cancelled",
+      }));
+      // Clear the state so a reload doesn't wipe user changes later
+      window.history.replaceState({}, document.title);
+    } else {
+      if (Object.keys(updates).length > 0) {
+        setFilters(updates);
+      }
     }
     // eslint-disable-next-line
-  }, []);
+  }, [location.state, searchParams]);
 
   useEffect(() => {
     const params = {...filters};

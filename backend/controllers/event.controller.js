@@ -7,6 +7,7 @@ const eventService = require('../services/event.service');
 // [Lấy danh sách sự kiện] Gọi từ event.routes -> Validate query params -> Gọi eventService.getEvents
 const getEvents = async (req, res) => {
   try {
+    console.log('[Event Controller] getEvents query:', req.query);
     const result = await eventService.getEvents(req.query, req.user);
     return successResponse(res, result);
   } catch (error) {

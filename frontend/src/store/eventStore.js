@@ -6,6 +6,8 @@ const useEventStore = create((set, get) => ({
   categories: [], venues: [],
   selectedEvent: null,
   isLoading: false, error: null,
+  showFavs: false,
+  setShowFavs: (val) => set((state) => ({ showFavs: typeof val === 'function' ? val(state.showFavs) : val })),
   filters: { 
     search: '', categoryId: '', venueId: '', timeStatus: 'upcoming', 
     isInternal: '', isOpenRegistration: false, startDate: '', endDate: '', 

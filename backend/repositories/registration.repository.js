@@ -11,13 +11,14 @@ class RegistrationRepository {
     return eventRes.recordset[0];
   }
 
-  // [Kiểm tra sinh viên FPT] Nhận từ Service -> SELECT Users.IsFPTStudent
+  // [Kiểm tra sinh viên FPT] Dùng cột University thay vì IsFPTStudent (cột không tồn tại trong DB)
   async findUserIsFPTStudent(userId) {
     const pool = getPool();
     const userRes = await pool.request()
       .input('UserID', sql.Int, userId)
-      .query('SELECT IsFPTStudent FROM Users WHERE UserID = @UserID');
-    return userRes.recordset[0]?.IsFPTStudent;
+      .query("SELECT University FROM Users WHERE UserID = @UserID");
+    const university = userRes.recordset[0]?.University || '';
+    return university.toLowerCase().includes('fpt');
   }
 
   // [Kiểm tra trùng đăng ký] Nhận từ Service -> SELECT Registrations theo EventID + ParticipantID

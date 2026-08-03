@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Avatar, Typography, Input, Button, List, Select, message, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag, Image, Pagination } from 'antd';
+import { Avatar, Typography, Input, Button, List, Select, message, notification, Spin, Space, Divider, Empty, Upload, Modal, Badge, Dropdown, Tag, Image, Pagination } from 'antd';
 import { UserOutlined, PictureOutlined, HeartOutlined, HeartFilled, MessageOutlined, RetweetOutlined, ShareAltOutlined, EllipsisOutlined, HomeOutlined, PlusOutlined, SearchOutlined, BellOutlined, BarChartOutlined, SaveOutlined, UnorderedListOutlined, CloseCircleFilled, ArrowLeftOutlined, FormOutlined, BookOutlined, ExpandOutlined, EllipsisOutlined as MoreOutlined, ExclamationCircleOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { blogService } from '../../services/blog.service';
@@ -627,7 +627,44 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
       const res = await blogService.createBlog(formData);
       
       if (res.data?.success) {
-        message.success(t('blog.postSuccess'));
+        const newBlogId = res.data.data?.BlogID;
+        
+        if (newBlogId) {
+          const key = `open_new_blog_${Date.now()}`;
+          notification.success({
+            key,
+            message: t('blog.postSuccess'),
+            description: (
+              <div style={{ marginTop: 8 }}>
+                <span style={{ color: '#6b7280', fontSize: 13, display: 'block', marginBottom: 12 }}>Bài viết của bạn đã được xuất bản thành công!</span>
+                <Button 
+                  type="primary" 
+                  size="small"
+                  onClick={async () => {
+                    notification.destroy(key);
+                    try {
+                      const detailRes = await blogService.getBlogById(newBlogId);
+                      if (detailRes.data?.success) {
+                        setDetailBlog(detailRes.data.data);
+                        setDetailModalVisible(true);
+                        fetchComments(newBlogId, commentSort);
+                      }
+                    } catch(e) {
+                      message.error('Không thể mở bài viết');
+                    }
+                  }}
+                >
+                  Xem bài viết
+                </Button>
+              </div>
+            ),
+            duration: 8,
+            placement: 'bottomRight'
+          });
+        } else {
+          message.success(t('blog.postSuccess'));
+        }
+
         localStorage.removeItem('blog_draft');
         setHasDraft(false);
         setContent('');

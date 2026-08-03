@@ -6,14 +6,24 @@ const useEventStore = create((set, get) => ({
   categories: [], venues: [],
   selectedEvent: null,
   isLoading: false, error: null,
-  filters: { search: '', categoryId: '', status: '', startDate: '', endDate: '', page: 1, limit: 12 },
+  filters: { 
+    search: '', categoryId: '', venueId: '', timeStatus: 'upcoming', 
+    isInternal: '', isOpenRegistration: false, startDate: '', endDate: '', 
+    page: 1, limit: 6, sortBy: 'StartDate', sortOrder: 'ASC', status: 'all_published_cancelled' 
+  },
 
-  // [Cập nhật bộ lọc sự kiện] UI gọi -> Cập nhật filters trong State
-  setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f, page: 1 } })),
-  // [Xóa bộ lọc] UI gọi -> Reset filters về mặc định
-  clearFilters: () => set({ filters: { search:'', categoryId:'', status:'', startDate:'', endDate:'', page:1, limit:12 } }),
+  setFilters: (f) => set((s) => {
+    const newFilters = typeof f === 'function' ? f(s.filters) : { ...s.filters, ...f };
+    return { filters: newFilters };
+  }),
+  clearFilters: () => set((s) => ({ 
+    filters: { 
+      ...s.filters,
+      search: '', categoryId: '', venueId: '', timeStatus: '', 
+      isInternal: '', isOpenRegistration: false, startDate: '', endDate: '', page: 1 
+    } 
+  })),
 
-  // [Lấy danh sách sự kiện] UI gọi -> GET /api/events -> Cập nhật State
   fetchEvents: async (params) => {
     set({ isLoading: true, error: null });
     try {
@@ -25,7 +35,6 @@ const useEventStore = create((set, get) => ({
     }
   },
 
-  // [Lấy chi tiết sự kiện] UI gọi -> GET /api/events/:id -> Cập nhật State
   fetchEventById: async (id) => {
     set({ isLoading: true, selectedEvent: null });
     try {
@@ -38,7 +47,6 @@ const useEventStore = create((set, get) => ({
     }
   },
 
-  // [Lấy danh mục & địa điểm] UI gọi -> GET /api/events/categories + venues -> Cập nhật State
   fetchMeta: async () => {
     const [cats, vens] = await Promise.all([eventService.getCategories(), eventService.getVenues()]);
     set({ categories: cats.data.data, venues: vens.data.data });

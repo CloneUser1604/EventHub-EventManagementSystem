@@ -25,7 +25,6 @@ const {Title, Text} = Typography;
 const {Option} = Select;
 const {RangePicker} = DatePicker;
 
-// [Trang danh sách sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const EventListPage = () => {
   const [searchParams] = useSearchParams();
   const {
@@ -35,34 +34,31 @@ const EventListPage = () => {
     isLoading,
     categories,
     venues,
+    filters,
+    setFilters,
+    clearFilters,
     fetchEvents,
     fetchMeta,
-
   } = useEventStore();
-  const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
-    categoryId: searchParams.get("categoryId") || "",
-    venueId: "",
-    timeStatus: searchParams.get("timeStatus") || "upcoming",
-    isInternal: "",
-    isOpenRegistration: false,
-    startDate: "",
-    endDate: "",
-    page: 1,
-    limit: 6,
-    sortBy: searchParams.get("sortBy") || "StartDate",
-    sortOrder: searchParams.get("sortOrder") || "ASC",
-    status: "all_published_cancelled",
-  });
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
 
-  // [Lấy danh mục và địa điểm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     fetchMeta();
+    
+    const updates = {};
+    if (searchParams.has("search")) updates.search = searchParams.get("search");
+    if (searchParams.has("categoryId")) updates.categoryId = searchParams.get("categoryId");
+    if (searchParams.has("timeStatus")) updates.timeStatus = searchParams.get("timeStatus");
+    if (searchParams.has("sortBy")) updates.sortBy = searchParams.get("sortBy");
+    if (searchParams.has("sortOrder")) updates.sortOrder = searchParams.get("sortOrder");
+    
+    if (Object.keys(updates).length > 0) {
+      setFilters(updates);
+    }
+    // eslint-disable-next-line
   }, []);
 
-  // [Lấy danh sách sự kiện theo bộ lọc] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     const params = {...filters};
     Object.keys(params).forEach((k) => !params[k] && delete params[k]);
@@ -70,23 +66,8 @@ const EventListPage = () => {
     fetchEvents(params);
   }, [filters]);
 
-  // [Xử lý cập nhật bộ lọc] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const updateFilter = (key, value) =>
     setFilters((f) => ({...f, [key]: value, page: 1}));
-  // [Xử lý xóa tất cả bộ lọc] Kích hoạt từ giao diện -> Gọi Store/API xử lý
-  const clearFilters = () =>
-    setFilters((f) => ({
-      ...f,
-      search: "",
-      categoryId: "",
-      venueId: "",
-      timeStatus: "",
-      isInternal: "",
-      isOpenRegistration: false,
-      startDate: "",
-      endDate: "",
-      page: 1,
-    }));
   const hasFilters =
     filters.search ||
     filters.categoryId ||
@@ -96,7 +77,6 @@ const EventListPage = () => {
     filters.isOpenRegistration ||
     filters.startDate;
 
-  // [Bảng bộ lọc sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const FilterPanel = () => (
     <div style={{display: "flex", flexDirection: "column", gap: 16}}>
       <div>
@@ -160,12 +140,6 @@ const EventListPage = () => {
           <Option value="true">Sinh viên trường</Option>
           <Option value="false">Tất cả mọi người</Option>
         </Select>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
-        <Text strong style={{ fontSize: 13, color: '#166534' }}>
-          Còn hạn đăng ký
-        </Text>
-        <Switch checked={filters.isOpenRegistration} onChange={(v) => updateFilter("isOpenRegistration", v)} style={{ background: filters.isOpenRegistration ? '#22c55e' : 'rgba(0,0,0,0.25)' }} />
       </div>
       <div>
         <Text strong style={{display: "block", marginBottom: 8, fontSize: 13, color: "inherit"}}>

@@ -18,10 +18,10 @@ const registerEvent = async (req, res) => {
   } catch (error) {
     console.error('registerEvent error:', error);
     const msg = error.message;
-    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.split(': ')[1]);
-    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.split(': ')[1], 400);
-    if (msg.startsWith('FORBIDDEN')) return forbiddenResponse(res, msg.split(': ')[1]);
-    if (msg.startsWith('CONFLICT')) return conflictResponse(res, msg.split(': ')[1]);
+    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.substring(msg.indexOf(': ') + 2));
+    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.substring(msg.indexOf(': ') + 2), 400);
+    if (msg.startsWith('FORBIDDEN')) return forbiddenResponse(res, msg.substring(msg.indexOf(': ') + 2));
+    if (msg.startsWith('CONFLICT')) return conflictResponse(res, msg.substring(msg.indexOf(': ') + 2));
     return errorResponse(res, 'Đăng ký thất bại');
   }
 };
@@ -37,9 +37,9 @@ const cancelRegistration = async (req, res) => {
     return successResponse(res, null, `Đã huỷ đăng ký sự kiện "${eventTitle}"`);
   } catch (error) {
     const msg = error.message;
-    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.split(': ')[1]);
+    if (msg.startsWith('NOT_FOUND')) return notFoundResponse(res, msg.substring(msg.indexOf(': ') + 2));
     if (msg.startsWith('FORBIDDEN')) return forbiddenResponse(res);
-    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.split(': ')[1], 400);
+    if (msg.startsWith('BAD_REQUEST')) return errorResponse(res, msg.substring(msg.indexOf(': ') + 2), 400);
     return errorResponse(res, 'Huỷ đăng ký thất bại');
   }
 };

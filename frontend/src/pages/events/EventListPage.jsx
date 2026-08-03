@@ -34,29 +34,29 @@ const EventListPage = () => {
     isLoading,
     categories,
     venues,
+    filters,
+    setFilters,
+    clearFilters,
     fetchEvents,
     fetchMeta,
   } = useEventStore();
-  const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
-    categoryId: searchParams.get("categoryId") || "",
-    venueId: "",
-    timeStatus: searchParams.get("timeStatus") || "upcoming",
-    isInternal: "",
-    isOpenRegistration: false,
-    startDate: "",
-    endDate: "",
-    page: 1,
-    limit: 6,
-    sortBy: searchParams.get("sortBy") || "StartDate",
-    sortOrder: searchParams.get("sortOrder") || "ASC",
-    status: "all_published_cancelled",
-  });
   const [showFavs, setShowFavs] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
     fetchMeta();
+    
+    const updates = {};
+    if (searchParams.has("search")) updates.search = searchParams.get("search");
+    if (searchParams.has("categoryId")) updates.categoryId = searchParams.get("categoryId");
+    if (searchParams.has("timeStatus")) updates.timeStatus = searchParams.get("timeStatus");
+    if (searchParams.has("sortBy")) updates.sortBy = searchParams.get("sortBy");
+    if (searchParams.has("sortOrder")) updates.sortOrder = searchParams.get("sortOrder");
+    
+    if (Object.keys(updates).length > 0) {
+      setFilters(updates);
+    }
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -68,19 +68,6 @@ const EventListPage = () => {
 
   const updateFilter = (key, value) =>
     setFilters((f) => ({...f, [key]: value, page: 1}));
-  const clearFilters = () =>
-    setFilters((f) => ({
-      ...f,
-      search: "",
-      categoryId: "",
-      venueId: "",
-      timeStatus: "",
-      isInternal: "",
-      isOpenRegistration: false,
-      startDate: "",
-      endDate: "",
-      page: 1,
-    }));
   const hasFilters =
     filters.search ||
     filters.categoryId ||

@@ -150,6 +150,7 @@ async function seed() {
     { title: "Hội diễn văn nghệ kỉ niệm thành lập trường", type: "completed", internal: 0 },
     { title: "Cuộc thi tranh biện Debate Championship", type: "completed", internal: 1 },
     { title: "Ngày hội việc làm Job Fair 2025", type: "completed", internal: 0 },
+    { title: "Sự kiện Test Đánh giá (Chưa có feedback)", type: "completed", internal: 0 },
 
     // 17-20: Đã hủy
     { title: "Workshop Kỹ năng lãnh đạo (Đã hủy)", type: "cancelled", internal: 0 },
@@ -161,42 +162,55 @@ async function seed() {
   console.log(`Seeding ${events.length} events...`);
   
   // We first delete old [SEED] events to avoid duplicates when running multiple times
-  await pool.request().query("DELETE FROM Registrations WHERE EventID IN (SELECT EventID FROM Events WHERE Title LIKE '[[]SEED]%')");
-  await pool.request().query("DELETE FROM Events WHERE Title LIKE '[[]SEED]%'");
+  await pool.request().query("DELETE FROM Feedbacks WHERE EventID IN (SELECT EventID FROM Events WHERE CoverImageURL = 'event_seed_default.jpg')");
+  await pool.request().query("DELETE FROM Attendance WHERE RegistrationID IN (SELECT RegistrationID FROM Registrations WHERE EventID IN (SELECT EventID FROM Events WHERE CoverImageURL = 'event_seed_default.jpg'))");
+  await pool.request().query("DELETE FROM EventStaffs WHERE EventID IN (SELECT EventID FROM Events WHERE CoverImageURL = 'event_seed_default.jpg')");
+  await pool.request().query("DELETE FROM Registrations WHERE EventID IN (SELECT EventID FROM Events WHERE CoverImageURL = 'event_seed_default.jpg')");
+  await pool.request().query("DELETE FROM Events WHERE CoverImageURL = 'event_seed_default.jpg'");
 
   // Prepare participants for registration
   const partRes = await pool.request().query("SELECT UserID FROM Users WHERE Role='Participant'");
   const participants = partRes.recordset.map(r => r.UserID);
+  
+  // Need a staff member to check people in
+  const staffRes = await pool.request().query("SELECT UserID FROM Users WHERE Role='Staff'");
+  const checkInStaffId = staffRes.recordset.length > 0 ? staffRes.recordset[0].UserID : orgId;
 
-  for (let ev of events) {
-    let startDate, endDate, regDeadline, status;
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    let startDate = generateDate(10);
+    let endDate = generateDate(12);
+    let regDeadline = generateDate(5);
+    let status = 'Published';
     let approvalStatus = 'Approved';
-    
-    if (ev.type === "upcoming_open") {
+
+    if (ev.type.startsWith('upcoming')) {
       startDate = generateDate(10);
-      endDate = generateDate(11);
-      regDeadline = generateDate(5);
-      status = 'Published';
-    } else if (ev.type === "upcoming_closed") {
-      startDate = generateDate(5);
-      endDate = generateDate(6);
-      regDeadline = generateDate(-1);
-      status = 'Published';
-    } else if (ev.type === "ongoing") {
+      endDate = generateDate(12);
+      regDeadline = ev.type === 'upcoming_closed' ? generateDate(-1) : generateDate(5);
+    } else if (ev.type === 'ongoing') {
       startDate = generateDate(-1);
       endDate = generateDate(2);
-      regDeadline = generateDate(-5);
-      status = 'Published';
-    } else if (ev.type === "completed") {
-      startDate = generateDate(-20);
-      endDate = generateDate(-18);
-      regDeadline = generateDate(-25);
+      regDeadline = generateDate(-3);
+    } else if (ev.type === 'completed') {
+      startDate = generateDate(-10);
+      endDate = generateDate(-8);
+      regDeadline = generateDate(-15);
       status = 'Completed';
-    } else if (ev.type === "cancelled") {
-      startDate = generateDate(5);
-      endDate = generateDate(6);
+    } else if (ev.type === 'cancelled') {
+      startDate = generateDate(10);
+      endDate = generateDate(12);
       regDeadline = generateDate(2);
       status = 'Cancelled';
+    }
+
+    let maxParts = 100;
+    let numToRegister = 0;
+    if (['upcoming_open', 'ongoing', 'completed', 'cancelled'].includes(ev.type) && participants.length > 0) {
+      numToRegister = Math.floor(Math.random() * participants.length) + 1;
+    }
+    if (ev.title.includes("Trí tuệ nhân tạo")) {
+      maxParts = numToRegister; // This event will be FULL
     }
 
     try {
@@ -205,11 +219,11 @@ async function seed() {
         .input('CategoryID', sql.Int, getRandCat())
         .input('Title', sql.NVarChar(300), ev.title)
         .input('Description', sql.NVarChar(sql.MAX), 'Mô tả chi tiết cho sự kiện: ' + ev.title)
-        .input('CoverImageURL', sql.VarChar(500), 'https://res.cloudinary.com/dzj8z3e58/image/upload/v1721538350/default_event.jpg')
+        .input('CoverImageURL', sql.VarChar(500), 'event_seed_default.jpg')
         .input('StartDate', sql.DateTime, startDate)
         .input('EndDate', sql.DateTime, endDate)
         .input('RegistrationDeadline', sql.DateTime, regDeadline)
-        .input('MaxParticipants', sql.Int, 100)
+        .input('MaxParticipants', sql.Int, maxParts)
         .input('IsInternalOnly', sql.Bit, ev.internal)
         .input('Status', sql.VarChar(20), status)
         .input('ApprovalStatus', sql.VarChar(20), approvalStatus)
@@ -230,22 +244,50 @@ async function seed() {
       const eventId = insertResult.recordset[0].EventID;
       console.log(`✅ Created: ${ev.title} (${ev.type}, Internal: ${ev.internal})`);
 
-      // Seed registrations if upcoming_open or ongoing
-      if ((ev.type === 'upcoming_open' || ev.type === 'ongoing') && participants.length > 0) {
-        // Assign up to 3 participants randomly
+      // Seed registrations and feedbacks
+      if (numToRegister > 0) {
         const shuffled = participants.sort(() => 0.5 - Math.random());
-        const selectedParts = shuffled.slice(0, 3);
+        const selectedParts = shuffled.slice(0, numToRegister);
         
         for (const pid of selectedParts) {
-          await pool.request()
+          const regRes = await pool.request()
             .input('EventID', sql.Int, eventId)
             .input('ParticipantID', sql.Int, pid)
             .query(`
               INSERT INTO Registrations (EventID, ParticipantID, Status)
+              OUTPUT INSERTED.RegistrationID
               VALUES (@EventID, @ParticipantID, 'Registered')
             `);
+          
+          const regId = regRes.recordset[0].RegistrationID;
+
+          if (ev.type === 'completed') {
+            const isAttended = Math.random() > 0.2;
+            if (isAttended) {
+              await pool.request()
+                .input('RegistrationID', sql.Int, regId)
+                .input('CheckedInBy', sql.Int, checkInStaffId)
+                .query(`
+                  INSERT INTO Attendance (RegistrationID, CheckedInBy, Status)
+                  VALUES (@RegistrationID, @CheckedInBy, 'Present')
+                `);
+
+              // Seed feedback for most events, but leave "Sự kiện Test Đánh giá (Chưa có feedback)" without feedback for testing
+              if (ev.title !== 'Sự kiện Test Đánh giá (Chưa có feedback)') {
+                await pool.request()
+                  .input('EventID', sql.Int, eventId)
+                  .input('ParticipantID', sql.Int, pid)
+                  .input('Rating', sql.Int, Math.floor(Math.random() * 2) + 4) // 4 or 5 stars
+                  .input('Comment', sql.NVarChar(sql.MAX), 'Sự kiện rất tuyệt vời và bổ ích!')
+                  .query(`
+                    INSERT INTO Feedbacks (EventID, ParticipantID, Rating, Comment)
+                    VALUES (@EventID, @ParticipantID, @Rating, @Comment)
+                  `);
+              }
+            }
+          }
         }
-        console.log(`   👉 Seeded ${selectedParts.length} registrations`);
+        console.log(`   👉 Seeded ${numToRegister} registrations${ev.type === 'completed' ? ' & feedbacks' : ''}`);
       }
 
     } catch (err) {

@@ -31,7 +31,7 @@ async registerEvent(eventId, participantId) {
     if (event.StartDate && event.EndDate) {
       const overlaps = await registrationRepository.findOverlappingRegistrations(participantId, eventId, event.StartDate, event.EndDate);
       if (overlaps && overlaps.length > 0) {
-        throw new Error(`CONFLICT: Bạn đã đăng ký sự kiện "${overlaps[0].Title}" diễn ra trùng thời gian. Vui lòng sắp xếp lại lịch trình.`);
+        throw new Error(`CONFLICT: Sự kiện "${event.Title}" đang bị trùng thời gian với sự kiện "${overlaps[0].Title}". Vui lòng sắp xếp lại lịch trình cá nhân để đăng ký.`);
       }
     }
 

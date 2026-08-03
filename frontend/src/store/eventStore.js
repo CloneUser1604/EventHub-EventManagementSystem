@@ -6,10 +6,23 @@ const useEventStore = create((set, get) => ({
   categories: [], venues: [],
   selectedEvent: null,
   isLoading: false, error: null,
-  filters: { search: '', categoryId: '', status: '', startDate: '', endDate: '', page: 1, limit: 12 },
+  filters: { 
+    search: '', categoryId: '', venueId: '', timeStatus: 'upcoming', 
+    isInternal: '', isOpenRegistration: false, startDate: '', endDate: '', 
+    page: 1, limit: 6, sortBy: 'StartDate', sortOrder: 'ASC', status: 'all_published_cancelled' 
+  },
 
-  setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f, page: 1 } })),
-  clearFilters: () => set({ filters: { search:'', categoryId:'', status:'', startDate:'', endDate:'', page:1, limit:12 } }),
+  setFilters: (f) => set((s) => {
+    const newFilters = typeof f === 'function' ? f(s.filters) : { ...s.filters, ...f };
+    return { filters: newFilters };
+  }),
+  clearFilters: () => set((s) => ({ 
+    filters: { 
+      ...s.filters,
+      search: '', categoryId: '', venueId: '', timeStatus: '', 
+      isInternal: '', isOpenRegistration: false, startDate: '', endDate: '', page: 1 
+    } 
+  })),
 
   fetchEvents: async (params) => {
     set({ isLoading: true, error: null });

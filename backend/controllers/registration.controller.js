@@ -3,6 +3,7 @@ const { successResponse, createdResponse, errorResponse, notFoundResponse, forbi
 const registrationService = require('../services/registration.service');
 
 // ─── REGISTER EVENT ──────────────────────────────────────────────
+// [Đăng ký tham gia sự kiện] Gọi từ registration.routes -> Trích xuất eventId -> Gọi registrationService.registerEvent
 const registerEvent = async (req, res) => {
   try {
     const { eventId } = req.body;
@@ -26,6 +27,7 @@ const registerEvent = async (req, res) => {
 };
 
 // ─── CANCEL REGISTRATION ──────────────────────────────────────────────
+// [Hủy đăng ký tham gia] Gọi từ registration.routes -> Lấy id -> Gọi registrationService.cancelRegistration
 const cancelRegistration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -43,6 +45,7 @@ const cancelRegistration = async (req, res) => {
 };
 
 // ─── GET MY REGISTRATIONS ──────────────────────────────────────────────
+// [Lấy danh sách đăng ký của tôi] Gọi từ route (authenticate) -> Query Registrations + QRTickets + Attendance
 const getMyRegistrations = async (req, res) => {
   try {
     const pool = getPool();
@@ -82,6 +85,7 @@ const getMyRegistrations = async (req, res) => {
 };
 
 // ─── GET TICKET ──────────────────────────────────────────────
+// [Lấy thông tin vé] Gọi từ route (authenticate) -> Query QRTickets + Registrations
 const getTicket = async (req, res) => {
   try {
     const { id } = req.params;
@@ -111,6 +115,7 @@ const getTicket = async (req, res) => {
 };
 
 // ─── GET NOTIFICATIONS ──────────────────────────────────────────────
+// [Lấy thông báo] Gọi từ route (authenticate) -> SELECT TOP 30 Notifications
 const getNotifications = async (req, res) => {
   try {
     const pool = getPool();
@@ -123,6 +128,7 @@ const getNotifications = async (req, res) => {
 };
 
 // ─── MARK NOTIFICATION READ ──────────────────────────────────────────────
+// [Đánh dấu đã đọc thông báo] Gọi từ route (authenticate) -> UPDATE Notifications.IsRead = 1
 const markNotificationRead = async (req, res) => {
   try {
     const { id } = req.params;

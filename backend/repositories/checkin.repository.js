@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../config/db');
 
 class CheckinRepository {
+  // [Lấy thông tin đăng ký] Nhận từ Service -> SELECT EventRegistrations JOIN Events
   async getRegistration(eventId, participantId) {
     const pool = getPool();
     const result = await pool.request()
@@ -15,6 +16,7 @@ class CheckinRepository {
     return result.recordset[0];
   }
 
+  // [Lấy vé QR] Nhận từ Service -> SELECT QRTickets theo RegistrationID
   async getTicket(registrationId) {
     const pool = getPool();
     const result = await pool.request()
@@ -23,6 +25,7 @@ class CheckinRepository {
     return result.recordset[0];
   }
 
+  // [Thực hiện Check-in] Nhận từ Service -> Transaction: UPDATE QRTickets IsUsed=1 + INSERT Attendance
   async performCheckin(ticketId, registrationId, staffId) {
     const pool = getPool();
     const transaction = new sql.Transaction(pool);

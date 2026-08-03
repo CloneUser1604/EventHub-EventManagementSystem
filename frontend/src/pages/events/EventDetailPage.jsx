@@ -47,9 +47,12 @@ dayjs.extend(duration);
 const {Title, Text, Paragraph} = Typography;
 
 // ─── Countdown Timer ──────────────────────────────────────────
+// [Thành phần đếm ngược thời gian] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const Countdown = ({targetDate, t}) => {
   const [timeLeft, setTimeLeft] = useState("");
+  // [Hiệu ứng cập nhật thời gian đếm ngược] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
+    // [Xử lý giảm thời gian đếm ngược] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const tick = () => {
       const diff = dayjs(targetDate).diff(dayjs());
       if (diff <= 0) {
@@ -76,6 +79,7 @@ const Countdown = ({targetDate, t}) => {
   );
 };
 
+// [Trang chi tiết sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout = false, defaultTab = "about" }) => {
   const {id} = useParams();
   const targetId = adminEventId || id;
@@ -92,6 +96,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
   const [activeTab, setActiveTab] = useState(defaultTab);
   const { t } = useTranslation();
 
+  // [Xử lý khi nhấn viết đánh giá] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleWriteReviewClick = () => {
     setActiveTab("feedback");
     setTimeout(() => {
@@ -102,7 +107,9 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
     }, 150);
   };
 
+  // [Đồng bộ danh sách yêu thích với bộ nhớ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
+    // [Xử lý thay đổi dữ liệu trong bộ nhớ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const handleStorageChange = () => {
       const favs = JSON.parse(localStorage.getItem("favoriteEvents") || "[]");
       setIsFav(favs.includes(String(targetId)));
@@ -113,6 +120,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
       window.removeEventListener("favoritesUpdated", handleStorageChange);
   }, [targetId]);
 
+  // [Bật/tắt trạng thái yêu thích sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const toggleFav = () => {
     let favs = JSON.parse(localStorage.getItem("favoriteEvents") || "[]");
     if (isFav) {
@@ -127,6 +135,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
     window.dispatchEvent(new Event("favoritesUpdated"));
   };
 
+  // [Lấy thông tin chi tiết sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     fetchEventById(targetId);
     if (
@@ -138,12 +147,14 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
       loadMyRegistration();
   }, [targetId, isAuthenticated, user]);
 
+  // [Lấy danh sách người tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     if (event && (event.IsStaffForThisEvent || user?.userId === event.OrganizerID)) {
       loadParticipants();
     }
   }, [event, user]);
 
+  // [Xử lý tải danh sách người tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadParticipants = async () => {
     try {
       setLoadingParticipants(true);
@@ -163,6 +174,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
     }
   };
 
+  // [Xử lý tải thông tin đăng ký của tôi] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadMyRegistration = async () => {
     try {
       const res = await registrationService.getMyRegistrations();
@@ -174,6 +186,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
     } catch {}
   };
 
+  // [Xử lý đăng ký tham gia sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleRegister = async () => {
     if (!isAuthenticated) {
       message.warning("Vui lòng đăng nhập để đăng ký sự kiện!");
@@ -207,6 +220,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
     }
   };
 
+  // [Xử lý hủy đăng ký tham gia] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCancel = async () => {
     Modal.confirm({
       title: t('eventDetail.cancelRegistration'),
@@ -285,6 +299,7 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
       event.Description.includes("&lt;!DOCTYPE") ||
       event.Description.includes("&lt;section"));
 
+  // [Giải mã HTML] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const unescapeHTML = (htmlStr) => {
     if (!htmlStr) return "";
     if (isPastedHTML) {
@@ -1126,10 +1141,12 @@ const EventDetailPage = ({ adminEventId = null, adminFeedbackId = null, noLayout
 
 export default EventDetailPage;
 
+// [Phần quản lý nhân viên của Admin] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const AdminStaffSection = ({ eventId }) => {
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // [Tự động lấy danh sách nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   useEffect(() => {
     staffService.getAssignedStaff(eventId).then(res => {
       setStaffs(res.data || []);

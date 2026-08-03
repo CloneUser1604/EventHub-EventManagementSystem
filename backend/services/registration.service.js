@@ -6,6 +6,7 @@ const generateQRToken = () => crypto.randomBytes(20).toString('hex');
 
 class RegistrationService {
   // ─── REGISTER EVENT ──────────────────────────────────────────────
+// [Đăng ký tham gia sự kiện] Validate số lượng vé, trường học -> Gọi Repo check trùng -> Gọi Repo tạo Registration
 async registerEvent(eventId, participantId) {
     const event = await registrationRepository.findEventForRegistration(eventId);
     if (!event) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');
@@ -17,8 +18,8 @@ async registerEvent(eventId, participantId) {
       throw new Error('BAD_REQUEST: Sự kiện đã đầy chỗ');
     }
 
-    const userUniv = await registrationRepository.findUserUniversity(participantId);
-    if (event.IsInternalOnly && userUniv !== 'Đại học FPT') {
+    const isFPTStudent = await registrationRepository.findUserIsFPTStudent(participantId);
+    if (event.IsInternalOnly && !isFPTStudent) {
       throw new Error('FORBIDDEN: Sự kiện này chỉ dành cho sinh viên trường Đại học FPT');
     }
 
@@ -61,6 +62,7 @@ async registerEvent(eventId, participantId) {
   }
 
   // ─── CANCEL REGISTRATION ──────────────────────────────────────────────
+// [Hủy đăng ký] Validate trạng thái đăng ký -> Lấy Registration -> Gọi Repo update trạng thái thành Cancelled
 async cancelRegistration(registrationId, participantId, note) {
     const reg = await registrationRepository.findRegistrationForCancel(registrationId);
     if (!reg) throw new Error('NOT_FOUND: Không tìm thấy đăng ký');

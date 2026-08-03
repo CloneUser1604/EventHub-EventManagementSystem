@@ -16,6 +16,7 @@ const { Option } = Select;
 
 // Helper to build image URL - normalizes to current backend regardless of stored host
 const BACKEND_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+// [Xây dựng URL hình ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const buildImgUrl = (url) => {
   if (!url) return '';
   // If it's a full URL containing /uploads/, extract the path and repoint to current backend
@@ -33,6 +34,7 @@ const buildImgUrl = (url) => {
 };
 
 // Check if URL is a video
+// [Kiểm tra URL định dạng video] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const isVideoUrl = (url) => {
   if (!url) return false;
   const ext = url.split('?')[0].split('.').pop().toLowerCase();
@@ -40,6 +42,7 @@ const isVideoUrl = (url) => {
 };
 
 // Parse ImageURL: returns array of string URLs
+// [Phân tích mảng hình ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const parseImages = (raw) => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -51,6 +54,7 @@ const parseImages = (raw) => {
 };
 
 // SafeVideo: ensure video pauses when unmounted (fixes bug where video continues playing after modal close)
+// [Thành phần hiển thị video an toàn] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const SafeVideo = ({ src, ...props }) => {
   const videoRef = React.useRef(null);
   React.useEffect(() => {
@@ -67,6 +71,7 @@ const SafeVideo = ({ src, ...props }) => {
 };
 
 // Grid image display component
+// [Thành phần lưới hình ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
   const [lightbox, setLightbox] = React.useState(null); // index of open image
   const [showAll, setShowAll] = React.useState(false);
@@ -185,6 +190,7 @@ const ImageGrid = ({ imageUrl, maxVisible = 3, onExpand }) => {
   );
 };
 
+// [Trang bài viết & diễn đàn] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null, popupOnly = false, onClosePopup = null }) => {
   const { t } = useTranslation();
   const { theme } = useSettingStore();
@@ -271,6 +277,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     'Khác'
   ];
 
+  // [Lấy kiểu dáng hiển thị theo vai trò] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const getRoleStyle = (role) => {
     switch (role) {
       case 'Admin': return { bg: '#fee2e2', color: '#b91c1c' };
@@ -284,6 +291,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
 
   const canPost = isAuthenticated;
 
+  // [Lấy đường dẫn ảnh đại diện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const getAvatarUrl = (url) => {
     if (!url) return undefined; // return undefined so Ant Design Avatar falls back to icon
     if (url.startsWith('http')) return url;
@@ -365,6 +373,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     return Object.values(eventScores).sort((a, b) => b.score - a.score).slice(0, 5);
   }, [allBlogs]);
 
+  // [Lấy danh sách bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchBlogs = async (page = currentPage, sort = blogsSort, eventId = currentEventFilter) => {
     setLoading(true);
     try {
@@ -402,6 +411,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   }, [activeView]);
 
+  // [Lấy danh sách bài viết đã lưu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchSavedBlogs = async (page = savedCurrentPage) => {
     if (!isAuthenticated) return;
     setLoadingSaved(true);
@@ -421,6 +431,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý lưu/bỏ lưu bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSaveBlog = async (blogId) => {
     if (!isAuthenticated) return message.warning('Vui lòng đăng nhập để lưu');
     try {
@@ -439,6 +450,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý đánh dấu thông báo đã đọc] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleMarkNotificationRead = (notifId) => {
     setReadNotificationIds(prev => {
       const newSet = new Set(prev);
@@ -448,6 +460,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     });
   };
 
+  // [Xử lý khi nhấn vào thông báo] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleNotificationClick = async (item) => {
     handleMarkNotificationRead(`${item.Type}_${item.ID}`);
     
@@ -521,6 +534,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Lấy danh sách thông báo] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchNotifications = async () => {
     if (!isAuthenticated) return;
     setLoadingNotifications(true);
@@ -547,6 +561,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     return () => clearInterval(interval);
   }, [isAuthenticated]); // eslint-disable-line
 
+  // [Lấy danh sách sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchEvents = async () => {
     setLoadingEvents(true);
     try {
@@ -561,6 +576,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý tạo bài viết mới] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handlePost = async () => {
     const hasMedia = fileList.length > 0 || videoList.length > 0;
     let hasValidPoll = false;
@@ -670,6 +686,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý xóa bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleDelete = (id) => {
     Modal.confirm({
       title: t('blog.confirm'),
@@ -691,6 +708,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     });
   };
 
+  // [Xử lý gửi báo cáo vi phạm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleReportSubmit = async () => {
     let finalReason = reportReason;
     if (reportReason === 'Khác') {
@@ -724,6 +742,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý bình chọn khảo sát] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleVote = async (blogId, optionIndex) => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để bình chọn');
@@ -764,6 +783,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý thích/bỏ thích bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleLike = async (blogId) => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để like');
@@ -791,6 +811,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Lấy danh sách bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchComments = async (blogId, sort = 'top') => {
     setLoadingComments(true);
     try {
@@ -803,14 +824,17 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý gửi bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleComment = (blogId) => {
     navigate(`/blogs/${blogId}`);
   };
 
+  // [Xử lý đóng hộp thoại] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCloseModal = () => {
     navigate('/blogs');
   };
 
+  // [Xử lý thay đổi sắp xếp] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSortChange = (newSort) => {
     setCommentSort(newSort);
     if (detailBlog) {
@@ -818,6 +842,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý thích/bỏ thích bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleLikeComment = async (commentId, blogId) => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để like');
@@ -849,7 +874,9 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Cập nhật số lượng bình luận của bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const updateBlogCommentCount = (blogId, delta) => {
+    // [Hàm cập nhật trạng thái] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const updateFn = (prev) => prev.map(b => b.BlogID === blogId ? { ...b, CommentCount: Math.max(0, (b.CommentCount || 0) + delta) } : b);
     setBlogs(updateFn);
     setSavedBlogs(updateFn);
@@ -857,6 +884,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     setDetailBlog(prev => prev?.BlogID === blogId ? { ...prev, CommentCount: Math.max(0, (prev.CommentCount || 0) + delta) } : prev);
   };
 
+  // [Xử lý thêm bình luận mới] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleAddComment = async (blogId) => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để bình luận');
@@ -881,6 +909,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý gửi phản hồi bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleReplySubmit = async (blogId, parentId) => {
     if (!isAuthenticated) return message.warning('Vui lòng đăng nhập để bình luận');
     if (!replyInput.trim() && replyImageFiles.length === 0 && replyVideoFiles.length === 0) return;
@@ -904,6 +933,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý gửi báo cáo bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleReportCommentSubmit = async () => {
     if (!reportReason) {
       message.error('Vui lòng chọn hoặc nhập lý do báo cáo');
@@ -937,6 +967,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý chỉnh sửa bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleEditComment = async (commentId, blogId) => {
     if (!editingCommentContent.trim() && editingCommentFiles.length === 0 && editingCommentExistingUrls.length === 0) return;
     try {
@@ -960,6 +991,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Xử lý xóa bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleDeleteComment = (commentId, blogId) => {
     Modal.confirm({
       title: t('blog.confirm'),
@@ -987,6 +1019,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     });
   };
 
+  // [Xử lý chia sẻ bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleShare = (blogId) => {
     const link = `${window.location.origin}/blogs/${blogId}`;
     navigator.clipboard.writeText(link).then(() => {
@@ -996,6 +1029,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     });
   };
 
+  // [Xử lý mở hộp thoại] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleOpenModal = () => {
     if (!isAuthenticated) {
       message.warning('Vui lòng đăng nhập để đăng bài');
@@ -1004,6 +1038,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     setIsModalVisible(true);
   };
 
+  // [Xóa hình ảnh khỏi danh sách] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const removeImage = (index) => {
     const newFileList = [...fileList];
     const newPreviewUrls = [...previewUrls];
@@ -1013,18 +1048,21 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     setPreviewUrls(newPreviewUrls);
   };
 
+  // [Thêm tùy chọn khảo sát] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const addPollOption = () => {
     if (pollOptions.length < 4) {
       setPollOptions([...pollOptions, '']);
     }
   };
 
+  // [Cập nhật tùy chọn khảo sát] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const updatePollOption = (index, value) => {
     const newOptions = [...pollOptions];
     newOptions[index] = value;
     setPollOptions(newOptions);
   };
 
+  // [Xóa tùy chọn khảo sát] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const removePollOption = (index) => {
     if (pollOptions.length > 2) {
       const newOptions = [...pollOptions];
@@ -1033,6 +1071,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
     }
   };
 
+  // [Lưu bản nháp bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const saveDraft = () => {
     const draft = {
       title,
@@ -1219,6 +1258,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
                 
                 const notifKey = `${item.Type}_${item.ID}`;
                 const isExpanded = expandedNotifs.has(notifKey);
+                // [Bật/tắt mở rộng nội dung] Kích hoạt từ giao diện -> Gọi Store/API xử lý
                 const toggleExpand = (e) => {
                   e.stopPropagation();
                   setExpandedNotifs(prev => {

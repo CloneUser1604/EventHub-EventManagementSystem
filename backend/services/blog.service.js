@@ -3,6 +3,7 @@ const { sql } = require('../config/db'); // for sql types if needed
 
 class BlogService {
   // ─── GET BLOGS ──────────────────────────────────────────────
+// [Service: Lấy danh sách Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async getBlogs(page, limit, eventId, sort, currentUserId) {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
@@ -83,6 +84,7 @@ async getBlogs(page, limit, eventId, sort, currentUserId) {
   }
 
   // ─── GET BLOG BY ID ──────────────────────────────────────────────
+// [Service: Lấy chi tiết Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async getBlogById(blogId) {
     const blog = await blogRepository.getBlogById(blogId);
     if (!blog) throw new Error('NOT_FOUND: Không tìm thấy bài viết');
@@ -104,6 +106,7 @@ async getBlogById(blogId) {
   }
   
   // ─── CREATE BLOG ──────────────────────────────────────────────
+// [Service: Tạo Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions) {
     if (eventId) {
       const exists = await blogRepository.checkEventExists(eventId);
@@ -112,6 +115,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
     return await blogRepository.createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, parsedPollOptions);
   }
 
+// [Service: Xóa Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async deleteBlog(blogId, userId, role) {
     const authorId = await blogRepository.getBlogAuthor(blogId);
     if (authorId === undefined) throw new Error('NOT_FOUND: Không tìm thấy bài viết');
@@ -120,6 +124,7 @@ async createBlog(authorId, eventId, title, content, imagesJson, pollQuestion, pa
   }
 
   // ─── VOTE POLL ──────────────────────────────────────────────
+// [Service: Bình chọn Poll] Nhận từ Controller -> Xử lý logic -> gọi Repository
 async votePoll(blogId, userId, optionIndex) {
     if (optionIndex === undefined || optionIndex === null) throw new Error('BAD_REQUEST: Vui lòng chọn một đáp án');
     
@@ -142,6 +147,7 @@ async votePoll(blogId, userId, optionIndex) {
     }
   }
 
+// [Service: Thích Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async likeBlog(blogId, userId) {
     const exists = await blogRepository.checkBlogLikeExists(blogId, userId);
     if (exists) {
@@ -153,6 +159,7 @@ async votePoll(blogId, userId, optionIndex) {
     }
   }
 
+// [Service: Lấy danh sách bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getComments(blogId, userId, sort) {
     let orderClause = 'ORDER BY c.CreatedAt DESC';
     if (sort === 'top') {
@@ -170,6 +177,7 @@ async votePoll(blogId, userId, optionIndex) {
   }
 
   // ─── ADD COMMENT ──────────────────────────────────────────────
+// [Service: Thêm bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async addComment(blogId, userId, content, parentCommentId, imageUrl) {
     if ((!content || !content.trim()) && !imageUrl) {
       throw new Error('BAD_REQUEST: Nội dung bình luận không được để trống');
@@ -191,6 +199,7 @@ async votePoll(blogId, userId, optionIndex) {
     return { ...comment, ...userInfo };
   }
 
+// [Service: Lưu hoặc bỏ lưu Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async toggleSaveBlog(blogId, userId) {
     const exists = await blogRepository.checkSavedBlogExists(blogId, userId);
     if (exists) {
@@ -202,6 +211,7 @@ async votePoll(blogId, userId, optionIndex) {
     }
   }
 
+// [Service: Lấy danh sách Blog đã lưu] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getSavedBlogs(userId, page = 1, limit = 10) {
     const offset = (page - 1) * limit;
     const total = await blogRepository.getSavedBlogsCount(userId);
@@ -222,6 +232,7 @@ async votePoll(blogId, userId, optionIndex) {
     };
   }
 
+// [Service: Chỉnh sửa bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async editComment(commentId, userId, content, imageUrl) {
     if ((!content || !content.trim()) && !imageUrl) throw new Error('BAD_REQUEST: Nội dung bình luận không được để trống');
     
@@ -232,6 +243,7 @@ async votePoll(blogId, userId, optionIndex) {
     await blogRepository.updateComment(commentId, content, imageUrl);
   }
 
+// [Service: Xóa bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async deleteComment(commentId, userId, role) {
     const ownerId = await blogRepository.getCommentOwner(commentId);
     if (ownerId === undefined) throw new Error('NOT_FOUND: Không tìm thấy bình luận');
@@ -241,6 +253,7 @@ async votePoll(blogId, userId, optionIndex) {
     await blogRepository.deleteCommentTree(commentId);
   }
 
+// [Service: Thích bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async likeComment(commentId, userId) {
     const exists = await blogRepository.checkCommentLikeExists(commentId, userId);
     if (exists) {
@@ -252,22 +265,26 @@ async votePoll(blogId, userId, optionIndex) {
     }
   }
 
+// [Service: Lấy thông báo] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getNotifications(userId) {
     return await blogRepository.getNotifications(userId);
   }
 
   // Ghi nhận report bài viết: không xóa ngay, chỉ bật cờ để admin duyệt thủ công.
+// [Service: Báo cáo Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async reportBlog(blogId, reason, userId) {
     const exists = await blogRepository.checkBlogExists(blogId);
     if (!exists) throw new Error('NOT_FOUND: Không tìm thấy bài viết');
     await blogRepository.reportBlog(blogId, reason, userId);
   }
 
+// [Service: Lấy danh sách Blog bị báo cáo] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getReportedBlogs() {
     return await blogRepository.getReportedBlogs();
   }
 
   // Admin duyệt report bài viết: delete xóa vĩnh viễn và tạo notification, dismiss chỉ reset trạng thái report.
+// [Service: Giải quyết báo cáo Blog] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async resolveReportedBlog(blogId, action, reason) {
     if (action === 'delete') {
       const blog = await blogRepository.getBlogDataForReport(blogId);
@@ -283,17 +300,20 @@ async votePoll(blogId, userId, optionIndex) {
   }
 
   // Ghi nhận report bình luận vào chính bản ghi BlogComments.
+// [Service: Báo cáo bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async reportComment(commentId, reason, userId) {
     const exists = await blogRepository.checkCommentExists(commentId);
     if (!exists) throw new Error('NOT_FOUND: Không tìm thấy bình luận');
     await blogRepository.reportComment(commentId, reason, userId);
   }
 
+// [Service: Lấy danh sách bình luận bị báo cáo] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async getReportedComments() {
     return await blogRepository.getReportedComments();
   }
 
   // Admin duyệt report bình luận: xóa comment tree hoặc giữ lại bằng cách bỏ cờ report.
+// [Service: Giải quyết báo cáo bình luận] Nhận từ Controller -> Xử lý logic -> gọi Repository
   async resolveReportedComment(commentId, action) {
     if (action === 'delete') {
       const comment = await blogRepository.getCommentDataForReport(commentId);

@@ -5,6 +5,7 @@ const {
   unauthorizedResponse, notFoundResponse, conflictResponse, forbiddenResponse,
 } = require('../utils/response');
 
+// [Đăng ký tài khoản] Gọi từ auth.routes -> Kiểm tra file upload -> Gọi authService.register
 const register = async (req, res) => {
   try {
     const result = await authService.register(req.body, req.files);
@@ -19,6 +20,7 @@ const register = async (req, res) => {
   }
 };
 
+// [Gửi lại hồ sơ BTC] Gọi từ route -> Gọi authService.resubmitOrganizer
 const resubmitOrganizer = async (req, res) => {
   try {
     const result = await authService.resubmitOrganizer(req.body, req.files);
@@ -33,10 +35,12 @@ const resubmitOrganizer = async (req, res) => {
   }
 };
 
+// [Xác thực Email] Gọi từ route -> Trả về thông báo (hiện tại tự động kích hoạt)
 const verifyEmail = async (req, res) => {
   return successResponse(res, null, 'Xác thực email không cần thiết. Tài khoản đã được kích hoạt.');
 };
 
+// [Gửi lại email xác thực] Gọi từ route -> Gọi authService.resendVerification
 const resendVerification = async (req, res) => {
   try {
     const result = await authService.resendVerification(req.body.email);
@@ -46,6 +50,7 @@ const resendVerification = async (req, res) => {
   }
 };
 
+// [Đăng nhập] Gọi từ auth.routes -> Gọi authService.login -> Lưu refresh_token vào Cookie -> Trả access_token
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body.email, req.body.password);
@@ -60,6 +65,7 @@ const login = async (req, res) => {
   }
 };
 
+// [Làm mới Token] Gọi từ route -> Gọi authService.refreshToken
 const refreshToken = async (req, res) => {
   try {
     const result = await authService.refreshToken(req.body.refreshToken);
@@ -70,6 +76,7 @@ const refreshToken = async (req, res) => {
   }
 };
 
+// [Đăng xuất] Gọi từ route -> Gọi authService.logout -> Xóa refresh token
 const logout = async (req, res) => {
   try {
     await authService.logout(req.user.UserID);
@@ -79,6 +86,7 @@ const logout = async (req, res) => {
   }
 };
 
+// [Lấy thông tin cá nhân] Gọi từ route (authenticate) -> Gọi authService.getMe
 const getMe = async (req, res) => {
   try {
     const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
@@ -91,6 +99,7 @@ const getMe = async (req, res) => {
   }
 };
 
+// [Cập nhật thông tin cá nhân] Gọi từ route -> Gọi authService.updateMe
 const updateMe = async (req, res) => {
   try {
     const exactUserId = req.user?.UserID || req.user?.userId || req.user?.id;
@@ -101,6 +110,7 @@ const updateMe = async (req, res) => {
   }
 };
 
+// [Quên mật khẩu] Gọi từ route -> Gọi authService.forgotPassword -> Gửi email reset
 const forgotPassword = async (req, res) => {
   try {
     await authService.forgotPassword(req.body.email);
@@ -112,6 +122,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+// [Đặt lại mật khẩu] Gọi từ route -> Gọi authService.resetPassword
 const resetPassword = async (req, res) => {
   try {
     await authService.resetPassword(req.body.token, req.body.password);
@@ -122,6 +133,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// [Đổi mật khẩu] Gọi từ route (authenticate) -> Gọi authService.changePassword
 const changePassword = async (req, res) => {
   try {
     await authService.changePassword(req.user.UserID, req.body.currentPassword, req.body.newPassword);
@@ -132,6 +144,7 @@ const changePassword = async (req, res) => {
   }
 };
 
+// [Đăng nhập Google OAuth] Gọi từ route -> Xác thực idToken Google -> Gọi authService.googleLogin
 const googleLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -157,6 +170,7 @@ const googleLogin = async (req, res) => {
   }
 };
 
+// [Tạo tài khoản Diễn giả] Gọi từ route -> Gọi authService.createSpeaker
 const createSpeaker = async (req, res) => {
   try {
     const result = await authService.createSpeaker(req.body);
@@ -167,6 +181,7 @@ const createSpeaker = async (req, res) => {
   }
 };
 
+// [Duyệt/Từ chối Diễn giả] Gọi từ route (Admin) -> Gọi authService.approveSpeaker
 const approveSpeaker = async (req, res) => {
   try {
     const { speakerId } = req.params;
@@ -180,6 +195,7 @@ const approveSpeaker = async (req, res) => {
   }
 };
 
+// [Duyệt/Từ chối BTC] Gọi từ route (Admin) -> Gọi authService.approveOrganizer
 const approveOrganizer = async (req, res) => {
   try {
     const { profileId } = req.params;
@@ -193,6 +209,7 @@ const approveOrganizer = async (req, res) => {
   }
 };
 
+// [Lấy danh sách BTC chưa duyệt] Gọi từ route (Admin) -> Gọi authService.getPendingOrganizers
 const getPendingOrganizers = async (req, res) => {
   try {
     const result = await authService.getPendingOrganizers();
@@ -202,6 +219,7 @@ const getPendingOrganizers = async (req, res) => {
   }
 };
 
+// [Lấy tất cả BTC] Gọi từ route (Admin) -> Gọi authService.getAllOrganizers
 const getAllOrganizers = async (req, res) => {
   try {
     const result = await authService.getAllOrganizers();
@@ -211,6 +229,7 @@ const getAllOrganizers = async (req, res) => {
   }
 };
 
+// [Lấy danh sách Diễn giả chưa duyệt] Gọi từ route (Admin) -> Gọi authService.getPendingSpeakers
 const getPendingSpeakers = async (req, res) => {
   try {
     const result = await authService.getPendingSpeakers();
@@ -220,6 +239,7 @@ const getPendingSpeakers = async (req, res) => {
   }
 };
 
+// [Lấy tất cả Diễn giả] Gọi từ route (Admin) -> Gọi authService.getAllSpeakers
 const getAllSpeakers = async (req, res) => {
   try {
     const result = await authService.getAllSpeakers();
@@ -229,6 +249,7 @@ const getAllSpeakers = async (req, res) => {
   }
 };
 
+// [Cập nhật cài đặt thông báo] Gọi từ route -> Gọi authService.updateSettings
 const updateSettings = async (req, res) => {
   try {
     await authService.updateSettings(req.user.UserID, req.body.emailNotifs);
@@ -238,6 +259,7 @@ const updateSettings = async (req, res) => {
   }
 };
 
+// [Xóa tài khoản] Gọi từ route (authenticate) -> Gọi authService.deleteAccount
 const deleteAccount = async (req, res) => {
   try {
     await authService.deleteAccount(req.user.UserID);

@@ -9,6 +9,7 @@ const useAuthStore = create(
       user: null, accessToken: null, refreshToken: null,
       isAuthenticated: false, isLoading: false, error: null,
 
+      // [Đăng nhập] UI (LoginPage) gọi -> POST /api/auth/login -> Lưu user + token vào State
       login: async (credentials) => {
         set({ isLoading: true, error: null });
         try {
@@ -31,15 +32,13 @@ const useAuthStore = create(
             role: user.Role || user.role,
             avatarURL: user.AvatarURL || user.avatarURL,
             phone: user.Phone || user.phone,
-            // ĐÃ SỬA: Nhớ hứng trường University lúc login
-            university: user.University || user.university, 
-            // Giữ lại các key viết hoa cũ cho các file component khác đỡ bị lỗi
-            UserID: user.UserID || user.userId,
-            FullName: user.FullName || user.fullName,
-            Role: user.Role || user.role,
-            Email: user.Email || user.email,
-            AvatarURL: user.AvatarURL || user.avatarURL,
-            University: user.University || user.university
+            isFPTStudent: user.IsFPTStudent ?? user.isFPTStudent ?? false, 
+            organizationName: user.organizationName || user.OrganizationName || '',
+            avatarURL: user.avatarURL || user.AvatarURL || '',
+            isActive: user.IsActive ?? user.isActive ?? true,
+            isVerified: user.IsVerified ?? user.isVerified ?? false,
+            MustChangePassword: user.MustChangePassword ?? false,
+            IsFPTStudent: user.IsFPTStudent ?? user.isFPTStudent ?? false
           };
 
           localStorage.setItem('accessToken', accessToken);
@@ -54,6 +53,7 @@ const useAuthStore = create(
         }
       },
 
+      // [Đăng nhập Google] UI gọi -> POST /api/auth/google -> Cập nhật State
       googleLogin: async (idToken) => {
         set({ isLoading: true, error: null });
         try {
@@ -73,14 +73,13 @@ const useAuthStore = create(
             email: user.Email || user.email,
             role: user.Role || user.role,
             avatarURL: user.AvatarURL || user.avatarURL,
-            phone: user.Phone || user.phone,
-            university: user.University || user.university, 
-            UserID: user.UserID || user.userId,
-            FullName: user.FullName || user.fullName,
-            Role: user.Role || user.role,
-            Email: user.Email || user.email,
-            AvatarURL: user.AvatarURL || user.avatarURL,
-            University: user.University || user.university
+            phone: user.Phone || user.phone || '',
+            isFPTStudent: user.IsFPTStudent ?? user.isFPTStudent ?? false, 
+            organizationName: user.organizationName || user.OrganizationName || '',
+            avatarURL: user.avatarURL || user.AvatarURL || '',
+            isActive: user.IsActive ?? user.isActive ?? true,
+            isVerified: user.IsVerified ?? user.isVerified ?? false,
+            IsFPTStudent: user.IsFPTStudent ?? user.isFPTStudent ?? false
           };
 
           localStorage.setItem('accessToken', accessToken);
@@ -95,6 +94,7 @@ const useAuthStore = create(
         }
       },
 
+      // [Đăng ký tài khoản] UI (RegisterPage) gọi -> POST /api/auth/register -> Cập nhật State
       register: async (data) => {
         set({ isLoading: true, error: null });
         try {
@@ -108,6 +108,7 @@ const useAuthStore = create(
         }
       },
 
+      // [Đăng xuất] UI gọi -> POST /api/auth/logout -> Xóa State + localStorage
       logout: async () => {
         try { await authService.logout(); } catch {}
         localStorage.removeItem('accessToken');
@@ -120,6 +121,7 @@ const useAuthStore = create(
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
 
+      // [Lấy thông tin cá nhân] UI gọi -> GET /api/auth/me -> Cập nhật State
       fetchMe: async () => {
         try {
           const res = await authService.getMe();
@@ -133,8 +135,8 @@ const useAuthStore = create(
             role: u.role || u.Role, 
             avatarURL: u.avatarURL || u.AvatarURL, 
             phone: u.phone || u.Phone,
-            //lấy trường University để trang Sự kiện check
-            university: u.university || u.University, 
+            //lấy trường IsFPTStudent để trang Sự kiện check
+            isFPTStudent: u.isFPTStudent ?? u.IsFPTStudent ?? false, 
             isVerified: u.isVerified, 
             createdAt: u.createdAt,
             organizerProfile: u.organizerProfile,
@@ -146,7 +148,7 @@ const useAuthStore = create(
             Role: u.role || u.Role,
             Email: u.email || u.Email,
             AvatarURL: u.avatarURL || u.AvatarURL,
-            University: u.university || u.University
+            IsFPTStudent: u.isFPTStudent ?? u.IsFPTStudent ?? false
           };
           
           set({ user: normalizedUser, isAuthenticated: true });
@@ -156,6 +158,7 @@ const useAuthStore = create(
         }
       },
 
+      // [Xóa lỗi] UI gọi -> Reset trường error trong State
       clearError: () => set({ error: null }),
     }),
     {

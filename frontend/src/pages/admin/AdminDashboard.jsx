@@ -26,6 +26,7 @@ const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// [Giao diện trang chủ Admin] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const AdminDashboard = () => {
   const { message, modal } = AntdApp.useApp();
   const confirm = modal.confirm;
@@ -42,6 +43,7 @@ const AdminDashboard = () => {
   const selectedFeedbackId = searchParams.get('feedbackId');
   const [eventDetailTab, setEventDetailTab] = useState("about");
 
+  // [Đặt menu đang kích hoạt] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const setActiveMenu = (menu) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
@@ -58,6 +60,7 @@ const AdminDashboard = () => {
     });
   };
 
+  // [Đặt ID sự kiện được chọn] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const setSelectedEventId = (id) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
@@ -67,6 +70,7 @@ const AdminDashboard = () => {
     });
   };
 
+  // [Xử lý xem chi tiết sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleViewEvent = (eventId, feedbackId = null) => {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
@@ -148,6 +152,7 @@ const AdminDashboard = () => {
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { loadStats(); }, [timeRange]);
 
+  // [Tải thống kê] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadStats = async () => {
     try {
       const statsRes = await eventService.getDashboardStats(timeRange);
@@ -180,6 +185,7 @@ const AdminDashboard = () => {
   ], [stats]);
   const RATIO_COLORS = ['#3b82f6', '#f59e0b', '#ec4899', '#10b981'];
 
+  // [Tải tất cả dữ liệu] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadAll = async () => {
     setLoading(true);
     try {
@@ -222,6 +228,7 @@ const AdminDashboard = () => {
   };
 
   /* ── Quản lý Thông báo sự kiện ── */
+  // [Tải thông báo sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadEventNotifs = async (event) => {
     setEventNotifModal({ open: true, event, data: [], loading: true });
     try {
@@ -236,6 +243,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý thu hồi thông báo] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleRevokeNotif = async (title, msg) => {
     try {
       const res = await fetch(`${API_BASE}/admin/events/${eventNotifModal.event.EventID}/notifications`, {
@@ -278,6 +286,7 @@ const AdminDashboard = () => {
   ];
 
   /* ── Action Handlers ── */
+  // [Xử lý thao tác với ban tổ chức] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleOrgAction = async (profileId, action, reason = '') => {
     try {
       await adminService.reviewOrganizer(profileId, action, reason);
@@ -286,6 +295,7 @@ const AdminDashboard = () => {
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
 
+  // [Xử lý thao tác với sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleEventAction = async (eventId, action, reason = '') => {
     try {
       await eventService.reviewEvent(eventId, action, reason);
@@ -294,6 +304,7 @@ const AdminDashboard = () => {
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
 
+  // [Xử lý duyệt sự kiện kèm phân công nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleApproveEventWithStaff = async () => {
     const { event } = approveEventModal;
     try {
@@ -322,6 +333,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý lưu thông tin nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSaveStaff = async (values) => {
     try {
       if (staffModal.data) {
@@ -351,6 +363,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý xóa nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleDeleteStaff = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/staff/${id}`, {
@@ -366,6 +379,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Mở hộp thoại quản lý nhân viên] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const openStaffModal = (data = null) => {
     if (data) {
       staffForm.setFieldsValue({ fullName: data.FullName, email: data.Email, phone: data.Phone, isActive: data.IsActive });
@@ -375,6 +389,7 @@ const AdminDashboard = () => {
     setStaffModal({ open: true, data });
   };
 
+  // [Xử lý lưu thông tin địa điểm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleVenueSubmit = async (values) => {
     try {
       if (venueModal.data) {
@@ -394,6 +409,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý xóa địa điểm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleDeleteVenue = async (id) => {
     try {
       await venueService.deleteVenue(id);
@@ -404,6 +420,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Mở hộp thoại địa điểm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const openVenueModal = (data = null) => {
     if (data) {
       venueForm.setFieldsValue({ Name: data.Name, Address: data.Address });
@@ -413,6 +430,7 @@ const AdminDashboard = () => {
     setVenueModal({ open: true, data });
   };
 
+  // [Xử lý thao tác với diễn giả] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSpeakerAction = async (speakerId, action, reason = '') => {
     try {
       await adminService.reviewSpeaker(speakerId, action, reason);
@@ -421,11 +439,13 @@ const AdminDashboard = () => {
     } catch (err) { message.error(err.response?.data?.message || 'Thao tác thất bại'); }
   };
 
+  // [Mở hộp thoại từ chối] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const openReject = (type, id, title) => {
     setRejectReason('');
     setRejectModal({ open: true, type, id, title });
   };
 
+  // [Xác nhận từ chối] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const confirmReject = async () => {
     if (!rejectReason.trim()) return message.warning('Vui lòng nhập lý do');
     const { type, id } = rejectModal;
@@ -437,6 +457,7 @@ const AdminDashboard = () => {
     setRejectModal({ open: false });
   };
 
+  // [Xử lý giải quyết báo cáo] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleResolveReport = async (feedbackId, action) => {
     try {
       await feedbackService.resolveReport(feedbackId, action);
@@ -447,6 +468,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý giải quyết báo cáo bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleResolveBlogReport = async (blogId, action, reason = '') => {
     try {
       await blogService.resolveReportedBlog(blogId, action, reason);
@@ -457,6 +479,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý giải quyết báo cáo bình luận] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleResolveCommentReport = async (commentId, action) => {
     try {
       await blogService.resolveReportedComment(commentId, action);
@@ -467,6 +490,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // [Xử lý đăng xuất] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -781,6 +805,7 @@ const AdminDashboard = () => {
     }
   ];
 
+  // [Xử lý gửi thông báo hàng loạt] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleBroadcast = async (values) => {
     try {
       setBroadcastLoading(true);
@@ -1519,7 +1544,7 @@ const AdminDashboard = () => {
             <Descriptions.Item label="Người đại diện">{viewOrgModal.org.FullName}</Descriptions.Item>
             <Descriptions.Item label="Email">{viewOrgModal.org.Email}</Descriptions.Item>
             <Descriptions.Item label="Điện thoại">{viewOrgModal.org.Phone || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Chức vụ">{viewOrgModal.org.Position || '—'}</Descriptions.Item>
+
             <Descriptions.Item label="Ngày đăng ký">{dayjs(viewOrgModal.org.CreatedAt).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
             <Descriptions.Item label="Trạng thái">
               <Tag color={viewOrgModal.org.ApprovalStatus === 'Approved' ? 'green' : viewOrgModal.org.ApprovalStatus === 'Rejected' ? 'red' : 'orange'}>

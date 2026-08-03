@@ -1,5 +1,6 @@
 const staffService = require('../services/staff.service');
 
+// [Lấy danh sách người tham gia sự kiện] Gọi từ Route -> Kiểm tra quyền Staff/Organizer -> Gọi staffService.getEventParticipants
 const getEventParticipants = async (req, res) => {
   try {
     const data = await staffService.getEventParticipants(parseInt(req.params.eventId), req.user.UserID, req.user.Role);
@@ -11,6 +12,7 @@ const getEventParticipants = async (req, res) => {
   }
 };
 
+// [Lấy danh sách Staff khả dụng] Gọi từ Route (Admin) -> Gọi staffService.getAvailableStaff
 const getAvailableStaff = async (req, res) => {
   try {
     const { eventId } = req.query;
@@ -22,6 +24,7 @@ const getAvailableStaff = async (req, res) => {
   }
 };
 
+// [Tạo tài khoản Staff] Gọi từ Route (Admin) -> Gọi staffService.createStaff
 const createStaff = async (req, res) => {
   try {
     await staffService.createStaff(req.body);
@@ -32,6 +35,7 @@ const createStaff = async (req, res) => {
   }
 };
 
+// [Cập nhật Staff] Gọi từ Route (Admin) -> Gọi staffService.updateStaff
 const updateStaff = async (req, res) => {
   try {
     await staffService.updateStaff(parseInt(req.params.staffId), req.body);
@@ -41,6 +45,7 @@ const updateStaff = async (req, res) => {
   }
 };
 
+// [Xóa Staff] Gọi từ Route (Admin) -> Gọi staffService.deleteStaff
 const deleteStaff = async (req, res) => {
   try {
     await staffService.deleteStaff(parseInt(req.params.staffId));
@@ -50,6 +55,7 @@ const deleteStaff = async (req, res) => {
   }
 };
 
+// [Lấy danh sách Staff đã gán cho sự kiện] Gọi từ Route -> Gọi staffService.getAssignedStaff
 const getAssignedStaff = async (req, res) => {
   try {
     const data = await staffService.getAssignedStaff(parseInt(req.params.eventId));
@@ -60,6 +66,7 @@ const getAssignedStaff = async (req, res) => {
   }
 };
 
+// [Lấy danh sách sự kiện của Staff] Gọi từ Route -> Gọi staffService.getMyEvents
 const getMyEvents = async (req, res) => {
   try {
     const data = await staffService.getMyEvents(req.user.UserID);
@@ -70,6 +77,7 @@ const getMyEvents = async (req, res) => {
   }
 };
 
+// [Gán Staff vào sự kiện] Gọi từ Route (Admin) -> Gọi staffService.assignStaff
 const assignStaff = async (req, res) => {
   try {
     const result = await staffService.assignStaff(parseInt(req.params.eventId), req.body.staffIds, req.user.UserID);
@@ -85,6 +93,7 @@ const assignStaff = async (req, res) => {
   }
 };
 
+// [Sinh mã QR phiên check-in] Gọi từ Route (Staff) -> Kiểm tra quyền -> Tạo JWT token phiên
 const generateStaffSession = async (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
@@ -103,6 +112,7 @@ const generateStaffSession = async (req, res) => {
   }
 };
 
+// [Xóa quyền Staff khỏi sự kiện] Gọi từ Route (Admin) -> Gọi staffService.revokeStaff
 const revokeStaff = async (req, res) => {
   try {
     await staffService.revokeStaff(parseInt(req.params.eventId), parseInt(req.params.staffId));
@@ -113,6 +123,7 @@ const revokeStaff = async (req, res) => {
   }
 };
 
+// [Participant tự check-in bằng OTP] Gọi từ Route -> Gọi staffService.participantCheckinWithOTP
 const participantCheckinWithOTP = async (req, res) => {
   try {
     await staffService.participantCheckinWithOTP(parseInt(req.params.eventId), req.user.UserID, req.body.staffId, req.body.otp);

@@ -8,8 +8,9 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthService {
+  // [Đăng ký tài khoản] Kiểm tra email tồn tại -> Mã hóa pass -> Gọi Repo tạo User -> Tùy Role tạo thêm thông tin
   async register(data, files) {
-    const { fullName, email, password, role = 'Participant', phone, organizationName, university } = data;
+    const { fullName, email, password, role = 'Participant', phone, organizationName, isFPTStudent } = data;
     
     if (!['Participant', 'Organizer'].includes(role)) {
       throw new Error('BAD_REQUEST: Chỉ được đăng ký với vai trò: Người tham dự hoặc Ban tổ chức');
@@ -27,7 +28,7 @@ class AuthService {
     const passwordHash = await bcrypt.hash(password, 12);
     
     const newUser = await authRepository.createUser({
-      fullName, email, passwordHash, role, phone, university
+      fullName, email, passwordHash, role, phone, isFPTStudent
     });
 
     if (role === 'Organizer') {
@@ -102,6 +103,7 @@ class AuthService {
     return { message: msg };
   }
 
+  // [Đăng nhập] Lấy User qua email -> Verify Password (bcrypt) -> Kiểm tra trạng thái -> Tạo JWT (Access + Refresh)
   async login(email, password) {
     const user = await authRepository.findUserWithOrgStatus(email);
     if (!user) throw new Error('UNAUTHORIZED: Email hoặc mật khẩu không đúng');
@@ -125,7 +127,7 @@ class AuthService {
             email: user.Email,
             fullName: user.FullName,
             phone: user.Phone,
-            university: user.University,
+            isFPTStudent: user.IsFPTStudent,
             organizationName: user.OrganizationName
           }
         };
@@ -197,7 +199,7 @@ class AuthService {
       role: row.Role, 
       avatarURL: row.AvatarURL, 
       phone: row.Phone,
-      university: row.University,
+      isFPTStudent: row.IsFPTStudent,
       isVerified: row.IsVerified, 
       createdAt: row.CreatedAt,
     };
@@ -235,7 +237,7 @@ class AuthService {
     if (files && files['avatar'] && files['avatar'].length > 0) {
       finalAvatarURL = files['avatar'][0].filename;
     }
-    await authRepository.updateProfile(userId, data.fullName, data.phone || null, data.university || null, finalAvatarURL);
+    await authRepository.updateProfile(userId, data.fullName, data.phone || null, data.isFPTStudent || false, finalAvatarURL);
 
     if (role === 'Organizer' && files && files['documents'] && files['documents'].length > 0) {
       const filePaths = files['documents'].map(f => f.filename);
@@ -283,19 +285,15 @@ class AuthService {
     let speakerId;
 
     if (existing) {
-      if (existing.Role === 'Speaker') {
-        speakerId = existing.UserID;
-      } else {
-        throw new Error('CONFLICT: Email này đã được dùng cho tài khoản khác');
-      }
-    } else {
-      const tempToken = crypto.randomBytes(32).toString('hex');
-      const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const passwordHash = await bcrypt.hash(data.password, 10);
-      
-      speakerId = await authRepository.createSpeakerUser({ ...data, passwordHash }, tempToken, tokenExpiry);
-      await authRepository.createSpeakerProfile(speakerId, data);
+      throw new Error('CONFLICT: Email này đã được đăng ký trong hệ thống');
     }
+
+    const tempToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    
+    speakerId = await authRepository.createSpeakerUser({ ...data, passwordHash }, tempToken, tokenExpiry);
+    await authRepository.createSpeakerProfile(speakerId, data);
 
     return { speakerId, status: 'PendingAdminApproval' };
   }

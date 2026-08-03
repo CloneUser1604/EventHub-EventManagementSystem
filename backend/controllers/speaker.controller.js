@@ -1,6 +1,7 @@
 const speakerService = require('../services/speaker.service');
 const { successResponse, errorResponse, notFoundResponse, unauthorizedResponse } = require('../utils/response');
 
+// [Controller: Lấy thông tin event invitation gần nhất] Gọi từ Route -> Validate -> gọi Service
 const getPendingInvitation = async (req, res) => {
   try {
     const result = await speakerService.getPendingInvitation(parseInt(req.params.userId));
@@ -11,6 +12,7 @@ const getPendingInvitation = async (req, res) => {
   }
 };
 
+// [Controller: Cập nhật mật khẩu và phản hồi invitation lần đầu] Gọi từ Route -> Validate -> gọi Service
 const firstTimeSetup = async (req, res) => {
   try {
     await speakerService.firstTimeSetup(parseInt(req.params.userId), req.body.newPassword, req.body.responses);
@@ -22,6 +24,7 @@ const firstTimeSetup = async (req, res) => {
   }
 };
 
+// [Controller: Lấy danh sách lời mời hiện có] Gọi từ Route -> Validate -> gọi Service
 const getInvitations = async (req, res) => {
   try {
     const data = await speakerService.getInvitations(req.user.UserID);
@@ -31,6 +34,7 @@ const getInvitations = async (req, res) => {
   }
 };
 
+// [Controller: Xử lý phản hồi lời mời] Gọi từ Route -> Validate -> gọi Service
 const respondInvitation = async (req, res) => {
   try {
     const message = await speakerService.respondInvitation(req.user.UserID, parseInt(req.params.eventId), req.body.action, req.body.notificationId);
@@ -40,6 +44,7 @@ const respondInvitation = async (req, res) => {
   }
 };
 
+// [Controller: Lấy danh sách sự kiện mà diễn giả tham gia] Gọi từ Route -> Validate -> gọi Service
 const getSpeakerEvents = async (req, res) => {
   try {
     const data = await speakerService.getSpeakerEvents(req.user.UserID);

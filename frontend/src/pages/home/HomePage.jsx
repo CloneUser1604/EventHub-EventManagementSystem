@@ -41,6 +41,7 @@ const {Title, Text} = Typography;
 const {Option} = Select;
 
 // ─── Animated counter ──────────────────────────────────────────
+// [Thành phần bộ đếm] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const Counter = ({target, suffix = ""}) => {
   const [count, setCount] = useState(0);
   useEffect(() => {
@@ -63,6 +64,7 @@ const Counter = ({target, suffix = ""}) => {
   );
 };
 
+// [Lấy biểu tượng theo danh mục] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
   if (name.includes('công nghệ') || name.includes('tech') || name.includes('it')) return <CodeOutlined />;
@@ -76,6 +78,7 @@ const getCategoryIcon = (categoryName) => {
 };
 
 // ─── Custom Featured Card ──────────────────────────────────────
+// [Thẻ hiển thị sự kiện nổi bật] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const FeaturedEventCard = ({ event, index }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -152,6 +155,7 @@ const FeaturedEventCard = ({ event, index }) => {
     </div>
   );
 };
+// [Trang chủ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const HomePage = () => {
   const navigate = useNavigate();
   const {events, isLoading, categories, fetchEvents, fetchMeta} = useEventStore();
@@ -184,6 +188,7 @@ const HomePage = () => {
     .slice(0, 3);
 
   // Bug #2 fix: guard against navigating with empty search
+  // [Xử lý tìm kiếm sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSearch = () => {
     if (!search.trim() && !selectedCat) return;
     navigate(`/events?search=${encodeURIComponent(search.trim())}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);

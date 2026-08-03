@@ -12,6 +12,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 const { Title, Text } = Typography;
 const { confirm } = Modal;
 
+// [Lấy cấu hình hiển thị trạng thái] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const getStatusConfig = (t) => ({
   Draft:          { color: 'default', label: t('myEvents.draft') },
   PendingApproval:{ color: 'orange',  label: t('myEvents.pending') },
@@ -21,6 +22,7 @@ const getStatusConfig = (t) => ({
   Completed:      { color: 'blue',    label: t('myEvents.completed') },
 });
 
+// [Trang quản lý sự kiện của BTC] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const OrganizerEventsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -33,11 +35,13 @@ const OrganizerEventsPage = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
+    // [Xử lý thay đổi kích thước ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // [Xác định trạng thái tổng hợp sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const getDerivedStatus = (e) => {
     if (e.Status === 'Published' && dayjs(e.EndDate).isBefore(dayjs())) {
       return 'Completed';
@@ -51,6 +55,7 @@ const OrganizerEventsPage = () => {
     }
   }, [user?.UserID, user?.userId]);
 
+  // [Lấy danh sách sự kiện do tôi tổ chức] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const fetchMyEvents = async () => {
     setLoading(true);
     try {
@@ -60,6 +65,7 @@ const OrganizerEventsPage = () => {
     finally { setLoading(false); }
   };
 
+  // [Xử lý gửi form] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSubmit = (eventId) => {
     confirm({
       title: 'Gửi yêu cầu duyệt?',
@@ -76,6 +82,7 @@ const OrganizerEventsPage = () => {
     });
   };
 
+  // [Xử lý xóa bài viết] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleDelete = (eventId, title) => {
     confirm({
       title: `Xoá sự kiện "${title}"?`, icon: <ExclamationCircleOutlined />,
@@ -88,6 +95,7 @@ const OrganizerEventsPage = () => {
     });
   };
 
+  // [Xử lý hủy sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCancel = (eventId, title) => {
     let reason = '';
     confirm({

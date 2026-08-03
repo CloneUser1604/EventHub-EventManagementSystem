@@ -4,20 +4,14 @@
 -- ============================================================
 
 -- Drop existing tables in reverse dependency order
-IF OBJECT_ID('Feedbacks', 'U') IS NOT NULL DROP TABLE Feedbacks;
-IF OBJECT_ID('Reports', 'U') IS NOT NULL DROP TABLE Reports;
-IF OBJECT_ID('EventSponsors', 'U') IS NOT NULL DROP TABLE EventSponsors;
-IF OBJECT_ID('Sponsors', 'U') IS NOT NULL DROP TABLE Sponsors;
 IF OBJECT_ID('Notifications', 'U') IS NOT NULL DROP TABLE Notifications;
 IF OBJECT_ID('BlogCommentLikes', 'U') IS NOT NULL DROP TABLE BlogCommentLikes;
 IF OBJECT_ID('BlogComments', 'U') IS NOT NULL DROP TABLE BlogComments;
 IF OBJECT_ID('BlogLikes', 'U') IS NOT NULL DROP TABLE BlogLikes;
 IF OBJECT_ID('BlogPollVotes', 'U') IS NOT NULL DROP TABLE BlogPollVotes;
+IF OBJECT_ID('Reports', 'U') IS NOT NULL DROP TABLE Reports;
 IF OBJECT_ID('SavedBlogs', 'U') IS NOT NULL DROP TABLE SavedBlogs;
 IF OBJECT_ID('Blogs', 'U') IS NOT NULL DROP TABLE Blogs;
-IF OBJECT_ID('SurveyResponses', 'U') IS NOT NULL DROP TABLE SurveyResponses;
-IF OBJECT_ID('SurveyQuestions', 'U') IS NOT NULL DROP TABLE SurveyQuestions;
-IF OBJECT_ID('Surveys', 'U') IS NOT NULL DROP TABLE Surveys;
 IF OBJECT_ID('Attendance', 'U') IS NOT NULL DROP TABLE Attendance;
 IF OBJECT_ID('QRTickets', 'U') IS NOT NULL DROP TABLE QRTickets;
 IF OBJECT_ID('Registrations', 'U') IS NOT NULL DROP TABLE Registrations;
@@ -31,6 +25,7 @@ IF OBJECT_ID('Categories', 'U') IS NOT NULL DROP TABLE Categories;
 IF OBJECT_ID('SpeakerProfiles', 'U') IS NOT NULL DROP TABLE SpeakerProfiles;
 IF OBJECT_ID('OrganizerProfiles', 'U') IS NOT NULL DROP TABLE OrganizerProfiles;
 IF OBJECT_ID('Users', 'U') IS NOT NULL DROP TABLE Users;
+IF OBJECT_ID('Feedbacks', 'U') IS NOT NULL DROP TABLE Feedbacks;
 
 -- ============================================================
 -- 1. USERS
@@ -51,7 +46,7 @@ CREATE TABLE Users (
   VerifyToken       VARCHAR(255) NULL,
   VerifyTokenExpiry DATETIME     NULL,
   ResetToken        VARCHAR(255) NULL,
-  ResetTokenExpiry  DATETIME     NULL,
+ResetTokenExpiry  DATETIME     NULL,
   -- Refresh token
   RefreshToken      VARCHAR(500) NULL,
   RefreshTokenExpiry DATETIME    NULL,
@@ -122,7 +117,7 @@ CREATE TABLE Venues (
 -- ============================================================
 CREATE TABLE Events (
   EventID          INT IDENTITY(1,1) PRIMARY KEY,
-  OrganizerID      INT            NOT NULL REFERENCES Users(UserID),
+OrganizerID      INT            NOT NULL REFERENCES Users(UserID),
   CategoryID       INT            NULL REFERENCES Categories(CategoryID),
   VenueID          INT            NULL REFERENCES Venues(VenueID),
   Title            NVARCHAR(300)  NOT NULL,
@@ -244,47 +239,7 @@ CREATE TABLE Attendance (
                    CHECK (Status IN ('Present','Late','Absent'))
 );
 
--- ============================================================
--- 14. SURVEYS
--- ============================================================
-CREATE TABLE Surveys (
-  SurveyID    INT IDENTITY(1,1) PRIMARY KEY,
-  EventID     INT            NOT NULL REFERENCES Events(EventID) ON DELETE CASCADE,
-  CreatedBy   INT            NOT NULL REFERENCES Users(UserID),
-  Title       NVARCHAR(300)  NOT NULL,
-  Description NVARCHAR(MAX)  NULL,
-  IsActive    BIT            NOT NULL DEFAULT 1,
-  StartsAt    DATETIME       NULL,
-  EndsAt      DATETIME       NULL,
-  CreatedAt   DATETIME       NOT NULL DEFAULT GETDATE()
-);
 
--- ============================================================
--- 15. SURVEY QUESTIONS
--- ============================================================
-CREATE TABLE SurveyQuestions (
-  QuestionID   INT IDENTITY(1,1) PRIMARY KEY,
-  SurveyID     INT            NOT NULL REFERENCES Surveys(SurveyID) ON DELETE CASCADE,
-  QuestionText NVARCHAR(500)  NOT NULL,
-  QuestionType VARCHAR(20)    NOT NULL DEFAULT 'Text'
-                 CHECK (QuestionType IN ('Text','Rating','SingleChoice','MultipleChoice')),
-  Options      NVARCHAR(MAX)  NULL,  -- JSON array for choices
-  IsRequired   BIT            NOT NULL DEFAULT 1,
-  OrderIndex   INT            NOT NULL DEFAULT 0
-);
-
--- ============================================================
--- 16. SURVEY RESPONSES
--- ============================================================
-CREATE TABLE SurveyResponses (
-  ResponseID    INT IDENTITY(1,1) PRIMARY KEY,
-  SurveyID      INT            NOT NULL REFERENCES Surveys(SurveyID),
-  QuestionID    INT            NOT NULL REFERENCES SurveyQuestions(QuestionID),
-  ParticipantID INT            NOT NULL REFERENCES Users(UserID),
-  Answer        NVARCHAR(MAX)  NOT NULL,
-  SubmittedAt   DATETIME       NOT NULL DEFAULT GETDATE(),
-  UNIQUE (QuestionID, ParticipantID)
-);
 
 -- ============================================================
 -- 17. BLOGS
@@ -392,6 +347,7 @@ CREATE TABLE Feedbacks (
   MediaURLs     NVARCHAR(MAX) NULL,
   Reply         NVARCHAR(MAX) NULL,
   RepliedAt     DATETIME NULL,
+  ReplyUpdatedAt DATETIME NULL,
   IsReported    BIT NOT NULL DEFAULT 0,
   ReportReason  NVARCHAR(MAX) NULL,
   ReportedAt    DATETIME NULL,

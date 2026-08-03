@@ -33,6 +33,11 @@ class EventService {
       params.push({ name: 'OrgID', type: require('../config/db').sql.Int, value: user.UserID });
       if (status === 'all_published_cancelled') {
         conditions.push(`(e.Status IN ('Published', 'Cancelled') OR e.OrganizerID = @OrgID)`);
+      } else if (status === 'Published') {
+        conditions.push(`e.Status = 'Published'`);
+      } else if (status) {
+        conditions.push(`e.Status = @Status`);
+        params.push({ name: 'Status', type: require('../config/db').sql.VarChar(20), value: status });
       } else {
         conditions.push(`(e.Status = 'Published' OR e.OrganizerID = @OrgID)`);
       }
@@ -86,6 +91,12 @@ class EventService {
       }
     }
     
+    if (isOpenRegistration === 'true') {
+      conditions.push(`e.Status != 'Cancelled'`);
+      conditions.push(`(e.RegistrationDeadline > GETUTCDATE() OR (e.RegistrationDeadline IS NULL AND e.StartDate > GETUTCDATE()))`);
+      conditions.push(`(e.MaxParticipants IS NULL OR e.MaxParticipants > (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered'))`);
+    }
+
     if (isOpenRegistration === 'true') {
       conditions.push(`e.Status != 'Cancelled'`);
       conditions.push(`(e.RegistrationDeadline > GETUTCDATE() OR (e.RegistrationDeadline IS NULL AND e.StartDate > GETUTCDATE()))`);
@@ -146,6 +157,7 @@ class EventService {
     return event;
   }
 
+  // [Tạo sự kiện] Kiểm tra quyền Organizer -> Validate dữ liệu -> Parse dates -> Gọi eventRepository.createEvent
   async createEvent(data, user, files) {
     if (user.Role === 'Organizer') {
       const approvalStatus = await eventRepository.getOrganizerApprovalStatus(user.UserID);
@@ -238,6 +250,7 @@ class EventService {
     return { eventId: newEvent.EventID };
   }
 
+  // [Cập nhật sự kiện] Kiểm tra quyền sở hữu -> Validate trạng thái -> Gọi eventRepository.updateEvent
   async updateEvent(eventId, data, user, files) {
     const event = await eventRepository.findEventById(eventId);
     if (!event) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');
@@ -414,6 +427,7 @@ class EventService {
     }
   }
 
+  // [Hủy sự kiện] Lấy thông tin sự kiện -> Kiểm tra quyền sở hữu -> Gọi eventRepository.cancelEvent -> Gửi thông báo
   async cancelEvent(eventId, reason, user) {
     const event = await eventRepository.findEventById(eventId);
     if (!event) throw new Error('NOT_FOUND: Không tìm thấy sự kiện');

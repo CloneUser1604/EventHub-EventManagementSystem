@@ -22,6 +22,7 @@ const { Dragger } = Upload;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+// [Trang tạo/chỉnh sửa sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
 const EventFormPage = () => {
   const { id } = useParams(); // undefined = create, has value = edit
   const { t } = useTranslation();
@@ -43,6 +44,7 @@ const EventFormPage = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
+    // [Xử lý thay đổi kích thước ảnh] Kích hoạt từ giao diện -> Gọi Store/API xử lý
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -56,6 +58,7 @@ const EventFormPage = () => {
     }
   }, [id]);
 
+  // [Tải thông tin sự kiện để chỉnh sửa] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const loadEvent = async () => {
     const ev = await fetchEventById(id);
     if (!ev) return navigate('/organizer/events');
@@ -74,6 +77,7 @@ const EventFormPage = () => {
     setSessions(ev.sessions || []);
   };
 
+  // [Xử lý lưu sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSave = async (submitAfter = false) => {
     try {
       const values = await form.validateFields();
@@ -93,6 +97,7 @@ const EventFormPage = () => {
     }
   };
 
+  // [Thực hiện gửi dữ liệu form sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const doSubmit = async (values, submitAfter, reason = '') => {
     try {
       setLoading(true);
@@ -200,6 +205,7 @@ const EventFormPage = () => {
     }
   };
 
+  // [Xử lý xác nhận lý do chỉnh sửa] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleConfirmEditReason = () => {
     if (!editReason.trim()) {
       return message.error('Vui lòng nhập lý do chỉnh sửa');
@@ -208,10 +214,14 @@ const EventFormPage = () => {
     doSubmit(editReasonModal.values, editReasonModal.submitAfter, editReason);
   };
 
+  // [Thêm phiên/khung giờ mới] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const addSession = () => setSessions(s => [...s, { title: '', description: '', startTime: '', endTime: '', location: '', speakerEmails: [], _new: true }]);
+  // [Xóa phiên/khung giờ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const removeSession = (i) => setSessions(s => s.filter((_, idx) => idx !== i));
+  // [Cập nhật thông tin phiên/khung giờ] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const updateSession = (i, field, val) => setSessions(s => s.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
 
+  // [Xử lý tạo diễn giả mới] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleCreateSpeaker = async () => {
     try {
       const values = await speakerForm.validateFields();

@@ -97,6 +97,13 @@ class EventService {
       conditions.push(`(e.MaxParticipants IS NULL OR e.MaxParticipants > (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered'))`);
     }
 
+    if (sortBy === 'Participants') {
+      conditions.push(`e.Status != 'Cancelled'`);
+      if (!timeStatus) {
+        conditions.push(`e.EndDate >= GETUTCDATE()`);
+      }
+    }
+
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
 
     let orderCol = 'e.StartDate';

@@ -33,22 +33,26 @@ class RegistrationRepository {
   // [Kiểm tra trùng lịch] Nhận từ Service -> SELECT Registrations JOIN Events theo khoảng thời gian
   async findOverlappingRegistrations(participantId, eventId, startDate, endDate) {
     const pool = getPool();
-    const overlapping = await pool.request()
-      .input('PID', sql.Int, participantId)
+    const result = await pool.request()
+      .input('ParticipantID', sql.Int, participantId)
       .input('EventID', sql.Int, eventId)
-      .input('NewStart', sql.DateTime, startDate)
-      .input('NewEnd', sql.DateTime, endDate)
+      .input('StartDate', sql.DateTime, startDate)
+      .input('EndDate', sql.DateTime, endDate)
       .query(`
-        SELECT e.Title 
+        SELECT e.EventID, e.Title, e.StartDate, e.EndDate 
         FROM Registrations r
         JOIN Events e ON r.EventID = e.EventID
-        WHERE r.ParticipantID = @PID 
-          AND r.EventID != @EventID
+        WHERE r.ParticipantID = @ParticipantID 
           AND r.Status = 'Registered'
-          AND e.StartDate < @NewEnd 
-          AND e.EndDate > @NewStart
+          AND e.Status != 'Cancelled'
+          AND r.EventID != @EventID
+          AND (
+            (@StartDate BETWEEN e.StartDate AND e.EndDate)
+            OR (@EndDate BETWEEN e.StartDate AND e.EndDate)
+            OR (e.StartDate BETWEEN @StartDate AND @EndDate)
+          )
       `);
-    return overlapping.recordset;
+    return result.recordset;
   }
 
   // [Cập nhật trạng thái đăng ký] Nhận từ Service -> UPDATE bảng Registrations

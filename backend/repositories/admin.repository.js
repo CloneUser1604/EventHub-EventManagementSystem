@@ -222,7 +222,7 @@ class AdminRepository {
     const pool = getPool();
     const result = await pool.request()
       .query(`
-        SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, IsFPTStudent
+        SELECT UserID, FullName, Email, Role, Phone, IsActive, IsVerified, CreatedAt, University
         FROM Users
         WHERE Role != 'Admin'
         ORDER BY CreatedAt DESC

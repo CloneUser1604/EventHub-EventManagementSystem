@@ -1551,7 +1551,7 @@ const BlogPage = ({ noLayout = false, adminBlogId = null, adminCommentId = null,
         overflow: 'hidden'
       }}>
         
-        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', padding: '16px 24px', cursor: 'pointer', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }} onClick={() => { if(canPost) setIsModalVisible(true); }}>
+        <div style={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', padding: '16px 24px', cursor: 'pointer', borderBottom: theme === 'dark' ? '1px solid #27272a' : '1px solid #f0f0f0' }} onClick={() => { if(canPost) { setIsModalVisible(true); } else { message.warning('Vui lòng đăng nhập để đăng bài'); } }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
               <Avatar src={getAvatarUrl(user?.avatarURL || user?.AvatarURL)} icon={<UserOutlined />} size={40} />

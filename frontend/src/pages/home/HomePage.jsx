@@ -191,7 +191,7 @@ const HomePage = () => {
   // [Xử lý tìm kiếm sự kiện] Kích hoạt từ giao diện -> Gọi Store/API xử lý
   const handleSearch = () => {
     if (!search.trim() && !selectedCat) return;
-    navigate(`/events?search=${encodeURIComponent(search.trim())}${selectedCat ? `&categoryId=${selectedCat}` : ""}`);
+    navigate(`/events?search=${encodeURIComponent(search.trim())}${selectedCat ? `&categoryId=${selectedCat}` : ""}`, { state: { fromHome: true } });
   };
 
   return (
@@ -347,7 +347,7 @@ const HomePage = () => {
             <div
               className="category-tag-hover"
               key={c.CategoryID}
-              onClick={() => navigate(`/events?categoryId=${c.CategoryID}`)}
+              onClick={() => navigate(`/events?categoryId=${c.CategoryID}`, { state: { fromHome: true } })}
               style={{ 
                 cursor: 'pointer', padding: '6px 16px', fontSize: 14, borderRadius: 100, 
                 fontWeight: 500, border: '1.5px solid #e5e7eb', background: 'white', 
@@ -465,7 +465,7 @@ const HomePage = () => {
                 {t('home.featuredSubtitle')}
               </Text>
             </div>
-            <Button type="link" onClick={() => navigate("/events?sortBy=Participants&sortOrder=DESC")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+            <Button type="link" onClick={() => navigate("/events?sortBy=Participants&sortOrder=DESC", { state: { fromHome: true } })} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
               {t('home.allEvents')}
             </Button>
           </div>
@@ -492,7 +492,7 @@ const HomePage = () => {
               {t('home.upcomingSubtitle')}
             </Text>
           </div>
-          <Button type="link" onClick={() => navigate("/events?timeStatus=upcoming")} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
+          <Button type="link" onClick={() => navigate("/events?timeStatus=upcoming", { state: { fromHome: true } })} icon={<ArrowRightOutlined />} iconPosition="end" style={{fontWeight: 600, color: "#f27024", fontSize: 16}}>
             {t('home.allEvents')}
           </Button>
         </div>

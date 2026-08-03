@@ -77,11 +77,8 @@ router.put('/me', authenticate, uploadOrgDocs.fields([{ name:'documents', maxCou
       .input('UserID', sql.Int, userId)
       .input('FullName', sql.NVarChar(255), finalName)
       .input('Phone', sql.VarChar(50), finalPhone)
-      // ĐÃ SỬA: Bổ sung input IsFPTStudent
-      .input('IsFPTStudent', sql.Bit, isFPTStudent ? 1 : 0)
       .input('AvatarURL', sql.NVarChar(sql.MAX), finalAvatar)
-      // ĐÃ SỬA: Thêm cột IsFPTStudent=@IsFPTStudent vào câu lệnh UPDATE
-      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, IsFPTStudent = @IsFPTStudent, AvatarURL = @AvatarURL WHERE UserID = @UserID');
+      .query('UPDATE Users SET FullName = @FullName, Phone = @Phone, AvatarURL = @AvatarURL WHERE UserID = @UserID');
 
     // 4. Cập nhật tài liệu Organizer (Nếu có)
     if (req.files && req.files['documents'] && req.files['documents'].length > 0) {

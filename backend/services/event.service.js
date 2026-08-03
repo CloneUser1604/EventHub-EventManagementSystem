@@ -97,18 +97,16 @@ class EventService {
       conditions.push(`(e.MaxParticipants IS NULL OR e.MaxParticipants > (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered'))`);
     }
 
-    if (isOpenRegistration === 'true') {
-      conditions.push(`e.Status != 'Cancelled'`);
-      conditions.push(`(e.RegistrationDeadline > GETUTCDATE() OR (e.RegistrationDeadline IS NULL AND e.StartDate > GETUTCDATE()))`);
-      conditions.push(`(e.MaxParticipants IS NULL OR e.MaxParticipants > (SELECT COUNT(*) FROM Registrations r WHERE r.EventID = e.EventID AND r.Status = 'Registered'))`);
-    }
-
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
 
     let orderCol = 'e.StartDate';
     let orderDir = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
     if (['Title', 'CreatedAt', 'StartDate'].includes(sortBy)) {
       orderCol = `e.${sortBy}`;
+    } else if (sortBy === 'Participants') {
+      orderCol = 'RegisteredCount';
+    } else if (sortBy === 'Rating') {
+      orderCol = 'AverageRating';
     }
 
     const total = await eventRepository.countEvents(whereClause, params);
